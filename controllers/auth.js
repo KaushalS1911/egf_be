@@ -1,12 +1,11 @@
 const CompanyModel = require("../models/company");
-const BranchModel = require("../models/branch");
 const UserModel = require("../models/user");
+const EmployeeModel = require("../models/employee");
 const { createHash, verifyHash } = require('../helpers/hash');
 const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
 
 async function register(req, res) {
     try {
-        console.log("Hello")
         const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
 
         const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
@@ -15,12 +14,10 @@ async function register(req, res) {
         }
 
         const company = await CompanyModel.create({ name: companyName });
-        const branch = await BranchModel.create({ company: company._id, name: "Home", branchCode: "001" });
 
         const isUserExist = await UserModel.exists({ email, deleted_at: null });
         if (isUserExist) {
             await CompanyModel.findByIdAndDelete(company._id);
-            await BranchModel.findByIdAndDelete(branch._id);
             return res.status(400).json({ status: 400, message: "User already exists." });
         }
 
@@ -28,7 +25,6 @@ async function register(req, res) {
 
         const user = await UserModel.create({
             company: company._id,
-            branch: branch._id,
             firstName,
             middleName,
             lastName,
@@ -50,7 +46,9 @@ async function login(req, res) {
     try {
         const { password, email } = req.body;
 
-        const user = await UserModel.findOne({ email });
+        let user;
+
+        user = await UserModel.findOne({ email });
         if (!user) {
             return res.status(404).json({ status: 404, message: "User not found." });
         }
@@ -62,8 +60,14 @@ async function login(req, res) {
 
         const tokens = await setTokens(user._id);
 
-        const {firstName, lastName, avatar_url, role, middleName, contact, _id} = user
-        return res.status(200).json({ data: {tokens, firstName, lastName, avatar_url, role, middleName, contact,email, _id }, message: "Logged in successfully." });
+        user.other_info = tokens
+
+        if(user.role !== 'Admin'){
+            const emp = await EmployeeModel.findOne({user: user._id})
+            user.branchId = emp.branchId
+        }
+
+        return res.status(200).json({ data: user, message: "Logged in successfully." });
 
     } catch (err) {
         console.error(err);

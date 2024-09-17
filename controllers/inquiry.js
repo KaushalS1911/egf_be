@@ -3,7 +3,8 @@ const InquiryModel = require("../models/inquiry")
 
 async function addInquiry(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {companyId} = req.params;
+        const {branch} = req.query;
 
         const {
             firstName, lastName, email, contact, date, inquiryFor, remark
@@ -11,7 +12,7 @@ async function addInquiry(req, res) {
 
         const isInquiryExist = await InquiryModel.exists({
             company: companyId,
-            branch: branchId,
+            branch,
             $or: [
                 { email: email },
                 { contact: contact }
@@ -22,7 +23,7 @@ async function addInquiry(req, res) {
         if (isInquiryExist) return res.json({status: 400, message: "Inquiry already exist"})
 
         const inquiry = await InquiryModel.create({
-            company: companyId, branch: branchId,
+            company: companyId, branch,
             firstName, lastName, email, contact, date, inquiryFor, remark
         })
 
@@ -36,29 +37,39 @@ async function addInquiry(req, res) {
 
 async function getAllInquiries(req, res) {
     try {
-        const {companyId} = req.params;
+        const { companyId } = req.params;
+        const { branch } = req.query;
 
-        const inquiries = await InquiryModel.find({
+        const query = {
             company: companyId,
             deleted_at: null
-        }).populate([{path: "company"}, {path: "branch"}])
+        };
 
-        return res.json({status: 200, data: inquiries})
+        if (branch) {
+            query.branch = branch;
+        }
+
+        const inquiries = await InquiryModel.find(query)
+            .populate([{ path: "company" }, { path: "branch" }]);
+
+        return res.json({ status: 200, data: inquiries });
 
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.log(err);
+        return res.json({ status: 500, message: "Internal server error" });
     }
 }
 
 
+
 async function updateInquiry(req, res) {
     try {
-        const {companyId, branchId, inquiryId} = req.params;
+        const {companyId, inquiryId} = req.params;
+        const {branch} = req.query
 
         const isInquiryExist = await InquiryModel.exists({
             company: companyId,
-            branch: branchId,
+            branch,
             $or: [
                 { email: req.body.email },
                 { contact: req.body.contact }
@@ -80,7 +91,7 @@ async function updateInquiry(req, res) {
 
 async function getSingleInquiry(req, res) {
     try {
-        const {companyId, inquiryId} = req.params;
+        const {inquiryId} = req.params;
 
         const inquiry = await InquiryModel.findById(inquiryId).populate([{path: "company"}, {path: "branch"}])
 

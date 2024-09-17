@@ -5,9 +5,10 @@ const {createHash, verifyHash} = require('../helpers/hash');
 
 async function createEmployee(req, res) {
     try {
-        const {companyId, branchId} = req.params
+        const {companyId} = req.params
 
         const {
+            branch,
             firstName,
             middleName,
             lastName,
@@ -36,7 +37,7 @@ async function createEmployee(req, res) {
 
         const isEmployeeExist = await EmployeeModel.exists({
             company: companyId,
-            branch: branchId,
+            branch,
             deleted_at: null,
             $or: [
                 {email: email},
@@ -51,7 +52,6 @@ async function createEmployee(req, res) {
 
         const user = await UserModel.create({
             company: companyId,
-            branch: branchId,
             role,
             avatar_url: avatar,
             firstName,
@@ -64,7 +64,7 @@ async function createEmployee(req, res) {
 
         const employee = await EmployeeModel.create({
             company: companyId,
-            branch: branchId,
+            branch,
             user: user._id,
             drivingLicense,
             panCard,
@@ -92,15 +92,14 @@ async function createEmployee(req, res) {
 
 async function getAllEmployees(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {companyId} = req.params;
 
-        const Employees = await EmployeeModel.find({
+        const employees = await EmployeeModel.find({
             company: companyId,
-            branch: branchId,
             deleted_at: null
         }).populate([{path: "company"}, {path: "branch"}, {path: "user"}, {path: "reportingTo"}])
 
-        return res.json({status: 200, data: Employees})
+        return res.json({status: 200, data: employees})
 
     } catch (err) {
         console.log(err)
@@ -111,15 +110,15 @@ async function getAllEmployees(req, res) {
 
 async function updateEmployee(req, res) {
     try {
-        const {employeeId, companyId, branchId} = req.params;
+        const {employeeId, companyId} = req.params;
 
         const {
+            branch,
             firstName,
             middleName,
             lastName,
             email,
             contact,
-            password,
             dob,
             role,
             drivingLicense,
@@ -139,7 +138,7 @@ async function updateEmployee(req, res) {
 
         const isEmployeeExist = await EmployeeModel.exists({
             company: companyId,
-            branch: branchId,
+            branch,
             deleted_at: null,
             $or: [
                 {email: email},
@@ -151,6 +150,7 @@ async function updateEmployee(req, res) {
         if (isEmployeeExist) return res.json({status: 400, message: "Employee already exist."})
 
         const updatedEmp = await EmployeeModel.findByIdAndUpdate(employeeId, {
+            branch,
             drivingLicense,
             panCard,
             aadharCard,
@@ -186,7 +186,7 @@ async function updateEmployee(req, res) {
 
 async function getSingleEmployee(req, res) {
     try {
-        const {companyId, branchId, employeeId} = req.params;
+        const {employeeId} = req.params;
 
         const employee = await EmployeeModel.findById(employeeId).populate([{path: "company"}, {path: "branch"},{path: "user"}, {path: "reportingTo"}])
 

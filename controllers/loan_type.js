@@ -1,4 +1,4 @@
-const LoanModel = require("../models/loan")
+const LoanModel = require("../models/loan_type")
 
 
 async function addLoan(req, res) {

@@ -6,10 +6,10 @@ const {createEmployee, getAllEmployees, updateEmployee, getSingleEmployee ,delet
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage});
 
-router.post('/:companyId/branch/:branchId/employee',  upload.single('profile-pic'),createEmployee);
-router.get('/:companyId/branch/:branchId/employee', getAllEmployees);
-router.delete('/:companyId/branch/:branchId/employee', deleteMultipleEmployees);
-router.get('/:companyId/branch/:branchId/employee/:employeeId', getSingleEmployee);
-router.put('/:companyId/branch/:branchId/employee/:employeeId', updateEmployee);
+router.post('/:companyId/employee',  upload.single('profile-pic'),createEmployee);
+router.get('/:companyId/employee', getAllEmployees);
+router.delete('/:companyId/employee', deleteMultipleEmployees);
+router.get('/:companyId/employee/:employeeId', getSingleEmployee);
+router.put('/:companyId/employee/:employeeId', updateEmployee);
 
 module.exports = router;

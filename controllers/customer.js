@@ -4,7 +4,8 @@ const {uploadFile} = require("../helpers/avatar");
 
 async function createCustomer(req, res) {
     try {
-        const {companyId, branchId} = req.params
+        const {companyId} = req.params
+        const {branch} = req.query
 
         const {
             firstName,
@@ -30,7 +31,7 @@ async function createCustomer(req, res) {
 
         const isCustomerExist = await CustomerModel.exists({
             company: companyId,
-            branch: branchId,
+            branch,
             deleted_at: null,
             $or: [
                 {email: email},
@@ -39,9 +40,9 @@ async function createCustomer(req, res) {
         });
 
         if (isCustomerExist) return res.json({status: 400, message: "Customer already exist."})
-        const branch = await BranchModel.findById(branchId).select("branchCode")
+        const customerBranch = await BranchModel.findById(branch).select("branchCode")
 
-        const branchCode = branch.branchCode;
+        const branchCode = customerBranch.branchCode;
 
         const customerCount = await CustomerModel.countDocuments({});
 
@@ -53,7 +54,7 @@ async function createCustomer(req, res) {
 
         const customer = await CustomerModel.create({
             company: companyId,
-            branch: branchId,
+            branch,
             avatar_url: avatar,
             customerCode,
             firstName,
@@ -84,15 +85,22 @@ async function createCustomer(req, res) {
 
 async function getAllCustomers(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {companyId} = req.params;
 
-        const Customers = await CustomerModel.find({
+        const { branch } = req.query;
+
+        const query = {
             company: companyId,
-            branch: branchId,
             deleted_at: null
-        }).populate([{path: "company"}, {path: "branch"}])
+        };
 
-        return res.json({status: 200, data: Customers})
+        if (branch) {
+            query.branch = branch;
+        }
+
+        const customers = await CustomerModel.find(query).populate([{path: "company"}, {path: "branch"}])
+
+        return res.json({status: 200, data: customers})
 
     } catch (err) {
         console.log(err)
@@ -102,11 +110,11 @@ async function getAllCustomers(req, res) {
 
 async function updateCustomerProfile(req, res) {
     try {
-        const {companyId, branchId, CustomerId} = req.params;
+        const {customerId} = req.params;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(CustomerId, {avatar_url: avatar}, {new: true})
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, {avatar_url: avatar}, {new: true})
 
         return res.json({status: 200, data: updatedCustomer, message: "Profile pic updated successfully"})
 
@@ -118,9 +126,9 @@ async function updateCustomerProfile(req, res) {
 
 async function updateCustomer(req, res) {
     try {
-        const {companyId, branchId, CustomerId} = req.params;
+        const {customerId} = req.params;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(CustomerId, req.body, {new: true})
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, req.body, {new: true})
 
         return res.json({status: 200, data: updatedCustomer, message: "Customer updated successfully"})
 
@@ -132,11 +140,11 @@ async function updateCustomer(req, res) {
 
 async function getSingleCustomer(req, res) {
     try {
-        const {companyId, branchId, CustomerId} = req.params;
+        const {customerId} = req.params;
 
-        const Customer = await CustomerModel.findById(CustomerId).populate([{path: "company"}, {path: "branch"}])
+        const customer = await CustomerModel.findById(customerId).populate([{path: "company"}, {path: "branch"}])
 
-        return res.json({status: 200, data: Customer})
+        return res.json({status: 200, data: customer})
 
     } catch (err) {
         console.log(err)

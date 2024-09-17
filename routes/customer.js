@@ -6,11 +6,11 @@ const {createCustomer, getAllCustomers, updateCustomerProfile, updateCustomer, g
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage});
 
-router.post('/:companyId/branch/:branchId/customer',  upload.single('profile-pic') ,createCustomer);
-router.get('/:companyId/branch/:branchId/customer', getAllCustomers);
-router.delete('/:companyId/branch/:branchId/customer', deleteMultipleCustomers);
-router.get('/:companyId/branch/:branchId/customer/:customerId', getSingleCustomer);
-router.put('/:companyId/branch/:branchId/customer/:customerId', updateCustomer);
-router.put('/:companyId/branch/:branchId/customer/:customerId/profile', upload.single('profile-pic') , updateCustomerProfile);
+router.post('/:companyId/customer',  upload.single('profile-pic') ,createCustomer);
+router.get('/:companyId/customer', getAllCustomers);
+router.delete('/:companyId/customer', deleteMultipleCustomers);
+router.get('/:companyId/customer/:customerId', getSingleCustomer);
+router.put('/:companyId/customer/:customerId', updateCustomer);
+router.put('/:companyId/customer/:customerId/profile', upload.single('profile-pic') , updateCustomerProfile);
 
 module.exports = router;

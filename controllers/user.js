@@ -1,4 +1,5 @@
 const UserModel = require("../models/user")
+const EmployeeModel = require("../models/employee")
 const {uploadFile} = require("../helpers/avatar");
 
 
@@ -70,7 +71,14 @@ async function getUser(req, res) {
     try {
         const {id} = req.user;
 
-        const user = await UserModel.findById(id)
+        let user;
+
+        user = await UserModel.findById(id)
+
+        if(user.role !== 'Admin'){
+            const emp = await EmployeeModel.findOne({user: user._id})
+            user.branchId = emp.branchId
+        }
 
         return res.json({status: 200, data: user})
 
