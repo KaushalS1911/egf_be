@@ -6,6 +6,7 @@ const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
 
 async function register(req, res) {
     try {
+        console.log("Hello")
         const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
 
         const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
