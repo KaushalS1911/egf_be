@@ -64,7 +64,7 @@ async function login(req, res) {
 
         if(user.role !== 'Admin'){
             const emp = await EmployeeModel.findOne({user: user._id})
-            user.branchId = emp.branchId
+            user.branch = emp.branch
         }
 
         return res.status(200).json({ data: user, message: "Logged in successfully." });
