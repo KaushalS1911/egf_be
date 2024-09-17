@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { addInquiry, updateInquiry, getAllInquiries, deleteMultipleInquiries, getSingleInquiry} = require('../controllers/inquiry')
 
-router.post('/', addInquiry);
-router.get('/', getAllInquiries);
-router.get('/:schemeId', getSingleInquiry);
-router.put('/:schemeId', updateInquiry);
-router.delete('/', deleteMultipleInquiries);
+router.post('/:companyId/branch/:branchId/inquiry', addInquiry);
+router.get('/:companyId/branch/:branchId/inquiry', getAllInquiries);
+router.get('/:companyId/branch/:branchId/inquiry/:schemeId', getSingleInquiry);
+router.put('/:companyId/branch/:branchId/inquiry/:schemeId', updateInquiry);
+router.delete('/:companyId/branch/:branchId/inquiry', deleteMultipleInquiries);
 
 module.exports = router;

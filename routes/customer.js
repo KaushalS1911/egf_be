@@ -6,11 +6,11 @@ const {createCustomer, getAllCustomers, updateCustomerProfile, updateCustomer, g
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage});
 
-router.post('/',  upload.single('profile-pic') ,createCustomer);
-router.get('/', getAllCustomers);
-router.delete('/', deleteMultipleCustomers);
-router.get('/:customerId', getSingleCustomer);
-router.put('/:customerId', updateCustomer);
-router.put('/:customerId/profile', upload.single('profile-pic') , updateCustomerProfile);
+router.post('/:companyId/branch/:branchId/customer',  upload.single('profile-pic') ,createCustomer);
+router.get('/:companyId/branch/:branchId/customer', getAllCustomers);
+router.delete('/:companyId/branch/:branchId/customer', deleteMultipleCustomers);
+router.get('/:companyId/branch/:branchId/customer/:customerId', getSingleCustomer);
+router.put('/:companyId/branch/:branchId/customer/:customerId', updateCustomer);
+router.put('/:companyId/branch/:branchId/customer/:customerId/profile', upload.single('profile-pic') , updateCustomerProfile);
 
 module.exports = router;

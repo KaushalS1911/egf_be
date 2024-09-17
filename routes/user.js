@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { addBranch, getAllBranches, updateBranch, getSingleBranch,deleteMultipleBranches } = require('../controllers/branch')
+const { getAllUsers, updateUserProfile,updateUser, getSingleUser } = require('../controllers/user')
 
-router.post('/', addBranch);
-router.get('/', getAllBranches);
-router.get('/:branchId', getSingleBranch);
-router.put('/:branchId', updateBranch);
-router.delete('/', deleteMultipleBranches);
+router.get('/:companyId/branch/:branchId/user', getAllUsers);
+router.get('/:companyId/branch/:branchId/user/:userId', getSingleUser);
+router.put('/:companyId/branch/:branchId/user/:userId', updateUser);
+router.delete('/:companyId/branch/:branchId/user/:userId', updateUserProfile);
 
 module.exports = router;
