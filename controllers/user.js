@@ -66,4 +66,18 @@ async function getSingleUser(req, res) {
     }
 }
 
-module.exports = {getAllUsers, updateUserProfile,updateUser, getSingleUser}
+async function getUser(req, res) {
+    try {
+        const {id} = req.user;
+
+        const user = await UserModel.findById(id)
+
+        return res.json({status: 200, data: user})
+
+    } catch (err) {
+        console.log(err)
+        return res.json({status: 500, message: "Internal server error"})
+    }
+}
+
+module.exports = {getAllUsers, updateUserProfile,updateUser, getSingleUser, getUser}

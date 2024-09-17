@@ -61,7 +61,8 @@ async function login(req, res) {
 
         const tokens = await setTokens(user._id);
 
-        return res.status(200).json({ data: tokens, message: "Logged in successfully." });
+        const {firstName, lastName, avatar_url, role, middleName, contact, _id} = user
+        return res.status(200).json({ data: {tokens, firstName, lastName, avatar_url, role, middleName, contact,email, _id }, message: "Logged in successfully." });
 
     } catch (err) {
         console.error(err);
