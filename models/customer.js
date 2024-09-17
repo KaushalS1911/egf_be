@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const addressSchema = require("./common/address");
+const bankAccountSchema = require("./common/bank");
 
 const customerSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
@@ -24,6 +25,7 @@ const customerSchema = new mongoose.Schema({
     avatar_url: {type: String, default: null},
     permanentAddress: addressSchema,
     temporaryAddress: addressSchema,
+    bankDetails: [bankAccountSchema],
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
 

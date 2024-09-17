@@ -11,7 +11,7 @@ const schemeSchema = new mongoose.Schema({
     minLoanTime: String,
     ratePerGram: Number,
     remark: String,
-    status: {type: String, default: "Active"},
+    isActive: {type: Boolean, default: true},
     deleted_at: {type: Date, default: null},
 }, {timestamps: true})
 
