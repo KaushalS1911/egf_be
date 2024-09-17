@@ -10,7 +10,7 @@ const loanRouter = require("./loan_type")
 const propertyRouter = require("../routes/property")
 const penaltyRouter = require("../routes/penalty")
 const employeeRouter = require("../routes/employee")
-// const configRouter = require("../routes/config")
+const configRouter = require("../routes/config")
 const router = express.Router();
 
 
@@ -30,6 +30,6 @@ router.use('/company', loanRouter)
 router.use('/company', propertyRouter)
 router.use('/company', penaltyRouter)
 router.use('/company', employeeRouter)
-// router.use('/company', configRouter)
+router.use('/company', configRouter)
 
 module.exports = router;

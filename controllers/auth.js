@@ -1,6 +1,7 @@
 const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
 const EmployeeModel = require("../models/employee");
+const ConfigModel = require("../models/config");
 const { createHash, verifyHash } = require('../helpers/hash');
 const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
 
@@ -33,6 +34,8 @@ async function register(req, res) {
             role,
             password: encryptedPassword
         });
+
+        await setConfigs(company._id)
 
         return res.status(201).json({ status: 201, message: "Registered successfully", data: user });
 
@@ -87,6 +90,93 @@ async function setTokens(userId) {
     await UserModel.findByIdAndUpdate(userId, { other_info: tokens }, { new: true });
 
     return tokens;
+}
+
+const setConfigs = async (companyId) => {
+
+    const configs = new ConfigModel({
+        company_id: companyId,
+        businessTypes: [],
+        roles: ["Admin", "Employee"],
+        permissions: {
+            'Employee': {
+                sections: ['inquiry', 'customer', 'scheme', 'carat', 'employee', "loan_type", "penalty","property","loan_issue","loan_disburse","loan_pay"],
+                responsibilities: {
+
+                    // customer
+                    'create_customer': true,
+                    'read_customer': true,
+                    'update_customer': true,
+                    'delete_customer': true,
+
+                    // inquiry
+                    'create_inquiry': true,
+                    'read_inquiry': true,
+                    'update_inquiry': true,
+                    'delete_inquiry': true,
+
+                    // scheme
+                    'create_scheme': true,
+                    'read_scheme': true,
+                    'update_scheme': true,
+                    'delete_scheme': true,
+
+                    // carat
+                    'create_carat': true,
+                    'read_carat': true,
+                    'update_carat': true,
+                    'delete_carat': true,
+
+                    // employee
+                    'create_employee': true,
+                    'read_employee': true,
+                    'update_employee': true,
+                    'delete_employee': true,
+
+                    // loan_type
+                    'create_loan_type': true,
+                    'read_loan_type': true,
+                    'update_loan_type': true,
+                    'delete_loan_type': true,
+
+                    // penalty
+                    'create_penalty': true,
+                    'read_penalty': true,
+                    'update_penalty': true,
+                    'delete_penalty': true,
+
+                    // property
+                    'create_property': true,
+                    'read_property': true,
+                    'update_property': true,
+                    'delete_property': true,
+
+                    // loan_issue
+                    'create_loan_issue': true,
+                    'read_loan_issue': true,
+                    'update_loan_issue': true,
+                    'delete_loan_issue': true,
+
+
+                    // loan_disburse
+                    'create_loan_disburse': true,
+                    'read_loan_disburse': true,
+                    'update_loan_disburse': true,
+                    'delete_loan_disburse': true,
+
+
+                    // loan_pay
+                    'create_loan_pay': true,
+                    'read_loan_pay': true,
+                    'update_loan_pay': true,
+                    'delete_loan_pay': true,
+
+                },
+            },
+        }
+    });
+
+    await configs.save();
 }
 
 module.exports = { register, login };

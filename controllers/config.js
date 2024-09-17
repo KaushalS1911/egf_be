@@ -1,23 +1,12 @@
+const ConfigModel = require("../models/config")
 
-
-async function getAllInquiries(req, res) {
+async function getConfigs(req, res) {
     try {
         const { companyId } = req.params;
-        const { branch } = req.query;
 
-        const query = {
-            company: companyId,
-            deleted_at: null
-        };
+        const configs = await ConfigModel.find({company: companyId});
 
-        if (branch) {
-            query.branch = branch;
-        }
-
-        const inquiries = await InquiryModel.find(query)
-            .populate([{ path: "company" }, { path: "branch" }]);
-
-        return res.json({ status: 200, data: inquiries });
+        return res.json({ status: 200, data: configs });
 
     } catch (err) {
         console.log(err);
@@ -25,31 +14,18 @@ async function getAllInquiries(req, res) {
     }
 }
 
-
-
-async function updateInquiry(req, res) {
+async function updateConfig(req, res) {
     try {
-        const {companyId, inquiryId} = req.params;
-        const {branch} = req.query
+        const {configId} = req.params;
 
-        const isInquiryExist = await InquiryModel.exists({
-            company: companyId,
-            branch,
-            $or: [
-                { email: req.body.email },
-                { contact: req.body.contact }
-            ],
-            deleted_at: null
-        })
+        const updatedConfigs = await ConfigModel.findByIdAndUpdate(configId, req.body, {new: true})
 
-        if (isInquiryExist) return res.json({status: 400, message: "Inquiry already exist"})
-
-        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, {new: true})
-
-        return res.json({status: 200, data: updatedInquiry, message: "Inquiry updated successfully"})
+        return res.json({status: 200, data: updatedConfigs, message: "Configs updated successfully"})
 
     } catch (err) {
         console.log(err)
         return res.json({status: 500, message: "Internal server error"})
     }
 }
+
+module.exports = {getConfigs, updateConfig}
