@@ -73,7 +73,7 @@ async function updateInquiry(req, res) {
                 {email: req.body.email},
                 {contact: req.body.contact}
             ],
-            $ne: {_id: inquiryId},
+            _id: { $ne: inquiryId },
             deleted_at: null
         })
 
