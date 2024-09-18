@@ -6,11 +6,11 @@ const nodemailer = require("nodemailer");
 const path = require("path")
 const ejs = require("ejs")
 const jwt = require("jsonwebtoken");
-const { createHash, verifyHash } = require('../helpers/hash');
-const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
+const {createHash, verifyHash} = require('../helpers/hash');
+const {signLoginToken, signRefreshToken} = require("../helpers/jwt");
 
 const transporter = nodemailer.createTransport({
-    service: 'Gmail',
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL,
         pass: process.env.PASSWORD,
@@ -20,17 +20,17 @@ const transporter = nodemailer.createTransport({
 
 async function register(req, res) {
     try {
-        const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
+        const {firstName, middleName, lastName, email, contact, companyName, role, password} = req.body;
 
-        const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
+        const isCompanyExist = await CompanyModel.exists({name: companyName, deleted_at: null});
         if (isCompanyExist) {
-            return res.status(400).json({ status: 400, message: "Company already exists." });
+            return res.status(400).json({status: 400, message: "Company already exists."});
         }
-        const company = await CompanyModel.create({ name: companyName });
+        const company = await CompanyModel.create({name: companyName});
 
-        const isUserExist = await UserModel.exists({ email, deleted_at: null });
+        const isUserExist = await UserModel.exists({email, deleted_at: null});
         if (isUserExist) {
-            return res.status(400).json({ status: 400, message: "User already exists." });
+            return res.status(400).json({status: 400, message: "User already exists."});
         }
 
         const encryptedPassword = await createHash(password);
@@ -47,53 +47,52 @@ async function register(req, res) {
 
         await setConfigs(company?._id);
 
-        return res.status(201).json({ status: 201, message: "Registered successfully", data: user });
+        return res.status(201).json({status: 201, message: "Registered successfully", data: user});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 
 async function login(req, res) {
     try {
-        const { password, email } = req.body;
+        const {password, email} = req.body;
 
-        const user = await UserModel.findOne({ email });
+        const user = await UserModel.findOne({email});
         if (!user) {
-            return res.status(404).json({ status: 404, message: "User not found." });
+            return res.status(404).json({status: 404, message: "User not found."});
         }
 
         const isMatch = await verifyHash(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ status: 400, message: "Invalid credentials." });
+            return res.status(400).json({status: 400, message: "Invalid credentials."});
         }
 
         const tokens = await setTokens(user._id);
 
         if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({ user: user._id });
+            const emp = await EmployeeModel.findOne({user: user._id});
             user.branch = emp?.branch;
         }
 
-        return res.status(200).json({ data: { ...user.toObject(), tokens }, message: "Logged in successfully." });
+        return res.status(200).json({data: {...user.toObject(), tokens}, message: "Logged in successfully."});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function forgotPassword(req, res) {
-    const { email } = req.body;
-
+    const {email} = req.body;
     try {
-        const user = await UserModel.findOne({ email });
+        const user = await UserModel.findOne({email});
 
         if (!user) {
-            return res.status(400).json({ message: 'User with this email does not exist.' });
+            return res.status(400).json({message: 'User with this email does not exist.'});
         }
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {
             expiresIn: '1h',
         });
 
@@ -113,9 +112,10 @@ async function forgotPassword(req, res) {
             html: htmlContent,
         });
 
-        res.json({ message: 'Password reset link sent to your email.' });
+        return res.json({message: 'Password reset link sent to your email.'});
     } catch (error) {
-        res.status(500).json({ message: 'Server error.' });
+        console.log(error)
+        return res.status(500).json({message: 'Server error.'});
     }
 }
 
@@ -126,7 +126,7 @@ async function setTokens(userId) {
         jwtRefresh: signRefreshToken(userId)
     };
 
-    await UserModel.findByIdAndUpdate(userId, { other_info: tokens }, { new: true });
+    await UserModel.findByIdAndUpdate(userId, {other_info: tokens}, {new: true});
     return tokens;
 }
 
@@ -139,7 +139,7 @@ const setConfigs = async (companyId) => {
         roles: ["Admin", "Employee"],
         permissions: {
             'Employee': {
-                sections: ['inquiry', 'customer', 'scheme', 'carat', 'employee', "loan_type", "penalty","property","loan_issue","loan_disburse","loan_pay"],
+                sections: ['inquiry', 'customer', 'scheme', 'carat', 'employee', "loan_type", "penalty", "property", "loan_issue", "loan_disburse", "loan_pay"],
                 responsibilities: {
 
                     // customer
@@ -218,4 +218,4 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = { register, login, forgotPassword };
+module.exports = {register, login, forgotPassword};
