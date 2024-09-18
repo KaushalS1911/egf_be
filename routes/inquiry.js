@@ -4,8 +4,8 @@ const { addInquiry, updateInquiry, getAllInquiries, deleteMultipleInquiries, get
 
 router.post('/:companyId/inquiry', addInquiry);
 router.get('/:companyId/inquiry', getAllInquiries);
-router.get('/:companyId/inquiry/:schemeId', getSingleInquiry);
-router.put('/:companyId/inquiry/:schemeId', updateInquiry);
+router.get('/:companyId/inquiry/:inquiryId', getSingleInquiry);
+router.put('/:companyId/inquiry/:inquiryId', updateInquiry);
 router.delete('/:companyId/inquiry', deleteMultipleInquiries);
 
 module.exports = router;
