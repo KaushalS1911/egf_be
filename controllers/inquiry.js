@@ -14,8 +14,8 @@ async function addInquiry(req, res) {
             company: companyId,
             branch,
             $or: [
-                { email: email },
-                { contact: contact }
+                {email: email},
+                {contact: contact}
             ],
             deleted_at: null
         })
@@ -37,8 +37,8 @@ async function addInquiry(req, res) {
 
 async function getAllInquiries(req, res) {
     try {
-        const { companyId } = req.params;
-        const { branch } = req.query;
+        const {companyId} = req.params;
+        const {branch} = req.query;
 
         const query = {
             company: companyId,
@@ -50,16 +50,15 @@ async function getAllInquiries(req, res) {
         }
 
         const inquiries = await InquiryModel.find(query)
-            .populate([{ path: "company" }, { path: "branch" }]);
+            .populate([{path: "company"}, {path: "branch"}]);
 
-        return res.json({ status: 200, data: inquiries });
+        return res.json({status: 200, data: inquiries});
 
     } catch (err) {
         console.log(err);
-        return res.json({ status: 500, message: "Internal server error" });
+        return res.json({status: 500, message: "Internal server error"});
     }
 }
-
 
 
 async function updateInquiry(req, res) {
@@ -71,9 +70,10 @@ async function updateInquiry(req, res) {
             company: companyId,
             branch,
             $or: [
-                { email: req.body.email },
-                { contact: req.body.contact }
+                {email: req.body.email},
+                {contact: req.body.contact}
             ],
+            $ne: {_id: inquiryId},
             deleted_at: null
         })
 
