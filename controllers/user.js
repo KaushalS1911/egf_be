@@ -96,14 +96,14 @@ async function getUser(req, res) {
 async function updatePassword(req, res) {
     try {
         const {userId} = req.params
-        const {newPassword, password} = req.body;
+        const {newPassword, currentPassword} = req.body;
 
         const user = await UserModel.findById(userId);
         if (!user) {
             return res.status(404).json({status: 404, message: "User not found."});
         }
 
-        const isMatch = await verifyHash(password, user.password);
+        const isMatch = await verifyHash(currentPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({status: 400, message: "Current password is incorrect."});
         }
