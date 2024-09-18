@@ -91,6 +91,43 @@ async function login(req, res) {
     }
 }
 
+async function forgotPassword(req, res) {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ message: 'User with this email does not exist.' });
+        }
+
+        // Create reset token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+            expiresIn: '1h',
+        });
+
+        const resetLink = `http://localhost:3000/reset-password/${token}`;
+
+        const templatePath = path.join(__dirname, '../views/resetPasswordEmail.ejs');
+        const htmlContent = await ejs.renderFile(templatePath, {
+            userName: user.name, // Pass user data to EJS template
+            resetLink
+        });
+
+        // Send reset link via email
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: user.email,
+            subject: 'Password Reset',
+            html: htmlContent, // Use rendered HTML
+        });
+
+        res.json({ message: 'Password reset link sent to your email.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error.' });
+    }
+}
+
 
 async function setTokens(userId) {
     const tokens = {
@@ -190,4 +227,4 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = { register, login };
+module.exports = { register, login, forgotPassword };
