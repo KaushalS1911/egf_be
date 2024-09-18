@@ -1,4 +1,5 @@
 const CompanyModel = require("../models/company")
+const {uploadFile} = require("../helpers/avatar");
 
 async function getSingleCompany(req, res) {
     try {
@@ -28,4 +29,20 @@ async function updateCompany(req, res) {
     }
 }
 
-module.exports = {updateCompany,getSingleCompany}
+async function updateCompanyLogo(req, res) {
+    try {
+        const {companyId} = req.params;
+
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+
+        await CompanyModel.findByIdAndUpdate(companyId, {logo_url: avatar}, {new: true})
+
+        return res.json({status: 200, message: "Company logo updated successfully"})
+
+    } catch (err) {
+        console.log(err)
+        return res.json({status: 500, message: "Internal server error"})
+    }
+}
+
+module.exports = {updateCompany,getSingleCompany,updateCompanyLogo}
