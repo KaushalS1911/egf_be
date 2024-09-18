@@ -94,10 +94,18 @@ async function getAllEmployees(req, res) {
     try {
         const {companyId} = req.params;
 
-        const employees = await EmployeeModel.find({
+        const {branch} = req.query;
+
+        const query = {
             company: companyId,
             deleted_at: null
-        }).populate([{path: "company"}, {path: "branch"}, {path: "user"}, {path: "reportingTo"}])
+        };
+
+        if (branch) {
+            query.branch = branch;
+        }
+
+        const employees = await EmployeeModel.find(query).populate([{path: "company"}, {path: "branch"}, {path: "user"}, {path: "reportingTo"}])
 
         return res.json({status: 200, data: employees})
 

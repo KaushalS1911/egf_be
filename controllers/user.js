@@ -1,7 +1,7 @@
 const UserModel = require("../models/user")
 const EmployeeModel = require("../models/employee")
 const {uploadFile} = require("../helpers/avatar");
-
+const {verifyHash} = require("../helpers/hash")
 
 async function getAllUsers(req, res) {
     try {
@@ -19,17 +19,17 @@ async function getAllUsers(req, res) {
 
         const users = await UserModel.find(query).populate([{path: "company"}])
 
-       return res.json({status: 200, data: users})
+        return res.json({status: 200, data: users})
 
     } catch (err) {
         console.log(err)
-       return res.json({status: 500, message: "Internal server error"})
+        return res.json({status: 500, message: "Internal server error"})
     }
 }
 
 async function updateUserProfile(req, res) {
     try {
-        const { userId} = req.params;
+        const {userId} = req.params;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
@@ -81,7 +81,7 @@ async function getUser(req, res) {
 
         user = await UserModel.findById(id)
 
-        if(user?.role !== 'Admin'){
+        if (user?.role !== 'Admin') {
             const emp = await EmployeeModel.findOne({user: user?._id})
             user.branchId = emp?.branchId
         }
@@ -94,4 +94,34 @@ async function getUser(req, res) {
     }
 }
 
-module.exports = {getAllUsers, updateUserProfile,updateUser, getSingleUser, getUser}
+
+async function updatePassword(req, res) {
+    try {
+        const {userId} = req.params
+        const {newPassword, password} = req.body;
+
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({status: 404, message: "User not found."});
+        }
+
+        const isMatch = await verifyHash(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({status: 400, message: "Current password is incorrect."});
+        }
+
+
+        if (user.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user._id});
+            user.branch = emp?.branch;
+        }
+
+        return res.status(200).json({data: {...user.toObject(), tokens}, message: "Logged in successfully."});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+
+module.exports = {getAllUsers, updateUserProfile, updateUser, getSingleUser, getUser, updatePassword}

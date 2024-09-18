@@ -92,7 +92,6 @@ async function login(req, res) {
 }
 
 
-
 async function setTokens(userId) {
     const tokens = {
         jwt: signLoginToken(userId),
