@@ -33,7 +33,8 @@ async function register(req, res) {
             return res.status(400).json({ status: 400, message: "User already exists." });
         }
 
-        await setConfigs(company._id);
+        await setConfigs(company?._id);
+
         return res.status(201).json({ status: 201, message: "Registered successfully", data: user });
     } catch (err) {
         console.error(err);
@@ -106,7 +107,7 @@ async function forgotPassword(req, res) {
             expiresIn: '1h',
         });
 
-        const resetLink = `reset-password/${token}`;
+        const resetLink = `https://egf-be.onrender.com/reset-password/${token}`;
 
         const templatePath = path.join(__dirname, '../views/resetPasswordEmail.ejs');
         const htmlContent = await ejs.renderFile(templatePath, {
