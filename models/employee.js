@@ -14,7 +14,6 @@ const employeeSchema = new mongoose.Schema({
     dob: String,
     remark: String,
     reportingTo: {type: String, ref: "User", required: true},
-    username: String,
     joiningDate: String,
     leaveDate: String,
     permanentAddress: addressSchema,
