@@ -1,7 +1,7 @@
 const UserModel = require("../models/user")
 const EmployeeModel = require("../models/employee")
 const {uploadFile} = require("../helpers/avatar");
-const {verifyHash} = require("../helpers/hash")
+const {verifyHash, createHash} = require("../helpers/hash")
 
 async function getAllUsers(req, res) {
     try {
@@ -46,8 +46,6 @@ async function updateUserProfile(req, res) {
 async function updateUser(req, res) {
     try {
         const {userId} = req.params;
-
-        // const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
         const updatedUser = await UserModel.findByIdAndUpdate(userId, req.body, {new: true})
 
@@ -110,13 +108,11 @@ async function updatePassword(req, res) {
             return res.status(400).json({status: 400, message: "Current password is incorrect."});
         }
 
+        const encryptedPassword = await createHash(newPassword);
 
-        if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user._id});
-            user.branch = emp?.branch;
-        }
+        await UserModel.findByIdAndUpdate(userId, {password: encryptedPassword}, {new: true})
 
-        return res.status(200).json({data: {...user.toObject(), tokens}, message: "Logged in successfully."});
+        return res.status(200).json({status: 200, message: "Password updated successfully."});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
