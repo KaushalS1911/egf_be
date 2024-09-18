@@ -133,7 +133,7 @@ async function setTokens(userId) {
 const setConfigs = async (companyId) => {
 
     const configs = new ConfigModel({
-        company_id: companyId,
+        company: companyId,
         businessTypes: [],
         roles: ["Admin", "Employee"],
         permissions: {
