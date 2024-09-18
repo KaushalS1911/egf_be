@@ -12,6 +12,6 @@ router.get('/:companyId/user/:userId', getSingleUser);
 router.put('/:companyId/user/:userId', updateUser);
 router.put('/:companyId/user/:userId/profile', upload.single("profile-pic"),updateUserProfile);
 router.get('/me', auth ,getUser);
-router.put('/company/:companyId/user/:userId/update-password' ,updatePassword);
+router.put('/:companyId/user/:userId/update-password' ,updatePassword);
 
 module.exports = router;

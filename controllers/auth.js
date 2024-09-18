@@ -5,6 +5,7 @@ const ConfigModel = require("../models/config");
 const nodemailer = require("nodemailer");
 const path = require("path")
 const ejs = require("ejs")
+const jwt = require("jsonwebtoken");
 const { createHash, verifyHash } = require('../helpers/hash');
 const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
 
@@ -95,31 +96,29 @@ async function forgotPassword(req, res) {
     const { email } = req.body;
 
     try {
-        const user = await User.findOne({ email });
+        const user = await UserModel.findOne({ email });
 
         if (!user) {
             return res.status(400).json({ message: 'User with this email does not exist.' });
         }
 
-        // Create reset token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: '1h',
         });
 
-        const resetLink = `http://localhost:3000/reset-password/${token}`;
+        const resetLink = `reset-password/${token}`;
 
         const templatePath = path.join(__dirname, '../views/resetPasswordEmail.ejs');
         const htmlContent = await ejs.renderFile(templatePath, {
-            userName: user.name, // Pass user data to EJS template
+            userName: user.name,
             resetLink
         });
 
-        // Send reset link via email
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: user.email,
             subject: 'Password Reset',
-            html: htmlContent, // Use rendered HTML
+            html: htmlContent,
         });
 
         res.json({ message: 'Password reset link sent to your email.' });
