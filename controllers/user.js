@@ -5,13 +5,19 @@ const {uploadFile} = require("../helpers/avatar");
 
 async function getAllUsers(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {companyId} = req.params;
+        const {branch} = req.query;
 
-        const users = await UserModel.find({
+        const query = {
             company: companyId,
-            branch: branchId,
             deleted_at: null
-        }).populate([{path: "company"}, {path: "branch"}])
+        };
+
+        if (branch) {
+            query.branch = branch;
+        }
+
+        const users = await UserModel.find(query).populate([{path: "company"}])
 
        return res.json({status: 200, data: users})
 
@@ -23,7 +29,7 @@ async function getAllUsers(req, res) {
 
 async function updateUserProfile(req, res) {
     try {
-        const {companyId, branchId, userId} = req.params;
+        const { userId} = req.params;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
@@ -39,7 +45,7 @@ async function updateUserProfile(req, res) {
 
 async function updateUser(req, res) {
     try {
-        const {companyId, branchId, userId} = req.params;
+        const {userId} = req.params;
 
         // const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
@@ -55,7 +61,7 @@ async function updateUser(req, res) {
 
 async function getSingleUser(req, res) {
     try {
-        const {companyId, branchId, userId} = req.params;
+        const {userId} = req.params;
 
         const user = await UserModel.findById(userId)
 
@@ -75,9 +81,9 @@ async function getUser(req, res) {
 
         user = await UserModel.findById(id)
 
-        if(user.role !== 'Admin'){
-            const emp = await EmployeeModel.findOne({user: user._id})
-            user.branchId = emp.branchId
+        if(user?.role !== 'Admin'){
+            const emp = await EmployeeModel.findOne({user: user?._id})
+            user.branchId = emp?.branchId
         }
 
         return res.json({status: 200, data: user})

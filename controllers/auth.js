@@ -2,8 +2,20 @@ const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
 const EmployeeModel = require("../models/employee");
 const ConfigModel = require("../models/config");
+const nodemailer = require("nodemailer");
+const path = require("path")
+const ejs = require("ejs")
 const { createHash, verifyHash } = require('../helpers/hash');
 const { signLoginToken, signRefreshToken } = require("../helpers/jwt");
+
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD,
+    },
+});
+
 
 async function register(req, res) {
     try {
@@ -78,6 +90,8 @@ async function login(req, res) {
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
+
 
 async function setTokens(userId) {
     const tokens = {
