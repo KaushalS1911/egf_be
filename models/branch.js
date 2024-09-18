@@ -6,7 +6,7 @@ const branchSchema = new mongoose.Schema({
     branchCode: String,
     email: {type: String, default: null},
     contact: {type: String, default: null},
-    status: {type: String, default: "Active"},
+    isActive: {type: Boolean, default: true},
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
 
