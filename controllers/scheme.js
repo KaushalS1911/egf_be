@@ -6,7 +6,7 @@ async function addScheme(req, res) {
         const {companyId} = req.params;
 
         const {
-            name, interestRate, interestPeriod, schemeType, valuation, renewalTime, minLoanTime, retePerGram, remark
+            name, interestRate, interestPeriod, schemeType, valuation, renewalTime, minLoanTime, ratePerGram, remark
         } = req.body
 
         const isSchemeExist = await SchemeModel.exists({
@@ -27,7 +27,7 @@ async function addScheme(req, res) {
             valuation,
             renewalTime,
             minLoanTime,
-            retePerGram,
+            ratePerGram,
             remark
         })
 
