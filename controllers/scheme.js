@@ -65,7 +65,8 @@ async function updateScheme(req, res) {
             company: companyId,
             interestRate: req.body.interestRate,
             name: req.body.name,
-            deleted_at: null
+            deleted_at: null,
+            _id: {$ne: schemeId}
         })
 
         if (isSchemeExist) return res.json({status: 400, message: "Scheme already exist"})
