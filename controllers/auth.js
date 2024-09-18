@@ -34,7 +34,7 @@ async function register(req, res) {
         }
 
         const encryptedPassword = await createHash(password);
-        const user = await CompanyModel.create({
+        const user = await UserModel.create({
             company: company?._id,
             firstName,
             middleName,
