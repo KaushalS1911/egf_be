@@ -98,17 +98,18 @@ async function forgotPassword(req, res) {
         });
 
         const resetLink = `https://egf-be.onrender.com/reset-password/${token}`;
-
+        const logo = path.join(__dirname, '../public/images/22.png');
         const templatePath = path.join(__dirname, '../views/resetPasswordEmail.ejs');
+
         const htmlContent = await ejs.renderFile(templatePath, {
-            userName: user.name,
-            resetLink
+            resetLink,
+            logo
         });
 
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: user.email,
-            subject: 'Password Reset',
+            subject: 'Forgot Password',
             html: htmlContent,
         });
 

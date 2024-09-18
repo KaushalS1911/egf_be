@@ -11,6 +11,7 @@ const propertyRouter = require("../routes/property")
 const penaltyRouter = require("../routes/penalty")
 const employeeRouter = require("../routes/employee")
 const configRouter = require("../routes/config")
+const companyRouter = require("../routes/company")
 const router = express.Router();
 
 
@@ -19,6 +20,7 @@ router.get('/', function (req, res, next) {
 });
 
 router.use('/auth', authRouter)
+router.use('/company', companyRouter)
 router.use('/company', branchRouter)
 router.use('/company', schemeRouter)
 router.use('/company', inquiryRouter)
