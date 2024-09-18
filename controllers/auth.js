@@ -14,9 +14,9 @@ async function register(req, res) {
             return res.status(400).json({ status: 400, message: "Company already exists." });
         }
 
-        const user = await createUser({ firstName, middleName, lastName, email, contact, role, password, companyId: company._id });
+        const user = await createUser({ firstName, middleName, lastName, email, contact, role, password, companyId: company?._id });
         if (!user) {
-            await CompanyModel.findByIdAndDelete(company._id);
+            await CompanyModel.findByIdAndDelete(company?._id);
             return res.status(400).json({ status: 400, message: "User already exists." });
         }
 
