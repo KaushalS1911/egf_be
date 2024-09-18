@@ -9,6 +9,6 @@ const upload = multer({storage: storage});
 
 router.put('/:companyId', updateCompany);
 router.get('/:companyId', getSingleCompany);
-router.get('/:companyId/update-logo',upload.single("company-logo") ,updateCompanyLogo);
+router.put('/:companyId/update-logo',upload.single("company-logo") ,updateCompanyLogo);
 
 module.exports = router;
