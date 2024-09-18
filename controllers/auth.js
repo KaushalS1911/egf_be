@@ -22,16 +22,28 @@ async function register(req, res) {
     try {
         const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
 
-        const company = await createCompany(companyName);
-        if (!company) {
+        const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
+        if (isCompanyExist) {
             return res.status(400).json({ status: 400, message: "Company already exists." });
         }
+        const company = await CompanyModel.create({ name: companyName });
 
-        const user = await createUser({ firstName, middleName, lastName, email, contact, role, password, companyId: company?._id });
-        if (!user) {
-            await CompanyModel.findByIdAndDelete(company?._id);
+        const isUserExist = await UserModel.exists({ email, deleted_at: null });
+        if (isUserExist) {
             return res.status(400).json({ status: 400, message: "User already exists." });
         }
+
+        const encryptedPassword = await createHash(password);
+        const user = await CompanyModel.create({
+            company: company?._id,
+            firstName,
+            middleName,
+            lastName,
+            email,
+            contact,
+            role,
+            password: encryptedPassword
+        });
 
         await setConfigs(company?._id);
 
@@ -42,28 +54,6 @@ async function register(req, res) {
     }
 }
 
-async function createCompany(companyName) {
-    const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
-    if (isCompanyExist) return null;
-    return CompanyModel.create({ name: companyName });
-}
-
-async function createUser({ firstName, middleName, lastName, email, contact, role, password, companyId }) {
-    const isUserExist = await UserModel.exists({ email, deleted_at: null });
-    if (isUserExist) return null;
-
-    const encryptedPassword = await createHash(password);
-    return UserModel.create({
-        company: companyId,
-        firstName,
-        middleName,
-        lastName,
-        email,
-        contact,
-        role,
-        password: encryptedPassword
-    });
-}
 
 async function login(req, res) {
     try {
