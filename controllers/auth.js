@@ -263,4 +263,4 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = {register, login, forgotPassword, getUser};
+module.exports = {register, login, forgotPassword, getUser,resetPassword};
