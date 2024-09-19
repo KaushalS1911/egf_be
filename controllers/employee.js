@@ -46,7 +46,7 @@ async function createEmployee(req, res) {
             ]
         });
 
-        if (isEmployeeExist) return res.json({status: 400, message: "Employee already exist."})
+        if (isEmployeeExist) return res.status(400).json({status: 400, message: "Employee already exist."})
 
         const encryptedPassword = await createHash(password);
 
@@ -96,11 +96,11 @@ async function createEmployee(req, res) {
 
         await sendMail(htmlContent, mailPayload)
 
-        return res.json({status: 201, message: "Employee created successfully", data: {id: employee._id}})
+        return res.status(201).json({status: 201, message: "Employee created successfully", data: {id: employee._id}})
 
     } catch (err) {
         console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        return res.status(500).json({status: 500, message: "Internal server error"})
     }
 }
 
@@ -121,11 +121,11 @@ async function getAllEmployees(req, res) {
 
         const employees = await EmployeeModel.find(query).populate([{path: "company"}, {path: "branch"}, {path: "user"}, {path: "reportingTo"}])
 
-        return res.json({status: 200, data: employees})
+        return res.status(200).json({status: 200, data: employees})
 
     } catch (err) {
         console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        return res.status(500).json({status: 500, message: "Internal server error"})
     }
 }
 
@@ -168,7 +168,7 @@ async function updateEmployee(req, res) {
             _id: {$ne: employeeId}
         });
 
-        if (isEmployeeExist) return res.json({status: 400, message: "Employee already exist."})
+        if (isEmployeeExist) return res.status(400).json({status: 400, message: "Employee already exist."})
 
         const updatedEmp = await EmployeeModel.findByIdAndUpdate(employeeId, {
             branch,
@@ -187,7 +187,6 @@ async function updateEmployee(req, res) {
             bankDetails
         }, {new: true})
 
-        console.log(updatedEmp.user, req.body)
         await UserModel.findByIdAndUpdate(updatedEmp.user,{
             role,
             firstName,
@@ -197,11 +196,11 @@ async function updateEmployee(req, res) {
             contact,
         }, {new: true} )
 
-        return res.json({status: 200, message: "Employee updated successfully"})
+        return res.status(200).json({status: 200, message: "Employee updated successfully"})
 
     } catch (err) {
         console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        return res.status(500).json({status: 500, message: "Internal server error"})
     }
 }
 
@@ -211,11 +210,11 @@ async function getSingleEmployee(req, res) {
 
         const employee = await EmployeeModel.findById(employeeId).populate([{path: "company"}, {path: "branch"},{path: "user"}, {path: "reportingTo"}])
 
-        return res.json({status: 200, data: employee})
+        return res.status(200).json({status: 200, data: employee})
 
     } catch (err) {
         console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        return res.status(500).json({status: 500, message: "Internal server error"})
     }
 }
 
@@ -226,10 +225,10 @@ async function deleteMultipleEmployees(req, res) {
             {_id: {$in: ids}},
             {$set: {deleted_at: new Date()}}
         );
-        return res.json({status: 200, message: "Deleted successfully"});
+        return res.status(200).json({status: 200, message: "Deleted successfully"});
     } catch (err) {
         console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        return res.status(500).json({status: 500, message: "Internal server error"})
     }
 }
 
