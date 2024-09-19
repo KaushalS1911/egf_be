@@ -17,6 +17,7 @@ async function getSingleCompany(req, res) {
 
 async function updateCompany(req, res) {
     try {
+        console.log(req.body)
         const {companyId} = req.params;
 
         const updatedCompany = await CompanyModel.findByIdAndUpdate(companyId, req.body, {new: true})
