@@ -23,7 +23,6 @@ async function createEmployee(req, res) {
             voterCard,
             remark,
             reportingTo,
-            username,
             joiningDate,
             leaveDate,
             permanentAddress,
@@ -41,7 +40,6 @@ async function createEmployee(req, res) {
             deleted_at: null,
             $or: [
                 {email: email},
-                {username},
                 {contact: contact}
             ]
         });
@@ -148,9 +146,9 @@ async function updateEmployee(req, res) {
             deleted_at: null,
             $or: [
                 {email: email},
-                {username},
                 {contact: contact}
-            ]
+            ],
+            _id: {$ne: employeeId}
         });
 
         if (isEmployeeExist) return res.json({status: 400, message: "Employee already exist."})
