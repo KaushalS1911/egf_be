@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, forgotPassword} = require('../controllers/auth')
+const auth = require('../middlewares/auth')
+const { register, login, forgotPassword, getUser} = require('../controllers/auth')
 
 router.post('/register', register);
 router.post('/login', login);
+router.get('/me', auth ,getUser);
 router.post('/forgot-password', forgotPassword);
 
 

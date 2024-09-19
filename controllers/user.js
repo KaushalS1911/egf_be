@@ -71,27 +71,6 @@ async function getSingleUser(req, res) {
     }
 }
 
-async function getUser(req, res) {
-    try {
-        const {id} = req.user;
-
-        let user;
-
-        user = await UserModel.findById(id)
-
-        if (user?.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user?._id})
-            user.branchId = emp?.branchId
-        }
-
-        return res.json({status: 200, data: user})
-
-    } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
-    }
-}
-
 
 async function updatePassword(req, res) {
     try {
@@ -120,4 +99,4 @@ async function updatePassword(req, res) {
 }
 
 
-module.exports = {getAllUsers, updateUserProfile, updateUser, getSingleUser, getUser, updatePassword}
+module.exports = {getAllUsers, updateUserProfile, updateUser, getSingleUser, updatePassword}

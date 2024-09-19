@@ -119,6 +119,27 @@ async function forgotPassword(req, res) {
     }
 }
 
+async function getUser(req, res) {
+    try {
+        const {id} = req.user;
+
+        let user;
+
+        user = await UserModel.findById(id)
+
+        if (user?.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user?._id})
+            user.branchId = emp?.branchId
+        }
+
+        return res.json({status: 200, data: user})
+
+    } catch (err) {
+        console.log(err)
+        return res.json({status: 500, message: "Internal server error"})
+    }
+}
+
 
 async function setTokens(userId) {
     const tokens = {
@@ -218,4 +239,4 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = {register, login, forgotPassword};
+module.exports = {register, login, forgotPassword, getUser};
