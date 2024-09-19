@@ -1,6 +1,8 @@
 const EmployeeModel = require("../models/employee")
 const UserModel = require("../models/user")
 const {uploadFile} = require("../helpers/avatar");
+const path = require("path")
+const {sendMail} = require("../helpers/sendmail");
 const {createHash, verifyHash} = require('../helpers/hash');
 
 async function createEmployee(req, res) {
@@ -78,6 +80,21 @@ async function createEmployee(req, res) {
             temporaryAddress,
             bankDetails
         })
+
+        const templatePath = path.join(__dirname, '../views/welcomeUser.ejs');
+        const logoPath = path.join(__dirname, '../public/images/22.png');
+
+        const htmlContent = await ejs.renderFile(templatePath, {
+            name: `${firstName} ${lastName}`,
+        });
+
+        const mailPayload = {
+            subject: "Welcome to EGF! Easy Gold Finance system",
+            logo: logoPath,
+            email
+        }
+
+        await sendMail(htmlContent, mailPayload)
 
         return res.json({status: 201, message: "Employee created successfully", data: {id: employee._id}})
 

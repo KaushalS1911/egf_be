@@ -2,20 +2,13 @@ const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
 const EmployeeModel = require("../models/employee");
 const ConfigModel = require("../models/config");
-const nodemailer = require("nodemailer");
 const path = require("path")
 const ejs = require("ejs")
 const jwt = require("jsonwebtoken");
 const {createHash, verifyHash} = require('../helpers/hash');
 const {signLoginToken, signRefreshToken} = require("../helpers/jwt");
+const {sendMail} = require('../helpers/sendmail')
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASSWORD,
-    },
-});
 
 
 async function register(req, res) {
@@ -104,19 +97,13 @@ async function forgotPassword(req, res) {
             resetLink,
         });
 
-        await transporter.sendMail({
-            from: process.env.EMAIL,
-            to: user.email,
-            subject: 'Forgot Password',
-            html: htmlContent,
-            attachments: [
-                {
-                    filename: 'logo.png',
-                    path: logoPath,
-                    cid: 'logo@company.com'
-                }
-            ]
-        });
+        const mailPayload = {
+            subject: "Forgot Password",
+            logo: logoPath,
+            email: user.email
+        }
+
+        await sendMail(htmlContent,mailPayload)
 
         return res.json({message: 'Password reset link sent to your email.'});
     } catch (error) {
