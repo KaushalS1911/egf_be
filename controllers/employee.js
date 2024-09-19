@@ -170,7 +170,7 @@ async function updateEmployee(req, res) {
             bankDetails
         }, {new: true})
 
-        console.log(updatedEmp.user)
+        console.log(updatedEmp.user, req.body)
         await UserModel.findByIdAndUpdate(updatedEmp.user,{
             role,
             firstName,
