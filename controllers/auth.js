@@ -188,6 +188,7 @@ const setConfigs = async (companyId) => {
         company: companyId,
         roles: ["Admin", "Employee"],
         goldRate: 6600,
+        businessType: [],
         permissions: {
             'Employee': {
                 sections: ['inquiry', 'customer', 'scheme', 'carat', 'employee', "loan_type", "penalty", "property", "loan_issue", "loan_disburse", "loan_pay"],
