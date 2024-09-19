@@ -119,6 +119,30 @@ async function forgotPassword(req, res) {
     }
 }
 
+async function resetPassword(req,res){
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await UserModel.findById(decoded.id);
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid token or user does not exist.' });
+        }
+
+        const encryptedPassword = await createHash(newPassword);
+
+        user.password = encryptedPassword;
+        await user.save();
+
+        res.json({ message: 'Password reset successfully.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error or token expired.' });
+    }
+}
+
 async function getUser(req, res) {
     try {
         const {id} = req.user;
