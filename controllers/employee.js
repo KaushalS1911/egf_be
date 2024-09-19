@@ -2,6 +2,7 @@ const EmployeeModel = require("../models/employee")
 const UserModel = require("../models/user")
 const {uploadFile} = require("../helpers/avatar");
 const path = require("path")
+const ejs = require("ejs")
 const {sendMail} = require("../helpers/sendmail");
 const {createHash, verifyHash} = require('../helpers/hash');
 
