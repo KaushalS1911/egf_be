@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 
 const configSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
-    businessTypes: [],
+    goldRate: Number,
     permissions: {},
     roles: [],
 },{timestamps: true})
