@@ -5,7 +5,7 @@ async function addBranch(req, res) {
     try {
         const {companyId} = req.params;
 
-        const {name, email,contact} = req.body
+        const {name, email,contact, address} = req.body
 
         const isBranchExist = await BranchModel.exists({
             company: companyId,
@@ -26,7 +26,7 @@ async function addBranch(req, res) {
         const branchCode = `${paddedSeq}`;
 
         const branch = await BranchModel.create({
-            company: companyId, name, email, contact, branchCode
+            company: companyId, name, email, contact, branchCode, address
         })
 
         return res.json({status: 200, data: branch, message: "Branch created successfully"})
@@ -57,7 +57,7 @@ async function getAllBranches(req, res) {
 
 async function updateBranch(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {branchId} = req.params;
 
         const updatedBranch = await BranchModel.findByIdAndUpdate(branchId, req.body, {new: true})
 
@@ -71,7 +71,7 @@ async function updateBranch(req, res) {
 
 async function getSingleBranch(req, res) {
     try {
-        const {companyId, branchId} = req.params;
+        const {branchId} = req.params;
 
         const branch = await BranchModel.findById(branchId).populate("company")
 
