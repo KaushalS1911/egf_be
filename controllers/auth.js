@@ -156,8 +156,8 @@ const setConfigs = async (companyId) => {
 
     const configs = new ConfigModel({
         company: companyId,
-        businessTypes: [],
         roles: ["Admin", "Employee"],
+        goldRate: 6600,
         permissions: {
             'Employee': {
                 sections: ['inquiry', 'customer', 'scheme', 'carat', 'employee', "loan_type", "penalty", "property", "loan_issue", "loan_disburse", "loan_pay"],
