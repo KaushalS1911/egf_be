@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const EmployeeModel = require("../models/employee")
 const UserModel = require("../models/user")
 const {uploadFile} = require("../helpers/avatar");
@@ -7,8 +8,11 @@ const {sendMail} = require("../helpers/sendmail");
 const {createHash, verifyHash} = require('../helpers/hash');
 
 async function createEmployee(req, res) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const {companyId} = req.params
+        const { companyId } = req.params;
 
         const {
             branch,
@@ -31,26 +35,31 @@ async function createEmployee(req, res) {
             temporaryAddress,
             bankDetails,
             status
-        } = req.body
+        } = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
-
 
         const isEmployeeExist = await EmployeeModel.exists({
             company: companyId,
             branch,
             deleted_at: null,
             $or: [
-                {email: email},
-                {contact: contact}
+                { email: email },
+                { contact: contact }
             ]
         });
 
-        if (isEmployeeExist) return res.status(400).json({status: 400, message: "Employee already exist."})
+        if (isEmployeeExist) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ status: 400, message: "Employee already exists." });
+        }
+
 
         const encryptedPassword = await createHash(password);
 
-        const user = await UserModel.create({
+
+        const user = new UserModel({
             company: companyId,
             role,
             avatar_url: avatar,
@@ -60,9 +69,13 @@ async function createEmployee(req, res) {
             email,
             contact,
             password: encryptedPassword
-        })
+        });
 
-        const employee = await EmployeeModel.create({
+
+        await user.save({ session });
+
+
+        const employee = new EmployeeModel({
             company: companyId,
             branch,
             user: user._id,
@@ -78,7 +91,11 @@ async function createEmployee(req, res) {
             permanentAddress,
             temporaryAddress,
             bankDetails
-        })
+        });
+
+
+        await employee.save({ session });
+
 
         const templatePath = path.join(__dirname, '../views/welcomeUser.ejs');
         const logoPath = path.join(__dirname, '../public/images/22.png');
@@ -91,17 +108,27 @@ async function createEmployee(req, res) {
             subject: "Welcome to EGF! Easy Gold Finance system",
             logo: logoPath,
             email
-        }
+        };
 
-        await sendMail(htmlContent, mailPayload)
 
-        return res.status(201).json({status: 201, message: "Employee created successfully", data: {id: employee._id}})
+        await sendMail(htmlContent, mailPayload);
+
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(201).json({ status: 201, message: "Employee created successfully", data: { id: employee._id } });
 
     } catch (err) {
-        console.log(err)
-        return res.status(500).json({status: 500, message: "Internal server error"})
+
+        await session.abortTransaction();
+        session.endSession();
+
+        console.log(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function getAllEmployees(req, res) {
     try {
