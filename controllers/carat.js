@@ -99,4 +99,4 @@ async function deleteMultipleCarats(req, res) {
     }
 }
 
-mo
+module.exports = { addCarat, getAllCarats,updateCarat,getSingleCarat, deleteMultipleCarats }
