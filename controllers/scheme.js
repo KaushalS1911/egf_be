@@ -45,7 +45,7 @@ async function getAllSchemes(req, res) {
 
         const schemes = await SchemeModel.find({
             company: companyId,
-            // deleted_at: null
+            deleted_at: null
         }).populate("company")
 
         return res.json({status: 200, data: schemes})
