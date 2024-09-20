@@ -88,7 +88,7 @@ async function login(req, res) {
             user.branch = emp?.branch;
         }
 
-        return res.status(200).json({data: {...user.toObject(), tokens}, message: "Logged in successfully."});
+        return res.status(200).json({data: {...user, tokens}, message: "Logged in successfully."});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
