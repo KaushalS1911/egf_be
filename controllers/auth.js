@@ -138,25 +138,29 @@ async function resetPassword(req,res){
 
 async function getUser(req, res) {
     try {
-        const {id} = req.user;
+        const { id } = req.user;
 
-        let user;
-
-        user = await UserModel.findById(id)
-
-        if (user?.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user?._id})
-            user.branchId = emp?.branch
+        const user = await UserModel.findById(id).lean();
+        if (!user) {
+            return res.status(404).json({ status: 404, message: "User not found" });
         }
 
-        return res.json({status: 200, data: user})
+        user.branch = null;
+
+        if (user.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({ user: user._id });
+            if (emp) {
+                user.branch = emp.branch || null;
+            }
+        }
+
+        return res.status(200).json({ status: 200, data: user });
 
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching user:", err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
-
 
 async function setTokens(userId) {
     const tokens = {
