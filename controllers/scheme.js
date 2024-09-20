@@ -1,22 +1,22 @@
-const SchemeModel = require("../models/scheme")
-
+const SchemeModel = require("../models/scheme");
 
 async function addScheme(req, res) {
+    const { companyId } = req.params;
+    const {
+        name, interestRate, interestPeriod, schemeType, valuation, renewalTime, minLoanTime, ratePerGram, remark
+    } = req.body;
+
     try {
-        const {companyId} = req.params;
-
-        const {
-            name, interestRate, interestPeriod, schemeType, valuation, renewalTime, minLoanTime, ratePerGram, remark
-        } = req.body
-
         const isSchemeExist = await SchemeModel.exists({
             company: companyId,
             interestRate,
             name,
             deleted_at: null
-        })
+        });
 
-        if (isSchemeExist) return res.json({status: 400, message: "Scheme already exist"})
+        if (isSchemeExist) {
+            return res.status(400).json({ status: 400, message: "Scheme already exists" });
+        }
 
         const scheme = await SchemeModel.create({
             company: companyId,
@@ -29,84 +29,99 @@ async function addScheme(req, res) {
             minLoanTime,
             ratePerGram,
             remark
-        })
+        });
 
-        return res.json({status: 200, data: scheme, message: "Scheme created successfully"})
-
+        return res.status(201).json({ status: 201, data: scheme, message: "Scheme created successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error adding scheme:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function getAllSchemes(req, res) {
-    try {
-        const {companyId} = req.params;
+    const { companyId } = req.params;
 
+    try {
         const schemes = await SchemeModel.find({
             company: companyId,
             deleted_at: null
-        }).populate("company")
+        }).populate("company");
 
-        return res.json({status: 200, data: schemes})
-
+        return res.status(200).json({ status: 200, data: schemes });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching schemes:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-
 async function updateScheme(req, res) {
-    try {
-        const {companyId, schemeId} = req.params;
+    const { companyId, schemeId } = req.params;
 
+    try {
         const isSchemeExist = await SchemeModel.exists({
             company: companyId,
             interestRate: req.body.interestRate,
             name: req.body.name,
             deleted_at: null,
-            _id: {$ne: schemeId}
-        })
+            _id: { $ne: schemeId }
+        });
 
-        if (isSchemeExist) return res.json({status: 400, message: "Scheme already exist"})
+        if (isSchemeExist) {
+            return res.status(400).json({ status: 400, message: "Scheme already exists" });
+        }
 
-        const updatedScheme = await SchemeModel.findByIdAndUpdate(schemeId, req.body, {new: true})
+        const updatedScheme = await SchemeModel.findByIdAndUpdate(schemeId, req.body, { new: true });
 
-        return res.json({status: 200, data: updatedScheme, message: "Scheme updated successfully"})
+        if (!updatedScheme) {
+            return res.status(404).json({ status: 404, message: "Scheme not found" });
+        }
 
+        return res.status(200).json({ status: 200, data: updatedScheme, message: "Scheme updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error updating scheme:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function getSingleScheme(req, res) {
+    const { schemeId } = req.params;
+
     try {
-        const {companyId, schemeId} = req.params;
+        const scheme = await SchemeModel.findById(schemeId).populate("company");
 
-        const scheme = await SchemeModel.findById(schemeId).populate("company")
+        if (!scheme) {
+            return res.status(404).json({ status: 404, message: "Scheme not found" });
+        }
 
-        return res.json({status: 200, data: scheme})
-
+        return res.status(200).json({ status: 200, data: scheme });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching scheme:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function deleteMultipleSchemes(req, res) {
+    const { ids } = req.body;
+
     try {
-        const {ids} = req.body;
-        await SchemeModel.updateMany(
-            {_id: {$in: ids}},
-            {$set: {deleted_at: new Date()}}
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ status: 400, message: "No scheme IDs provided" });
+        }
+
+        const result = await SchemeModel.updateMany(
+            { _id: { $in: ids } },
+            { $set: { deleted_at: new Date() } }
         );
-        return res.json({status: 200, message: "Scheme deleted successfully"});
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ status: 404, message: "No schemes found for the provided IDs" });
+        }
+
+        return res.status(200).json({ status: 200, message: "Scheme(s) deleted successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error deleting schemes:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-module.exports = {addScheme, getAllSchemes, updateScheme, getSingleScheme, deleteMultipleSchemes}
+module.exports = { addScheme, getAllSchemes, updateScheme, getSingleScheme, deleteMultipleSchemes };

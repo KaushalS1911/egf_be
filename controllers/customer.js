@@ -1,7 +1,7 @@
-const mongoose = require("mongoose")
-const CustomerModel = require("../models/customer")
-const BranchModel = require("../models/branch")
-const {uploadFile} = require("../helpers/avatar");
+const mongoose = require("mongoose");
+const CustomerModel = require("../models/customer");
+const BranchModel = require("../models/branch");
+const { uploadFile } = require("../helpers/avatar");
 
 async function createCustomer(req, res) {
     const session = await mongoose.startSession();
@@ -32,35 +32,32 @@ async function createCustomer(req, res) {
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-
         const isCustomerExist = await CustomerModel.exists({
             company: companyId,
             branch,
             deleted_at: null,
-            $or: [
-                { email: email },
-                { contact: contact }
-            ]
+            $or: [{ email }, { contact }]
         });
 
         if (isCustomerExist) {
             await session.abortTransaction();
             await session.endSession();
-            return res.json({ status: 400, message: "Customer already exists." });
+            return res.status(400).json({ status: 400, message: "Customer already exists." });
         }
 
-
         const customerBranch = await BranchModel.findById(branch).select("branchCode").session(session);
+        if (!customerBranch) {
+            await session.abortTransaction();
+            await session.endSession();
+            return res.status(404).json({ status: 404, message: "Branch not found." });
+        }
         const branchCode = customerBranch.branchCode;
-
 
         const customerCount = await CustomerModel.countDocuments({}).session(session);
         const nextCustomerSeq = customerCount + 1;
         const paddedSeq = nextCustomerSeq.toString().padStart(5, '0');
 
-
         const customerCode = `C${branchCode}${paddedSeq}`;
-
 
         const customer = new CustomerModel({
             company: companyId,
@@ -90,18 +87,14 @@ async function createCustomer(req, res) {
         await session.commitTransaction();
         await session.endSession();
 
-        return res.json({ status: 201, message: "Customer created successfully", data: customer });
-
+        return res.status(201).json({ status: 201, message: "Customer created successfully", data: customer });
     } catch (err) {
-
         await session.abortTransaction();
         await session.endSession();
-
-        console.log(err);
-        return res.json({ status: 500, message: "Internal server error" });
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
-
 
 async function getAllCustomers(req, res) {
     const { companyId } = req.params;
@@ -132,34 +125,39 @@ async function getAllCustomers(req, res) {
     }
 }
 
-
 async function updateCustomerProfile(req, res) {
     try {
-        const {customerId} = req.params;
+        const { customerId } = req.params;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, {avatar_url: avatar}, {new: true})
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, { avatar_url: avatar }, { new: true });
 
-        return res.status(200).json({status: 200, data: updatedCustomer, message: "Profile pic updated successfully"})
+        if (!updatedCustomer) {
+            return res.status(404).json({ status: 404, message: "Customer not found." });
+        }
 
+        return res.status(200).json({ status: 200, data: updatedCustomer, message: "Profile picture updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function updateCustomer(req, res) {
     try {
-        const {customerId} = req.params;
+        const { customerId } = req.params;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, req.body, {new: true})
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, req.body, { new: true });
 
-        return res.status(200).json({status: 200, data: updatedCustomer, message: "Customer updated successfully"})
+        if (!updatedCustomer) {
+            return res.status(404).json({ status: 404, message: "Customer not found." });
+        }
 
+        return res.status(200).json({ status: 200, data: updatedCustomer, message: "Customer updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
@@ -182,19 +180,24 @@ async function getSingleCustomer(req, res) {
     }
 }
 
+async function deleteMultipleCustomers(req, res) {
+    try {
+        const { ids } = req.body;
 
-async function deleteMultipleCustomers (req,res){
-    try{
-        const {ids} = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ status: 400, message: "Invalid customer IDs." });
+        }
+
         await CustomerModel.updateMany(
             { _id: { $in: ids } },
             { $set: { deleted_at: new Date() } }
         );
-        return res.status(200).json({status: 200, message: "Customers deleted successfully"});
-    }catch (err){
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+
+        return res.status(200).json({ status: 200, message: "Customers deleted successfully" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-module.exports = {createCustomer, getAllCustomers, updateCustomerProfile, updateCustomer, getSingleCustomer, deleteMultipleCustomers}
+module.exports = { createCustomer, getAllCustomers, updateCustomerProfile, updateCustomer, getSingleCustomer, deleteMultipleCustomers };

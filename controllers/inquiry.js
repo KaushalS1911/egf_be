@@ -2,44 +2,47 @@ const InquiryModel = require("../models/inquiry")
 
 
 async function addInquiry(req, res) {
+    const { companyId } = req.params;
+    const { branch } = req.query;
+    const { firstName, lastName, email, contact, date, inquiryFor, remark } = req.body;
+
     try {
-        const {companyId} = req.params;
-        const {branch} = req.query;
-
-        const {
-            firstName, lastName, email, contact, date, inquiryFor, remark
-        } = req.body
-
         const isInquiryExist = await InquiryModel.exists({
             company: companyId,
             branch,
-            $or: [
-                {email: email},
-                {contact: contact}
-            ],
+            $or: [{ email }, { contact }],
             deleted_at: null
-        })
+        });
 
-        if (isInquiryExist) return res.json({status: 400, message: "Inquiry already exist"})
+        if (isInquiryExist) {
+            return res.status(400).json({ status: 400, message: "Inquiry already exists" });
+        }
 
         const inquiry = await InquiryModel.create({
-            company: companyId, branch,
-            firstName, lastName, email, contact, date, inquiryFor, remark
-        })
+            company: companyId,
+            branch,
+            firstName,
+            lastName,
+            email,
+            contact,
+            date,
+            inquiryFor,
+            remark
+        });
 
-        return res.json({status: 200, data: inquiry, message: "Inquiry created successfully"})
-
+        return res.status(200).json({ status: 200, data: inquiry, message: "Inquiry created successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error creating inquiry:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-async function getAllInquiries(req, res) {
-    try {
-        const {companyId} = req.params;
-        const {branch} = req.query;
 
+async function getAllInquiries(req, res) {
+    const { companyId } = req.params;
+    const { branch } = req.query;
+
+    try {
         const query = {
             company: companyId,
             deleted_at: null
@@ -50,71 +53,93 @@ async function getAllInquiries(req, res) {
         }
 
         const inquiries = await InquiryModel.find(query)
-            .populate([{path: "company"}, {path: "branch"}]);
+            .populate("company")
+            .populate("branch");
 
-        return res.json({status: 200, data: inquiries});
-
+        return res.status(200).json({ status: 200, data: inquiries });
     } catch (err) {
-        console.log(err);
-        return res.json({status: 500, message: "Internal server error"});
+        console.error("Error fetching inquiries:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 
 async function updateInquiry(req, res) {
-    try {
-        const {companyId, inquiryId} = req.params;
-        const {branch} = req.query
+    const { companyId, inquiryId } = req.params;
+    const { branch } = req.query;
+    const { email, contact } = req.body;
 
+    try {
         const isInquiryExist = await InquiryModel.exists({
             company: companyId,
             branch,
-            $or: [
-                {email: req.body.email},
-                {contact: req.body.contact}
-            ],
-            _id: {$ne: inquiryId},
+            $or: [{ email }, { contact }],
+            _id: { $ne: inquiryId },
             deleted_at: null
-        })
+        });
 
-        if (isInquiryExist) return res.json({status: 400, message: "Inquiry already exist"})
+        if (isInquiryExist) {
+            return res.status(400).json({ status: 400, message: "Inquiry already exists" });
+        }
 
-        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, {new: true})
+        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, { new: true });
 
-        return res.json({status: 200, data: updatedInquiry, message: "Inquiry updated successfully"})
+        if (!updatedInquiry) {
+            return res.status(404).json({ status: 404, message: "Inquiry not found" });
+        }
 
+        return res.status(200).json({ status: 200, data: updatedInquiry, message: "Inquiry updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error updating inquiry:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function getSingleInquiry(req, res) {
+    const { inquiryId } = req.params;
+
     try {
-        const {inquiryId} = req.params;
+        const inquiry = await InquiryModel.findById(inquiryId)
+            .populate("company")
+            .populate("branch");
 
-        const inquiry = await InquiryModel.findById(inquiryId).populate([{path: "company"}, {path: "branch"}])
+        if (!inquiry) {
+            return res.status(404).json({ status: 404, message: "Inquiry not found" });
+        }
 
-        return res.json({status: 200, data: inquiry})
-
+        return res.status(200).json({ status: 200, data: inquiry });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching inquiry:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function deleteMultipleInquiries(req, res) {
+    const { ids } = req.body;
+
     try {
-        const {ids} = req.body;
-        await InquiryModel.updateMany(
-            {_id: {$in: ids}},
-            {$set: {deleted_at: new Date()}}
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ status: 400, message: "No inquiry IDs provided" });
+        }
+
+        const result = await InquiryModel.updateMany(
+            { _id: { $in: ids } },
+            { $set: { deleted_at: new Date() } }
         );
-        return res.json({status: 200, message: "Inquiry deleted successfully"});
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ status: 404, message: "No inquiries found for the provided IDs" });
+        }
+
+        return res.status(200).json({ status: 200, message: "Inquiries deleted successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error deleting inquiries:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 module.exports = {addInquiry, getAllInquiries, updateInquiry, getSingleInquiry, deleteMultipleInquiries}

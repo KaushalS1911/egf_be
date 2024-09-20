@@ -1,90 +1,98 @@
-const LoanModel = require("../models/loan_type")
-
+const LoanModel = require("../models/loan_type");
 
 async function addLoan(req, res) {
+    const { companyId } = req.params;
+    const { loanType, remark } = req.body;
+
     try {
-        const {companyId} = req.params;
-
-        const {loanType,remark} = req.body
-
         const isLoanExist = await LoanModel.exists({
             company: companyId,
             loanType,
             deleted_at: null
-        })
+        });
 
-        if(isLoanExist) return res.json({status: 400, message: "Loan details already exist"})
+        if (isLoanExist) {
+            return res.status(400).json({ status: 400, message: "Loan details already exist" });
+        }
 
-        const loan = await LoanModel.create({
-            company: companyId, loanType, remark
-        })
+        const loan = await LoanModel.create({ company: companyId, loanType, remark });
 
-        return res.json({status: 200, data: loan, message: "Loan details created successfully"})
-
+        return res.status(201).json({ status: 201, data: loan, message: "Loan details created successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error adding loan:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function getAllLoans(req, res) {
+    const { companyId } = req.params;
+
     try {
-        const {companyId} = req.params;
+        const loans = await LoanModel.find({ company: companyId, deleted_at: null }).populate("company");
 
-        const loans = await LoanModel.find({
-            company: companyId,
-            deleted_at: null
-        }).populate("company")
-
-        return res.json({status: 200, data: loans})
-
+        return res.status(200).json({ status: 200, data: loans });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching loans:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-
 async function updateLoan(req, res) {
+    const { loanId } = req.params;
+
     try {
-        const {companyId, loanId} = req.params;
+        const updatedLoan = await LoanModel.findByIdAndUpdate(loanId, req.body, { new: true });
 
-        const updatedLoan = await LoanModel.findByIdAndUpdate(loanId, req.body, {new: true})
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
 
-        return res.json({status: 200, data: updatedLoan, message: "Loan type updated successfully"})
-
+        return res.status(200).json({ status: 200, data: updatedLoan, message: "Loan type updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error updating loan:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function getSingleLoan(req, res) {
+    const { loanId } = req.params;
+
     try {
-        const {companyId, loanId} = req.params;
+        const loan = await LoanModel.findById(loanId).populate("company");
 
-        const loan = await LoanModel.findById(loanId).populate("company")
+        if (!loan) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
 
-        return res.json({status: 200, data: loan})
-
+        return res.status(200).json({ status: 200, data: loan });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching loan:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-async function deleteMultipleLoans (req,res){
-    try{
-        const {ids} = req.body;
-        await LoanModel.updateMany(
+async function deleteMultipleLoans(req, res) {
+    const { ids } = req.body;
+
+    try {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ status: 400, message: "No loan IDs provided" });
+        }
+
+        const result = await LoanModel.updateMany(
             { _id: { $in: ids } },
             { $set: { deleted_at: new Date() } }
         );
-        return res.json({status: 200, message: "Loan detail deleted successfully"});
-    }catch (err){
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ status: 404, message: "No loans found for the provided IDs" });
+        }
+
+        return res.status(200).json({ status: 200, message: "Loan details deleted successfully" });
+    } catch (err) {
+        console.error("Error deleting loans:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-module.exports = {addLoan, getAllLoans,updateLoan,getSingleLoan, deleteMultipleLoans}
+module.exports = { addLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans };

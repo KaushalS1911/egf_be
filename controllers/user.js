@@ -1,102 +1,98 @@
-const UserModel = require("../models/user")
-const EmployeeModel = require("../models/employee")
-const {uploadFile} = require("../helpers/avatar");
-const {verifyHash, createHash} = require("../helpers/hash")
+const UserModel = require("../models/user");
+const { uploadFile } = require("../helpers/avatar");
+const { verifyHash, createHash } = require("../helpers/hash");
 
 async function getAllUsers(req, res) {
-    try {
-        const {companyId} = req.params;
-        const {branch} = req.query;
+    const { companyId } = req.params;
+    const { branch } = req.query;
 
+    try {
         const query = {
             company: companyId,
-            deleted_at: null
+            deleted_at: null,
         };
 
         if (branch) {
             query.branch = branch;
         }
 
-        const users = await UserModel.find(query).populate([{path: "company"}])
+        const users = await UserModel.find(query).populate("company");
 
-        return res.json({status: 200, data: users})
-
+        return res.status(200).json({ status: 200, data: users });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching users:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function updateUserProfile(req, res) {
-    try {
-        const {userId} = req.params;
+    const { userId } = req.params;
 
+    try {
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-        const updatedUser = await UserModel.findByIdAndUpdate(userId, {avatar_url: avatar}, {new: true})
+        const updatedUser = await UserModel.findByIdAndUpdate(userId, { avatar_url: avatar }, { new: true });
 
-        return res.json({status: 200, data: updatedUser, message: "Profile pic updated successfully"})
-
+        return res.status(200).json({ status: 200, data: updatedUser, message: "Profile picture updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error updating user profile:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function updateUser(req, res) {
+    const { userId } = req.params;
+
     try {
-        const {userId} = req.params;
+        const updatedUser = await UserModel.findByIdAndUpdate(userId, req.body, { new: true });
 
-        const updatedUser = await UserModel.findByIdAndUpdate(userId, req.body, {new: true})
-
-        return res.json({status: 200, data: updatedUser, message: "User updated successfully"})
-
+        return res.status(200).json({ status: 200, data: updatedUser, message: "User updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error updating user:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function getSingleUser(req, res) {
+    const { userId } = req.params;
+
     try {
-        const {userId} = req.params;
+        const user = await UserModel.findById(userId);
 
-        const user = await UserModel.findById(userId)
+        if (!user) {
+            return res.status(404).json({ status: 404, message: "User not found" });
+        }
 
-        return res.json({status: 200, data: user})
-
+        return res.status(200).json({ status: 200, data: user });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching user:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-
 async function updatePassword(req, res) {
-    try {
-        const {userId} = req.params
-        const {newPassword, currentPassword} = req.body;
+    const { userId } = req.params;
+    const { newPassword, currentPassword } = req.body;
 
+    try {
         const user = await UserModel.findById(userId);
         if (!user) {
-            return res.status(404).json({status: 404, message: "User not found."});
+            return res.status(404).json({ status: 404, message: "User not found" });
         }
 
         const isMatch = await verifyHash(currentPassword, user.password);
         if (!isMatch) {
-            return res.status(400).json({status: 400, message: "Current password is incorrect."});
+            return res.status(400).json({ status: 400, message: "Current password is incorrect" });
         }
 
         const encryptedPassword = await createHash(newPassword);
+        await UserModel.findByIdAndUpdate(userId, { password: encryptedPassword }, { new: true });
 
-        await UserModel.findByIdAndUpdate(userId, {password: encryptedPassword}, {new: true})
-
-        return res.status(200).json({status: 200, message: "Password updated successfully."});
+        return res.status(200).json({ status: 200, message: "Password updated successfully" });
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        console.error("Error updating password:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-
-module.exports = {getAllUsers, updateUserProfile, updateUser, getSingleUser, updatePassword}
+module.exports = { getAllUsers, updateUserProfile, updateUser, getSingleUser, updatePassword };

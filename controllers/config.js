@@ -1,31 +1,37 @@
-const ConfigModel = require("../models/config")
+const ConfigModel = require("../models/config");
 
 async function getConfigs(req, res) {
     try {
         const { companyId } = req.params;
 
-        const configs = await ConfigModel.find({company: companyId});
+        const configs = await ConfigModel.find({ company: companyId });
 
-        return res.json({ status: 200, data: configs });
+        if (!configs.length) {
+            return res.status(404).json({ status: 404, message: "No configurations found for this company." });
+        }
 
+        return res.status(200).json({ status: 200, data: configs });
     } catch (err) {
-        console.log(err);
-        return res.json({ status: 500, message: "Internal server error" });
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 async function updateConfig(req, res) {
     try {
-        const {configId} = req.params;
+        const { configId } = req.params;
 
-        const updatedConfigs = await ConfigModel.findByIdAndUpdate(configId, req.body, {new: true})
+        const updatedConfig = await ConfigModel.findByIdAndUpdate(configId, req.body, { new: true });
 
-        return res.json({status: 200, data: updatedConfigs, message: "Configs updated successfully"})
+        if (!updatedConfig) {
+            return res.status(404).json({ status: 404, message: "Configuration not found." });
+        }
 
+        return res.status(200).json({ status: 200, data: updatedConfig, message: "Configs updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
-module.exports = {getConfigs, updateConfig}
+module.exports = { getConfigs, updateConfig };
