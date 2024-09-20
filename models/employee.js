@@ -15,7 +15,7 @@ const employeeSchema = new mongoose.Schema({
     remark: String,
     reportingTo: {type: String, ref: "User", required: true},
     joiningDate: Date,
-    leaveDate: Date,
+    leaveDate: {type: Date, default: null},
     permanentAddress: addressSchema,
     temporaryAddress: addressSchema,
     bankDetails: [bankAccountSchema],
