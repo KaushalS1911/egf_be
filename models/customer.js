@@ -20,7 +20,7 @@ const customerSchema = new mongoose.Schema({
     otpContact: String,
     businessType: String,
     loanType: String,
-    isActive: {type: String, default: "Is Active"},
+    status: {type: String, default: "Active"},
     remark: String,
     avatar_url: {type: String, default: null},
     permanentAddress: addressSchema,
