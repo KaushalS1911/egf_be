@@ -146,7 +146,7 @@ async function getUser(req, res) {
 
         if (user?.role !== 'Admin') {
             const emp = await EmployeeModel.findOne({user: user?._id})
-            user.branchId = emp?.branchId
+            user.branchId = emp?.branch
         }
 
         return res.json({status: 200, data: user})
