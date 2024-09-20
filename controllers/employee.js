@@ -51,7 +51,7 @@ async function createEmployee(req, res) {
 
         if (isEmployeeExist) {
             await session.abortTransaction();
-            session.endSession();
+            await session.endSession();
             return res.status(400).json({ status: 400, message: "Employee already exists." });
         }
 
@@ -115,14 +115,14 @@ async function createEmployee(req, res) {
 
 
         await session.commitTransaction();
-        session.endSession();
+        await session.endSession();
 
         return res.status(201).json({ status: 201, message: "Employee created successfully", data: { id: employee._id } });
 
     } catch (err) {
 
         await session.abortTransaction();
-        session.endSession();
+        await session.endSession();
 
         console.log(err);
         return res.status(500).json({ status: 500, message: "Internal server error" });
@@ -131,11 +131,10 @@ async function createEmployee(req, res) {
 
 
 async function getAllEmployees(req, res) {
+    const { companyId } = req.params;
+    const { branch } = req.query;
+
     try {
-        const {companyId} = req.params;
-
-        const {branch} = req.query;
-
         const query = {
             company: companyId,
             deleted_at: null
@@ -145,104 +144,126 @@ async function getAllEmployees(req, res) {
             query.branch = branch;
         }
 
-        const employees = await EmployeeModel.find(query).populate([{path: "company"}, {path: "branch"}, {path: "user"}, {path: "reportingTo"}])
+        const employees = await EmployeeModel.find(query)
+            .populate("company")
+            .populate("branch")
+            .populate("user")
+            .populate("reportingTo");
 
-        return res.status(200).json({status: 200, data: employees})
+        if (!employees || employees.length === 0) {
+            return res.status(404).json({ status: 404, message: "No employees found" });
+        }
 
+        return res.status(200).json({ status: 200, data: employees });
     } catch (err) {
-        console.log(err)
-        return res.status(500).json({status: 500, message: "Internal server error"})
+        console.error("Error fetching employees:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
 
 
+
 async function updateEmployee(req, res) {
+    const { employeeId, companyId } = req.params;
+    const {
+        branch,
+        firstName,
+        middleName,
+        lastName,
+        email,
+        contact,
+        dob,
+        role,
+        drivingLicense,
+        panCard,
+        aadharCard,
+        voterCard,
+        remark,
+        reportingTo,
+        joiningDate,
+        leaveDate,
+        permanentAddress,
+        temporaryAddress,
+        bankDetails,
+        status
+    } = req.body;
+
     try {
-        const {employeeId, companyId} = req.params;
-
-        const {
-            branch,
-            firstName,
-            middleName,
-            lastName,
-            email,
-            contact,
-            dob,
-            role,
-            drivingLicense,
-            panCard,
-            aadharCard,
-            voterCard,
-            remark,
-            reportingTo,
-            joiningDate,
-            leaveDate,
-            permanentAddress,
-            temporaryAddress,
-            bankDetails,
-            status
-        } = req.body
-
         const isEmployeeExist = await EmployeeModel.exists({
             company: companyId,
             branch,
             deleted_at: null,
-            $or: [
-                {email: email},
-                {contact: contact}
-            ],
-            _id: {$ne: employeeId}
+            $or: [{ email }, { contact }],
+            _id: { $ne: employeeId }
         });
 
-        if (isEmployeeExist) return res.status(400).json({status: 400, message: "Employee already exist."})
+        if (isEmployeeExist) {
+            return res.status(400).json({ status: 400, message: "Employee already exists." });
+        }
 
-        const updatedEmp = await EmployeeModel.findByIdAndUpdate(employeeId, {
-            branch,
-            drivingLicense,
-            panCard,
-            aadharCard,
-            voterCard,
-            dob,
-            remark,
-            reportingTo,
-            joiningDate,
-            leaveDate,
-            status,
-            permanentAddress,
-            temporaryAddress,
-            bankDetails
-        }, {new: true})
+        const updatedEmp = await EmployeeModel.findByIdAndUpdate(
+            employeeId,
+            {
+                branch,
+                drivingLicense,
+                panCard,
+                aadharCard,
+                voterCard,
+                dob,
+                remark,
+                reportingTo,
+                joiningDate,
+                leaveDate,
+                status,
+                permanentAddress,
+                temporaryAddress,
+                bankDetails
+            },
+            { new: true }
+        );
 
-        await UserModel.findByIdAndUpdate(updatedEmp.user,{
-            role,
-            firstName,
-            middleName,
-            lastName,
-            email,
-            contact,
-        }, {new: true} )
+        await UserModel.findByIdAndUpdate(
+            updatedEmp.user,
+            {
+                role,
+                firstName,
+                middleName,
+                lastName,
+                email,
+                contact
+            },
+            { new: true }
+        );
 
-        return res.status(200).json({status: 200, message: "Employee updated successfully"})
-
+        return res.status(200).json({ status: 200, message: "Employee updated successfully" });
     } catch (err) {
-        console.log(err)
-        return res.status(500).json({status: 500, message: "Internal server error"})
+        console.error("Error updating employee:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function getSingleEmployee(req, res) {
+    const { employeeId } = req.params;
+
     try {
-        const {employeeId} = req.params;
+        const employee = await EmployeeModel.findById(employeeId)
+            .populate("company")
+            .populate("branch")
+            .populate("user")
+            .populate("reportingTo");
 
-        const employee = await EmployeeModel.findById(employeeId).populate([{path: "company"}, {path: "branch"},{path: "user"}, {path: "reportingTo"}])
+        if (!employee) {
+            return res.status(404).json({ status: 404, message: "Employee not found" });
+        }
 
-        return res.status(200).json({status: 200, data: employee})
-
+        return res.status(200).json({ status: 200, data: employee });
     } catch (err) {
-        console.log(err)
-        return res.status(500).json({status: 500, message: "Internal server error"})
+        console.error("Error fetching employee:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function deleteMultipleEmployees(req, res) {
     try {

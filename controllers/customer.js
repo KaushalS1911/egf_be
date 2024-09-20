@@ -45,7 +45,7 @@ async function createCustomer(req, res) {
 
         if (isCustomerExist) {
             await session.abortTransaction();
-            session.endSession();
+            await session.endSession();
             return res.json({ status: 400, message: "Customer already exists." });
         }
 
@@ -88,14 +88,14 @@ async function createCustomer(req, res) {
         await customer.save({ session });
 
         await session.commitTransaction();
-        session.endSession();
+        await session.endSession();
 
         return res.json({ status: 201, message: "Customer created successfully", data: customer });
 
     } catch (err) {
 
         await session.abortTransaction();
-        session.endSession();
+        await session.endSession();
 
         console.log(err);
         return res.json({ status: 500, message: "Internal server error" });
@@ -104,11 +104,10 @@ async function createCustomer(req, res) {
 
 
 async function getAllCustomers(req, res) {
+    const { companyId } = req.params;
+    const { branch } = req.query;
+
     try {
-        const {companyId} = req.params;
-
-        const { branch } = req.query;
-
         const query = {
             company: companyId,
             deleted_at: null
@@ -118,15 +117,21 @@ async function getAllCustomers(req, res) {
             query.branch = branch;
         }
 
-        const customers = await CustomerModel.find(query).populate([{path: "company"}, {path: "branch"}])
+        const customers = await CustomerModel.find(query)
+            .populate("company")
+            .populate("branch");
 
-        return res.json({status: 200, data: customers})
+        if (!customers || customers.length === 0) {
+            return res.status(404).json({ status: 404, message: "No customers found" });
+        }
 
+        return res.status(200).json({ status: 200, data: customers });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching customers:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function updateCustomerProfile(req, res) {
     try {
@@ -136,7 +141,7 @@ async function updateCustomerProfile(req, res) {
 
         const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, {avatar_url: avatar}, {new: true})
 
-        return res.json({status: 200, data: updatedCustomer, message: "Profile pic updated successfully"})
+        return res.status(200).json({status: 200, data: updatedCustomer, message: "Profile pic updated successfully"})
 
     } catch (err) {
         console.log(err)
@@ -150,7 +155,7 @@ async function updateCustomer(req, res) {
 
         const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, req.body, {new: true})
 
-        return res.json({status: 200, data: updatedCustomer, message: "Customer updated successfully"})
+        return res.status(200).json({status: 200, data: updatedCustomer, message: "Customer updated successfully"})
 
     } catch (err) {
         console.log(err)
@@ -159,18 +164,24 @@ async function updateCustomer(req, res) {
 }
 
 async function getSingleCustomer(req, res) {
+    const { customerId } = req.params;
+
     try {
-        const {customerId} = req.params;
+        const customer = await CustomerModel.findById(customerId)
+            .populate("company")
+            .populate("branch");
 
-        const customer = await CustomerModel.findById(customerId).populate([{path: "company"}, {path: "branch"}])
+        if (!customer) {
+            return res.status(404).json({ status: 404, message: "Customer not found" });
+        }
 
-        return res.json({status: 200, data: customer})
-
+        return res.status(200).json({ status: 200, data: customer });
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+        console.error("Error fetching customer:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function deleteMultipleCustomers (req,res){
     try{
@@ -179,7 +190,7 @@ async function deleteMultipleCustomers (req,res){
             { _id: { $in: ids } },
             { $set: { deleted_at: new Date() } }
         );
-        return res.json({status: 200, message: "Customers deleted successfully"});
+        return res.status(200).json({status: 200, message: "Customers deleted successfully"});
     }catch (err){
         console.log(err)
         return res.json({status: 500, message: "Internal server error"})
