@@ -124,7 +124,7 @@ async function forgotPassword(req, res) {
 
         await sendMail(htmlContent,mailPayload)
 
-        return res.json({message: 'Password reset link sent to your email.'});
+        return res.status(200).json({message: 'Password reset link sent to your email.'});
     } catch (error) {
         console.log(error)
         return res.status(500).json({message: 'Server error.'});
