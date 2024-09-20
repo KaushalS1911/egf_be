@@ -2,6 +2,7 @@ const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
 const EmployeeModel = require("../models/employee");
 const ConfigModel = require("../models/config");
+const mongoose = require('mongoose')
 const path = require("path")
 const ejs = require("ejs")
 const jwt = require("jsonwebtoken");
@@ -10,25 +11,34 @@ const {signLoginToken, signRefreshToken} = require("../helpers/jwt");
 const {sendMail} = require('../helpers/sendmail')
 
 
-
 async function register(req, res) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const {firstName, middleName, lastName, email, contact, companyName, role, password} = req.body;
+        const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
 
-        const isCompanyExist = await CompanyModel.exists({name: companyName, deleted_at: null});
+        const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
         if (isCompanyExist) {
-            return res.status(400).json({status: 400, message: "Company already exists."});
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ status: 400, message: "Company already exists." });
         }
-        const company = await CompanyModel.create({name: companyName});
 
-        const isUserExist = await UserModel.exists({email, deleted_at: null});
+        const company = new CompanyModel({ name: companyName });
+        await company.save({ session });
+
+        const isUserExist = await UserModel.exists({ email, deleted_at: null });
         if (isUserExist) {
-            return res.status(400).json({status: 400, message: "User already exists."});
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ status: 400, message: "User already exists." });
         }
 
         const encryptedPassword = await createHash(password);
-        const user = await UserModel.create({
-            company: company?._id,
+
+        const user = new UserModel({
+            company: company._id,
             firstName,
             middleName,
             lastName,
@@ -37,15 +47,24 @@ async function register(req, res) {
             role,
             password: encryptedPassword
         });
+        await user.save({ session });
 
-        await setConfigs(company?._id);
+        await setConfigs(company._id, { session });
 
-        return res.status(201).json({status: 201, message: "Registered successfully", data: user});
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(201).json({ status: 201, message: "Registered successfully", data: user });
+
     } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+
         console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 
 async function login(req, res) {
