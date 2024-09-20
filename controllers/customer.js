@@ -1,11 +1,15 @@
+const mongoose = require("mongoose")
 const CustomerModel = require("../models/customer")
 const BranchModel = require("../models/branch")
 const {uploadFile} = require("../helpers/avatar");
 
 async function createCustomer(req, res) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        const {companyId} = req.params
-        const {branch} = req.query
+        const { companyId } = req.params;
+        const { branch } = req.query;
 
         const {
             firstName,
@@ -24,7 +28,7 @@ async function createCustomer(req, res) {
             loanType,
             permanentAddress,
             temporaryAddress
-        } = req.body
+        } = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
@@ -34,25 +38,31 @@ async function createCustomer(req, res) {
             branch,
             deleted_at: null,
             $or: [
-                {email: email},
-                {contact: contact}
+                { email: email },
+                { contact: contact }
             ]
         });
 
-        if (isCustomerExist) return res.json({status: 400, message: "Customer already exist."})
-        const customerBranch = await BranchModel.findById(branch).select("branchCode")
+        if (isCustomerExist) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.json({ status: 400, message: "Customer already exists." });
+        }
 
+
+        const customerBranch = await BranchModel.findById(branch).select("branchCode").session(session);
         const branchCode = customerBranch.branchCode;
 
-        const customerCount = await CustomerModel.countDocuments({});
 
+        const customerCount = await CustomerModel.countDocuments({}).session(session);
         const nextCustomerSeq = customerCount + 1;
-
         const paddedSeq = nextCustomerSeq.toString().padStart(5, '0');
+
 
         const customerCode = `C${branchCode}${paddedSeq}`;
 
-        const customer = await CustomerModel.create({
+
+        const customer = new CustomerModel({
             company: companyId,
             branch,
             avatar_url: avatar,
@@ -73,15 +83,25 @@ async function createCustomer(req, res) {
             loanType,
             permanentAddress,
             temporaryAddress
-        })
+        });
 
-        return res.json({status: 201, message: "Customer created successfully", data: customer})
+        await customer.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.json({ status: 201, message: "Customer created successfully", data: customer });
 
     } catch (err) {
-        console.log(err)
-        return res.json({status: 500, message: "Internal server error"})
+
+        await session.abortTransaction();
+        session.endSession();
+
+        console.log(err);
+        return res.json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function getAllCustomers(req, res) {
     try {
