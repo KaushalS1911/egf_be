@@ -27,7 +27,8 @@ async function createCustomer(req, res) {
             businessType,
             loanType,
             permanentAddress,
-            temporaryAddress
+            temporaryAddress,
+            bankDetails,remark
         } = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
@@ -79,7 +80,8 @@ async function createCustomer(req, res) {
             businessType,
             loanType,
             permanentAddress,
-            temporaryAddress
+            temporaryAddress,
+            bankDetails,remark
         });
 
         await customer.save({ session });
@@ -112,7 +114,7 @@ async function getAllCustomers(req, res) {
 
         const customers = await CustomerModel.find(query)
             .populate("company")
-            .populate("branch");
+            .populate("branch")
 
         if (!customers || customers.length === 0) {
             return res.status(404).json({ status: 404, message: "No customers found" });

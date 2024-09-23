@@ -23,8 +23,8 @@ const customerSchema = new mongoose.Schema({
     status: {type: String, default: "Active"},
     remark: String,
     avatar_url: {type: String, default: null},
-    permanentAddress: addressSchema,
-    temporaryAddress: addressSchema,
+    permanentAddress: {type: addressSchema},
+    temporaryAddress: {type: addressSchema},
     bankDetails: [bankAccountSchema],
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
