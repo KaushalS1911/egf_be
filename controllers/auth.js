@@ -81,7 +81,7 @@ async function login(req, res) {
             return res.status(400).json({status: 400, message: "Invalid credentials."});
         }
 
-        const tokens = await setTokens(user.id);
+        const tokens = await setTokens(user._id);
 
         if (user.role !== 'Admin') {
             const emp = await EmployeeModel.findOne({user: user._id});
