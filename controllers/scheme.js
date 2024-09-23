@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const SchemeModel = require("../models/scheme");
 
 async function addScheme(req, res) {
@@ -83,6 +84,47 @@ async function updateScheme(req, res) {
     }
 }
 
+async function updateMultipleSchemes(req, res) {
+    const { schemes } = req.body;
+    const updatedSchemes = [];
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        for (const scheme of schemes) {
+            const { schemeId } = scheme;
+
+
+            const updatedScheme = await SchemeModel.findByIdAndUpdate (
+                schemeId,
+                scheme,
+                { new: true, session }
+            );
+
+            if (!updatedScheme) {
+                await session.abortTransaction();
+                await session.endSession();
+                return res.status(404).json({ status: 404, message: `Scheme not found for ID: ${schemeId}` });
+            }
+
+            updatedSchemes.push(updatedScheme);
+        }
+
+        await session.commitTransaction();
+        await session.endSession();
+
+        return res.status(200).json({ status: 200, data: updatedSchemes, message: "Schemes updated successfully" });
+
+    } catch (err) {
+        await session.abortTransaction();
+        await session.endSession();
+        console.error("Error updating schemes:", err.message);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
+    }
+}
+
+
 async function getSingleScheme(req, res) {
     const { schemeId } = req.params;
 
@@ -124,4 +166,4 @@ async function deleteMultipleSchemes(req, res) {
     }
 }
 
-module.exports = { addScheme, getAllSchemes, updateScheme, getSingleScheme, deleteMultipleSchemes };
+module.exports = { addScheme, getAllSchemes, updateScheme, getSingleScheme, deleteMultipleSchemes, updateMultipleSchemes };
