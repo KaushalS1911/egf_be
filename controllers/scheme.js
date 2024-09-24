@@ -95,7 +95,6 @@ async function updateMultipleSchemes(req, res) {
         for (const scheme of schemes) {
             const { schemeId } = scheme;
 
-
             const updatedScheme = await SchemeModel.findByIdAndUpdate (
                 schemeId,
                 scheme,
