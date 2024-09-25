@@ -93,10 +93,10 @@ async function updateMultipleSchemes(req, res) {
 
     try {
         for (const scheme of schemes) {
-            const { schemeId } = scheme;
+            const { _id } = scheme;
 
             const updatedScheme = await SchemeModel.findByIdAndUpdate (
-                schemeId,
+                _id,
                 scheme,
                 { new: true, session }
             );
@@ -104,7 +104,7 @@ async function updateMultipleSchemes(req, res) {
             if (!updatedScheme) {
                 await session.abortTransaction();
                 await session.endSession();
-                return res.status(404).json({ status: 404, message: `Scheme not found for ID: ${schemeId}` });
+                return res.status(404).json({ status: 404, message: `Scheme not found for ID: ${_id}` });
             }
 
             updatedSchemes.push(updatedScheme);
