@@ -259,9 +259,14 @@ async function deleteMultipleEmployees(req, res) {
         }
 
         await EmployeeModel.updateMany(
-            { _id: { $in: ids } },
+            { user: { $in: ids } },
             { $set: { deleted_at: new Date() } }
         );
+
+        await UserModel.updateMany(
+        { _id: { $in: ids } },
+        { $set: { deleted_at: new Date() }
+        })
 
         return res.status(200).json({ status: 200, message: "Employees deleted successfully." });
     } catch (err) {
