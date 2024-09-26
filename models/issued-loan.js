@@ -13,6 +13,7 @@ const issuedLoanSchema = new mongoose.Schema({
     propertyDetails: [],
     propertyImage: String,
     loanAmount: Number,
+    amountPaid: Number,
     paymentMode: String,
     cashAmount: Number,
     bankAmount: Number,

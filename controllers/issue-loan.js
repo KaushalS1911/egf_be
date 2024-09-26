@@ -19,7 +19,8 @@ async function issueLoan(req, res) {
             paymentMode,
             cashAmount,
             bankAmount,
-            bankDetail
+            bankDetail,
+            amountPaid
         } = req.body;
 
         const isLoanExist = await IssuedLoanModel.exists({
@@ -50,6 +51,7 @@ async function issueLoan(req, res) {
             cashAmount,
             bankAmount,
             bankDetail,
+            amountPaid
         });
 
         await issuedLoan.save({ session });
