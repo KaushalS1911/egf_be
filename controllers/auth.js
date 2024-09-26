@@ -108,7 +108,7 @@ async function forgotPassword(req, res) {
             expiresIn: '1h',
         });
 
-        const resetLink = `http://localhost:3000/reset-password/${token}`;
+        const resetLink = `http://localhost:3030/reset-password/${token}`;
         const templatePath = path.join(__dirname, '../views/resetPasswordEmail.ejs');
         const logoPath = path.join(__dirname, '../public/images/22.png');
 
