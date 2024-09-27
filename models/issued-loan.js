@@ -16,6 +16,7 @@ const issuedLoanSchema = new mongoose.Schema({
     amountPaid: Number,
     paymentMode: String,
     cashAmount: Number,
+    consultingCharge: Number,
     bankAmount: Number,
     bankDetail: {bankAccountSchema},
     status: {type: String, default: 'Active'},
