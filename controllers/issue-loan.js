@@ -183,5 +183,51 @@ const generateTransactionNumber = async (companyId) => {
     return transactionNumber;
 };
 
+const applyPenaltyIfLate = async (loanId, installmentId, paymentDate) => {
+    const loan = await IssuedLoanModel.findById(loanId);
+    const installment = loan.installments.id(installmentId);
+
+    const dueDate = new Date(installment.dueDate);
+    const daysLate = Math.floor((paymentDate - dueDate) / (1000 * 60 * 60 * 24));
+
+    const scheme = await Sh
+    let newInterestRate = 1.5; // Default interest rate
+    let penaltyApplied = false;
+
+    // Check if payment is late
+    if (daysLate > 7) {
+        // Fetch the penalty from the penalty master
+        const penaltyMaster = await PenaltyMaster.findOne(); // Assuming you have a PenaltyMaster schema
+
+        // Iterate through the ranges and apply the relevant penalty
+        for (let range of penaltyMaster.ranges) {
+            if (daysLate >= range.minDays && daysLate <= range.maxDays) {
+                newInterestRate += range.penaltyRate; // Increase interest rate by penalty
+                penaltyApplied = true;
+                break;
+            }
+        }
+    }
+
+    // If payment is on time or within 7 days, no penalty is applied
+    if (!penaltyApplied) {
+        console.log('No penalty applied. Paid on time or within grace period.');
+    }
+
+    // Calculate new interest based on the (possibly penalized) rate
+    const daysBetweenInstallments = 30;
+    const interestAmount = calculateInterest(loan.totalAmount, newInterestRate, daysBetweenInstallments);
+
+    // Update installment status and set next installment date
+    installment.status = 'Paid';
+    installment.paidOn = paymentDate;
+    loan.nextInstallmentDate = new Date(paymentDate.setDate(paymentDate.getDate() + 30));
+
+    // Save the updated loan
+    await loan.save();
+
+    console.log(`Installment paid. Penalty applied: ${penaltyApplied ? 'Yes' : 'No'}, new interest amount: ${interestAmount}`);
+};
+
 
 module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan ,deleteMultipleLoans}
