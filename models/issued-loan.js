@@ -1,6 +1,12 @@
 const mongoose = require("mongoose")
 const bankAccountSchema = require("./common/bank");
 
+const installmentSchema = new mongoose.Schema({
+    date: Date,
+    amount: Number,
+    status: {type: String, default: "pending"},
+})
+
 const issuedLoanSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
     customer: {type: String, ref: "Customer", required: true},
@@ -8,7 +14,7 @@ const issuedLoanSchema = new mongoose.Schema({
     loanNo: String,
     transactionNo: String,
     issueDate: Date,
-    nextInstallmentDate: Date,
+    installments: [installmentSchema],
     jewellerName: String,
     propertyDetails: [],
     propertyImage: String,

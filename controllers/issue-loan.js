@@ -41,7 +41,7 @@ async function issueLoan(req, res) {
             customer,
             scheme,
             loanNo: generateLoanNumber(companyId),
-            transactionNo: generateTransactionNumber(),
+            transactionNo: generateTransactionNumber(companyId),
             issueDate,
             nextInstallmentDate,
             jewellerName,
@@ -167,7 +167,7 @@ const generateLoanNumber = async (companyId) => {
 
 
 
-const generateTransactionNumber = async () => {
+const generateTransactionNumber = async (companyId) => {
     const prefix = 'TRXN';
 
     let count = 0

@@ -25,7 +25,6 @@ const auth = handleException(async function authenticate(req, res, next) {
 
     try {
         const decoded = await appJwt.verifyToken(authHeaders["auth_jwt"]);
-        console.log(decoded)
         const user = await UserModel.findById(decoded.id)
         if (
             !user?.other_info ||
