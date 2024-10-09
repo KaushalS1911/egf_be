@@ -18,7 +18,8 @@ async function issueLoan(req, res) {
         const isLoanExist = await IssuedLoanModel.exists({
             company: companyId,
             customer,
-            scheme
+            scheme,
+            deleted_at: {$eq: null}
         });
 
         if (isLoanExist) {
@@ -81,10 +82,52 @@ async function disburseLoan(req, res) {
     }
 }
 
+async function interestPayment(req, res) {
+
+    try {
+        const {loan, to,from, consultingCharge, loanAmount,interest, companyBankDetail } = req.body
+
+        const todayDate = new Date();
+        const nextInstallmentDate = getNextInterestPayDate(todayDate)
+
+        const timeDifference = nextInstallmentDate - todayDate;
+
+        const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+
+        const loanDetail = await IssuedLoanModel.findById(loan)
+
+        loanDetail.status = "Disbursed"
+
+        if(companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
+
+        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
+
+        await InterestModel.create({
+            loan,
+            to, from , consultingCharge,
+            interestAmount: calculateInterest(loanAmount, interest, days),
+        });
+
+        return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function getAllLoans(req, res) {
     try {
         const {companyId} = req.params
-        const loans = await IssuedLoanModel.find({company: companyId})
+        const {type} = req.query
+
+        let query = {
+            company: companyId,
+            deleted_at: null
+        }
+
+        if(type) query.status = type
+
+        const loans = await IssuedLoanModel.find(query)
             .populate("customer")
             .populate("scheme");
 
@@ -251,4 +294,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment}
