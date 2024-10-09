@@ -1,6 +1,8 @@
 const IssuedLoanModel = require("../models/issued-loan");
 const PenaltyModel = require("../models/penalty");
 const InterestModel = require("../models/interest");
+const PartReleaseModel = require("../models/part-release");
+const PartPaymentModel = require("../models/loan-part-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
 
@@ -52,14 +54,7 @@ async function issueLoan(req, res) {
 async function disburseLoan(req, res) {
 
     try {
-        const {loan, to,from, consultingCharge, loanAmount,interest, companyBankDetail } = req.body
-
-        const todayDate = new Date();
-        const nextInstallmentDate = getNextInterestPayDate(todayDate)
-
-        const timeDifference = nextInstallmentDate - todayDate;
-
-        const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+        const {loan, companyBankDetail } = req.body
 
         const loanDetail = await IssuedLoanModel.findById(loan)
 
@@ -68,12 +63,6 @@ async function disburseLoan(req, res) {
         if(companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
         const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
-
-        await InterestModel.create({
-            loan,
-            to, from , consultingCharge,
-            interestAmount: calculateInterest(loanAmount, interest, days),
-        });
 
         return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
     } catch (err) {
@@ -85,30 +74,73 @@ async function disburseLoan(req, res) {
 async function interestPayment(req, res) {
 
     try {
-        const {loan, to,from, consultingCharge, loanAmount,interest, companyBankDetail } = req.body
+        const {loanId} = req.params
 
-        const todayDate = new Date();
-        const nextInstallmentDate = getNextInterestPayDate(todayDate)
+        const interestDetail = await InterestModel.create({
+            loan: loanId,
+            ...req.body
+        })
 
-        const timeDifference = nextInstallmentDate - todayDate;
+        const paymentDate = new Date(req.body.from)
+        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
 
-        const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate}, {new: true})
 
-        const loanDetail = await IssuedLoanModel.findById(loan)
+        return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
 
-        loanDetail.status = "Disbursed"
+async function partRelease(req, res) {
 
-        if(companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
+    try {
+        const {loanId} = req.params
 
-        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
+        const propertyImage = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+        const partDetail = await PartReleaseModel.create({
+            loan: loanId,
+            propertyImage,
+            ...req.body
+        })
 
-        await InterestModel.create({
-            loan,
-            to, from , consultingCharge,
-            interestAmount: calculateInterest(loanAmount, interest, days),
-        });
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
+        let {interestLoanAmount, totalAmount} = loanDetails
+
+        interestLoanAmount -= totalAmount
+        const nextInstallmentDate = getNextInterestPayDate(new Date())
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
+
+        return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function loanPartPayment(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const partPaymentDetail = await PartPaymentModel.create({
+            loan: loanId,
+            ...req.body
+        })
+
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
+
+        let {interestLoanAmount, totalAmount} = loanDetails
+
+        interestLoanAmount -= totalAmount
+        const nextInstallmentDate = getNextInterestPayDate(new Date())
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
+
+        return res.status(201).json({status: 201, message: "Loan part payment success", data: partPaymentDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -294,4 +326,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment}
