@@ -1,5 +1,8 @@
 const IssuedLoanModel = require("../models/issued-loan");
+const PenaltyModel = require("../models/penalty");
+const InterestModel = require("../models/interest");
 const mongoose = require('mongoose')
+const {uploadPropertyFile} = require("../helpers/avatar");
 
 async function issueLoan(req, res) {
     const session = await mongoose.startSession();
@@ -10,18 +13,6 @@ async function issueLoan(req, res) {
         const {
             customer,
             scheme,
-            issueDate,
-            nextInstallmentDate,
-            jewellerName,
-            propertyDetails,
-            propertyImage,
-            loanAmount,
-            paymentMode,
-            cashAmount,
-            bankAmount,
-            bankDetail,
-            amountPaid,
-            consultingCharge
         } = req.body;
 
         const isLoanExist = await IssuedLoanModel.exists({
@@ -33,39 +24,60 @@ async function issueLoan(req, res) {
         if (isLoanExist) {
             await session.abortTransaction();
             await session.endSession();
-            return res.status(400).json({ status: 400, message: "Loan already exists." });
+            return res.status(400).json({status: 400, message: "Loan already exists."});
         }
-
+        const property = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const issuedLoan = new IssuedLoanModel({
+            ...req.body,
             company: companyId,
-            customer,
-            scheme,
             loanNo: await generateLoanNumber(companyId),
             transactionNo: await generateTransactionNumber(companyId),
-            issueDate,
-            nextInstallmentDate,
-            jewellerName,
-            propertyDetails,
-            propertyImage,
-            loanAmount,
-            paymentMode,
-            cashAmount,
-            bankAmount,
-            bankDetail,
-            amountPaid,
-            consultingCharge
+            propertyImage: property,
         });
 
-        await issuedLoan.save({ session });
+        await issuedLoan.save({session});
         await session.commitTransaction();
         await session.endSession();
 
-        return res.status(201).json({ status: 201, message: "Loan issued successfully", data: issuedLoan });
+        return res.status(201).json({status: 201, message: "Loan issued successfully", data: issuedLoan});
     } catch (err) {
         await session.abortTransaction();
         await session.endSession();
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function disburseLoan(req, res) {
+
+    try {
+        const {loan, to,from, consultingCharge, loanAmount,interest, companyBankDetail } = req.body
+
+        const todayDate = new Date();
+        const nextInstallmentDate = getNextInterestPayDate(todayDate)
+
+        const timeDifference = nextInstallmentDate - todayDate;
+
+        const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+
+        const loanDetail = await IssuedLoanModel.findById(loan)
+
+        loanDetail.status = "Disbursed"
+
+        if(companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
+
+        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
+
+        await InterestModel.create({
+            loan,
+            to, from , consultingCharge,
+            interestAmount: calculateInterest(loanAmount, interest, days),
+        });
+
+        return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -77,35 +89,35 @@ async function getAllLoans(req, res) {
             .populate("scheme");
 
         if (!loans || loans.length === 0) {
-            return res.status(404).json({ status: 404, message: "No loans found" });
+            return res.status(404).json({status: 404, message: "No loans found"});
         }
 
-        return res.status(200).json({ status: 200, data: loans });
+        return res.status(200).json({status: 200, data: loans});
     } catch (err) {
         console.error("Error fetching loans:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function updateLoan(req, res) {
     try {
-        const { loanId } = req.params;
+        const {loanId} = req.params;
 
-        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, req.body, { new: true });
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, req.body, {new: true});
 
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Loan not found." });
+            return res.status(404).json({status: 404, message: "Loan not found."});
         }
 
-        return res.status(200).json({ status: 200, data: updatedLoan, message: "Loan updated successfully" });
+        return res.status(200).json({status: 200, data: updatedLoan, message: "Loan updated successfully"});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function getSingleLoan(req, res) {
-    const { loanId } = req.params;
+    const {loanId} = req.params;
 
     try {
         const loan = await IssuedLoanModel.findById(loanId)
@@ -113,33 +125,33 @@ async function getSingleLoan(req, res) {
             .populate("scheme");
 
         if (!loan) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
-        return res.status(200).json({ status: 200, data: loan });
+        return res.status(200).json({status: 200, data: loan});
     } catch (err) {
         console.error("Error fetching loan:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function deleteMultipleLoans(req, res) {
     try {
-        const { ids } = req.body;
+        const {ids} = req.body;
 
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ status: 400, message: "Invalid loan IDs." });
+            return res.status(400).json({status: 400, message: "Invalid loan IDs."});
         }
 
         await IssuedLoanModel.updateMany(
-            { _id: { $in: ids } },
-            { $set: { deleted_at: new Date() } }
+            {_id: {$in: ids}},
+            {$set: {deleted_at: new Date()}}
         );
 
-        return res.status(200).json({ status: 200, message: "Loans deleted successfully" });
+        return res.status(200).json({status: 200, message: "Loans deleted successfully"});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -156,7 +168,10 @@ const getCurrentFinancialYear = () => {
 const generateLoanNumber = async (companyId) => {
     const financialYear = getCurrentFinancialYear();
 
-    const loanCount = await IssuedLoanModel.countDocuments({ company: companyId, loanNo: { $regex: `^EGF/${financialYear}` } });
+    const loanCount = await IssuedLoanModel.countDocuments({
+        company: companyId,
+        loanNo: {$regex: `^EGF/${financialYear}`}
+    });
 
     const newLoanCount = loanCount + 1;
 
@@ -166,13 +181,12 @@ const generateLoanNumber = async (companyId) => {
 };
 
 
-
 const generateTransactionNumber = async (companyId) => {
     const prefix = 'TRXN';
 
     let count = 0
 
-    count = await IssuedLoanModel.countDocuments({ company: companyId });
+    count = await IssuedLoanModel.countDocuments({company: companyId});
 
     count += 1;
 
@@ -184,50 +198,57 @@ const generateTransactionNumber = async (companyId) => {
 };
 
 const applyPenaltyIfLate = async (loanId, installmentId, paymentDate) => {
-    const loan = await IssuedLoanModel.findById(loanId);
-    const installment = loan.installments.id(installmentId);
+    const loan = await IssuedLoanModel.findById(loanId).populate('scheme');
 
-    const dueDate = new Date(installment.dueDate);
+    const {installments, scheme, company, loanAmount} = loan
+
+    const installment = installments.id(installmentId);
+
+    const dueDate = new Date(installment.date);
     const daysLate = Math.floor((paymentDate - dueDate) / (1000 * 60 * 60 * 24));
 
-    const scheme = await Sh
-    let newInterestRate = 1.5; // Default interest rate
+    let newInterestRate = scheme.interestRate;
+
+    const penaltyMaster = await PenaltyModel.find({company: company});
     let penaltyApplied = false;
 
-    // Check if payment is late
-    if (daysLate > 7) {
-        // Fetch the penalty from the penalty master
-        const penaltyMaster = await PenaltyMaster.findOne(); // Assuming you have a PenaltyMaster schema
-
-        // Iterate through the ranges and apply the relevant penalty
-        for (let range of penaltyMaster.ranges) {
-            if (daysLate >= range.minDays && daysLate <= range.maxDays) {
-                newInterestRate += range.penaltyRate; // Increase interest rate by penalty
-                penaltyApplied = true;
-                break;
-            }
+    for (let range of penaltyMaster.ranges) {
+        if (daysLate >= range.afterDueDateFromDate && daysLate <= range.afterDueDateToDate) {
+            newInterestRate += range.penaltyInterest;
+            penaltyApplied = true;
+            break;
         }
     }
 
-    // If payment is on time or within 7 days, no penalty is applied
+    let daysBetweenInstallments = 30;
+
     if (!penaltyApplied) {
+        daysBetweenInstallments = 30 + daysLate;
+        newInterestRate = loan.interestRate
+        installment.amount = calculateInterest(loanAmount, newInterestRate, daysBetweenInstallments)
         console.log('No penalty applied. Paid on time or within grace period.');
     }
 
-    // Calculate new interest based on the (possibly penalized) rate
-    const daysBetweenInstallments = 30;
-    const interestAmount = calculateInterest(loan.totalAmount, newInterestRate, daysBetweenInstallments);
-
-    // Update installment status and set next installment date
+    installment.amount = calculateInterest(loanAmount, newInterestRate, daysBetweenInstallments);
     installment.status = 'Paid';
-    installment.paidOn = paymentDate;
+    installment.date = paymentDate;
     loan.nextInstallmentDate = new Date(paymentDate.setDate(paymentDate.getDate() + 30));
 
-    // Save the updated loan
     await loan.save();
 
-    console.log(`Installment paid. Penalty applied: ${penaltyApplied ? 'Yes' : 'No'}, new interest amount: ${interestAmount}`);
 };
 
+const calculateInterest = (loanAmount, rateOfInterest, days) => {
+    return (loanAmount * rateOfInterest * days) / (30 * 100);
+};
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan ,deleteMultipleLoans}
+function getNextInterestPayDate(issueDate) {
+    let nextPayDate = new Date(issueDate);
+
+    nextPayDate.setDate(nextPayDate.getDate() + 30);
+
+    return nextPayDate;
+}
+
+
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan}

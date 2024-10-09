@@ -1,12 +1,6 @@
 const mongoose = require("mongoose")
 const bankAccountSchema = require("./common/bank");
 
-const installmentSchema = new mongoose.Schema({
-    date: Date,
-    amount: Number,
-    status: {type: String, default: "pending"},
-})
-
 const issuedLoanSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
     customer: {type: String, ref: "Customer", required: true},
@@ -14,19 +8,23 @@ const issuedLoanSchema = new mongoose.Schema({
     loanNo: String,
     transactionNo: String,
     issueDate: Date,
-    installments: [installmentSchema],
     jewellerName: String,
+    nextInstallmentDate: {type: Date, default: null},
+    lastInstallmentDate: {type: Date, default: null},
     propertyDetails: [],
     propertyImage: String,
     loanAmount: Number,
-    amountPaid: Number,
+    uchakAmount: {type: Number, default: 0},
+    amountPaid: {type: Number, default: 0},
     paymentMode: String,
     cashAmount: Number,
     bankAmount: Number,
-    consultingCharge: Number,
-    bankAmount: Number,
-    bankDetail: {bankAccountSchema},
-    status: {type: String, default: 'Active'},
+    interestLoanAmount: Number,
+    issuedBy: {ref: "User", type: String, required: false},
+    closedBy: {ref: "User", type: String, required: false},
+    companyBankDetail: {type: {bankAccountSchema}, default: null},
+    customerBankDetail: {type: {bankAccountSchema}, default: null},
+    status: {type: String, default: 'Issued'},
     deleted_at: {type: Date, default: null}
 }, {timestamps: true})
 
