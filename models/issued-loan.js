@@ -1,5 +1,4 @@
 const mongoose = require("mongoose")
-const bankAccountSchema = require("./common/bank");
 
 const issuedLoanSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
@@ -22,8 +21,8 @@ const issuedLoanSchema = new mongoose.Schema({
     interestLoanAmount: Number,
     issuedBy: {ref: "User", type: String, required: false},
     closedBy: {ref: "User", type: String, required: false},
-    companyBankDetail: {type: bankAccountSchema, default: null},
-    customerBankDetail: {type: bankAccountSchema, default: null},
+    companyBankDetail: {type: Object, default: null},
+    customerBankDetail: {type: Object, default: null},
     status: {type: String, default: 'Issued'},
     deleted_at: {type: Date, default: null}
 }, {timestamps: true})
