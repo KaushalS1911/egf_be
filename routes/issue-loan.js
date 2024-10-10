@@ -11,7 +11,7 @@ router.post('/disburse-loan', disburseLoan);
 router.get('/:companyId/loans', getAllLoans);
 router.delete('/:companyId/loans', deleteMultipleLoans);
 router.get('/:companyId/loans/:loanId', getSingleLoan);
-router.put('/:companyId/loans/:loanId', updateLoan);
+router.put('/:companyId/loans/:loanId', upload.single('property-image'), updateLoan);
 router.post('/loans/:loanId/interest-payment', interestPayment);
 router.post('/loans/:loanId/part-release', partRelease);
 router.post('/loans/:loanId/part-payment', loanPartPayment);
