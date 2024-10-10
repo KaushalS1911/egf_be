@@ -8,7 +8,6 @@ const partReleaseSchema = new mongoose.Schema({
     propertyNetWt: Number,
     netAmount: Number,
     grossAmount: Number,
-    totalAmount: Number,
     remark: String,
     propertyImage: String,
     paymentDetail: Object,

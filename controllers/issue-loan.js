@@ -124,18 +124,21 @@ async function partRelease(req, res) {
 async function loanPartPayment(req, res) {
 
     try {
-        const {loanId} = req.params
+        const {loanId, parts} = req.params
 
-        const partPaymentDetail = await PartPaymentModel.create({
-            loan: loanId,
-            ...req.body
+        const releasedParts = parts.map((e) => {
+            return {
+                ...e,
+                loan: loanId,
+            }
         })
+        const partPaymentDetail = await PartPaymentModel.insertMany(releasedParts)
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        let {interestLoanAmount, totalAmount} = loanDetails
+        let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount -= totalAmount
+        interestLoanAmount = interestLoanAmount - req.body.totalAmount
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
