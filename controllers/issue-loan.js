@@ -178,7 +178,11 @@ async function updateLoan(req, res) {
     try {
         const {loanId} = req.params;
 
-        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, req.body, {new: true});
+        let payload = req.body
+        if(req.file && req.file.buffer) payload.propertyImage = await uploadPropertyFile(req.file.buffer)
+
+
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, payload, {new: true});
 
         if (!updatedLoan) {
             return res.status(404).json({status: 404, message: "Loan not found."});
