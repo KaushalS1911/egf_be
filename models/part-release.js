@@ -2,15 +2,13 @@ const mongoose = require("mongoose")
 
 const partReleaseSchema = new mongoose.Schema({
     loan: {type: String, ref: "Issued loan", required: true},
-    propertyName: String,
-    carat: String,
-    propertyWt: Number,
-    propertyNetWt: Number,
-    netAmount: Number,
-    grossAmount: Number,
+    property: [],
     remark: String,
     propertyImage: String,
     paymentDetail: Object,
+    totalAmount: Number,
+    amountPaid: Number,
+    date: Date,
     deleted_at: {type: Date, default: null}
 }, {timestamps: true})
 

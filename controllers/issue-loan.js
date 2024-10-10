@@ -99,6 +99,7 @@ async function partRelease(req, res) {
         const {loanId} = req.params
 
         const propertyImage = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+
         const partDetail = await PartReleaseModel.create({
             loan: loanId,
             propertyImage,
@@ -107,9 +108,10 @@ async function partRelease(req, res) {
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        let {interestLoanAmount, totalAmount} = loanDetails
+        let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount -= totalAmount
+        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
@@ -125,21 +127,17 @@ async function loanPartPayment(req, res) {
 
     try {
         const {loanId} = req.params
-        const {parts, totalAmount} = req.body
 
-        const releasedParts = parts.map((e) => {
-            return {
-                ...e,
-                loan: loanId,
-            }
+        const partPaymentDetail = await PartPaymentModel.create({
+            loan: loanId,
+            ...req.body
         })
-        const partPaymentDetail = await PartPaymentModel.insertMany(releasedParts)
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        let {interestLoanAmount} = loanDetails
+        let {interestLoanAmount, totalAmount} = loanDetails
 
-        interestLoanAmount = interestLoanAmount - totalAmount
+        interestLoanAmount -= totalAmount
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
