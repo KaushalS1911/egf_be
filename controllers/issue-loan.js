@@ -163,10 +163,6 @@ async function getAllLoans(req, res) {
             .populate("customer")
             .populate("scheme");
 
-        if (!loans || loans.length === 0) {
-            return res.status(404).json({status: 404, message: "No loans found"});
-        }
-
         return res.status(200).json({status: 200, data: loans});
     } catch (err) {
         console.error("Error fetching loans:", err.message);
