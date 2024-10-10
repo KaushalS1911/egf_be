@@ -124,7 +124,8 @@ async function partRelease(req, res) {
 async function loanPartPayment(req, res) {
 
     try {
-        const {loanId, parts} = req.params
+        const {loanId} = req.params
+        const {parts, totalAmount} = req.body
 
         const releasedParts = parts.map((e) => {
             return {
@@ -138,7 +139,7 @@ async function loanPartPayment(req, res) {
 
         let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount = interestLoanAmount - req.body.totalAmount
+        interestLoanAmount = interestLoanAmount - totalAmount
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
