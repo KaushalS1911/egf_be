@@ -152,7 +152,7 @@ async function loanPartPayment(req, res) {
 async function getAllLoans(req, res) {
     try {
         const {companyId} = req.params
-        const {type} = req.query
+        const {type, branch} = req.query
 
         let query = {
             company: companyId,
@@ -162,7 +162,10 @@ async function getAllLoans(req, res) {
         if(type) query.status = type
 
         const loans = await IssuedLoanModel.find(query)
-            .populate("customer")
+            .populate({
+                path: "customer",
+                match: branch ? { "branch._id": branch } : {},
+            })
             .populate("scheme");
 
         return res.status(200).json({status: 200, data: loans});
