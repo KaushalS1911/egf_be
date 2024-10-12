@@ -17,6 +17,7 @@ async function issueLoan(req, res) {
             scheme,
         } = req.body;
 
+
         const isLoanExist = await IssuedLoanModel.exists({
             company: companyId,
             customer,
@@ -89,8 +90,9 @@ async function interestPayment(req, res) {
 
         const paymentDate = new Date(req.body.to)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
+        const lastInstallmentDate = new Date()
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
     } catch (err) {
