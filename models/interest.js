@@ -2,6 +2,7 @@ const mongoose = require("mongoose")
 
 const interestSchema = new mongoose.Schema({
     loan: {type: String, ref: "Issued loan", required: true},
+    type: {type: String, default: "Normal"},
     to: Date,
     from: Date,
     interestAmount: Number,

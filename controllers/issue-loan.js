@@ -77,7 +77,6 @@ async function disburseLoan(req, res) {
 }
 
 async function interestPayment(req, res) {
-
     try {
         const {loanId} = req.params
 
@@ -92,6 +91,74 @@ async function interestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function GetInterestPayment(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const interestDetail = await InterestModel.find({
+            loan: loanId,
+            deleted_at: null
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json({status: 200,  data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function GetPartPaymentDetail(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const paymentDetail = await PartPaymentModel.find({
+            loan: loanId,
+            deleted_at: null
+        })
+
+        return res.status(200).json({status: 200,  data: paymentDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function GetPartReleaseDetail(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const partReleaseDetail = await PartReleaseModel.find({
+            loan: loanId,
+            deleted_at: null
+        })
+
+        return res.status(200).json({status: 200,  data: partReleaseDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function GetUchakInterestDetail(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const partReleaseDetail = await PartReleaseModel.find({
+            loan: loanId,
+            deleted_at: null
+        })
+
+        return res.status(200).json({status: 200,  data: partReleaseDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -336,4 +403,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail}
