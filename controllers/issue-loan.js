@@ -30,8 +30,10 @@ async function issueLoan(req, res) {
             return res.status(400).json({status: 400, message: "Loan already exists."});
         }
         const property = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+        const nextInstallmentDate = getNextInterestPayDate(req.body.issueDate)
         const issuedLoan = new IssuedLoanModel({
             ...req.body,
+            nextInstallmentDate,
             company: companyId,
             loanNo: await generateLoanNumber(companyId),
             transactionNo: await generateTransactionNumber(companyId),
@@ -85,7 +87,7 @@ async function interestPayment(req, res) {
             ...req.body
         })
 
-        const paymentDate = new Date(req.body.from)
+        const paymentDate = new Date(req.body.to)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate}, {new: true})
