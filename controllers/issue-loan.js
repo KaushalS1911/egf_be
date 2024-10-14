@@ -266,7 +266,6 @@ async function updatePartPaymentDetail(req, res) {
 
         const partDetail = await PartReleaseModel.create({
             loan: loanId,
-            propertyImage,
             ...req.body
         })
 
