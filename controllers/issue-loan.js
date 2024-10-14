@@ -162,7 +162,7 @@ async function GetPartReleaseDetail(req, res) {
         const partReleaseDetail = await PartReleaseModel.find({
             loan: loanId,
             deleted_at: null
-        })
+        }).populate('loan')
 
         return res.status(200).json({status: 200,  data: partReleaseDetail});
     } catch (err) {
