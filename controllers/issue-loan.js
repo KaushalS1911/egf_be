@@ -209,14 +209,13 @@ async function partRelease(req, res) {
         })
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
-
-        let {interestLoanAmount} = loanDetails
-
-        interestLoanAmount =  Number(interestLoanAmount) - Number(req.body.amountPaid)
+        console.log(loanDetails.interestLoanAmount, req.body)
+        const interestLoanAmount =  Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid)
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
+        console.log(interestLoanAmount)
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount: Number(interestLoanAmount)}, {new: true})
 
         return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
     } catch (err) {

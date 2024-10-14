@@ -18,7 +18,7 @@ router.put('/loans/:loanId/interest-payment/:interestId', updateInterestPayment)
 router.put('/loans/:loanId/part-release/:partId', updatePartReleaseDetail);
 router.get('/loans/:loanId/loan-part-payment', GetPartPaymentDetail);
 router.get('/loans/:loanId/part-release', GetPartReleaseDetail);
-router.post('/loans/:loanId/part-release', partRelease);
+router.post('/loans/:loanId/part-release', upload.single('property-image'), partRelease);
 router.post('/loans/:loanId/part-payment', loanPartPayment);
 router.put('/loans/:loanId/part-payment/:partId', updatePartPaymentDetail);
 
