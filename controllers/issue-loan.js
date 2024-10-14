@@ -101,6 +101,25 @@ async function interestPayment(req, res) {
     }
 }
 
+async function updateInterestPayment(req, res) {
+    try {
+        const {loanId, interestId} = req.params
+
+        const updatedInterestDetail = await InterestModel.findByIdAndUpdate(interestId, req.body, {new: true})
+
+        const paymentDate = new Date(req.body.to)
+        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
+        const lastInstallmentDate = new Date()
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+
+        return res.status(201).json({status: 201, message: "Loan interest details updated successfully", data: updatedInterestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function GetInterestPayment(req, res) {
 
     try {
@@ -152,17 +171,24 @@ async function GetPartReleaseDetail(req, res) {
     }
 }
 
-async function GetUchakInterestDetail(req, res) {
+async function updatePartReleaseDetail(req, res) {
 
     try {
-        const {loanId} = req.params
+        const {loanId, partId} = req.params
 
-        const partReleaseDetail = await PartReleaseModel.find({
-            loan: loanId,
-            deleted_at: null
-        })
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        return res.status(200).json({status: 200,  data: partReleaseDetail});
+        let {interestLoanAmount} = loanDetails
+
+        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+
+        const nextInstallmentDate = getNextInterestPayDate(new Date())
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
+
+        const updatedPartReleaseDetail = await PartReleaseModel.findByIdAndUpdate(partId, req.body, {new: true})
+
+        return res.status(200).json({status: 200, message: "Part release details updated successfully",  data: updatedPartReleaseDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -407,4 +433,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail}
