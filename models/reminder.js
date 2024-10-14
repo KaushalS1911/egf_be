@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 
 const reminderSchema = new mongoose.Schema({
     company: {type: String, ref: "Company"},
-    loan: {type: String, ref: "Issued loan", required: true},
+    loan: {type: String, ref: "Issued Loan", required: true},
     nextReminderDate: Date,
     remark: String,
     deleted_at: {type: Date, default: null}

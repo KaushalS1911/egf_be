@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 
 const partReleaseSchema = new mongoose.Schema({
-    loan: {type: String, ref: "Issued loan", required: true},
+    loan: {type: String, ref: "Issued Loan", required: true},
     property: [],
     remark: String,
     propertyImage: String,
