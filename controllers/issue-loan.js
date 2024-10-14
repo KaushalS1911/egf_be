@@ -83,19 +83,27 @@ async function disburseLoan(req, res) {
 async function interestPayment(req, res) {
     try {
         const {loanId} = req.params
+        const {uchakInterestAmount, amountPaid, to} = req.body
 
         const interestDetail = await InterestModel.create({
             loan: loanId,
             ...req.body
         })
 
-        // if(req.body)
+        let updatedAmount = uchakInterestAmount
 
-        const paymentDate = new Date(req.body.to)
+        if (uchakInterestAmount && uchakInterestAmount > 0) {
+            updatedAmount = Math.max(
+                uchakInterestAmount - amountPaid,
+                0
+            );
+        }
+
+        const paymentDate = new Date(to)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date()
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: updatedAmount}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
     } catch (err) {
@@ -107,17 +115,18 @@ async function interestPayment(req, res) {
 async function uchakInterestPayment(req, res) {
     try {
         const {loanId} = req.params
+        const {date, amountPaid} = req.body
 
         const interestDetail = await UchakInterestModel.create({
             loan: loanId,
             ...req.body
         })
 
-        const paymentDate = new Date(req.body.date)
+        const paymentDate = new Date(date)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-        const lastInstallmentDate = new Date(req.body.date)
+        const lastInstallmentDate = new Date(date)
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: req.body.amountPaid}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: amountPaid}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan uchak interest paid successfully", data: interestDetail});
     } catch (err) {
