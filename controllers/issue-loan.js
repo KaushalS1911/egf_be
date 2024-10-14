@@ -3,6 +3,7 @@ const PenaltyModel = require("../models/penalty");
 const InterestModel = require("../models/interest");
 const PartReleaseModel = require("../models/part-release");
 const PartPaymentModel = require("../models/loan-part-payment");
+const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
 
@@ -95,6 +96,28 @@ async function interestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function uchakInterestPayment(req, res) {
+    try {
+        const {loanId} = req.params
+
+        const interestDetail = await UchakInterestModel.create({
+            loan: loanId,
+            ...req.body
+        })
+
+        const paymentDate = new Date(req.body.date)
+        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
+        const lastInstallmentDate = new Date(req.body.date)
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+
+        return res.status(201).json({status: 201, message: "Loan uchak interest paid successfully", data: interestDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -468,4 +491,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease,updatePartPaymentDetail, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease,updatePartPaymentDetail, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail,uchakInterestPayment}
