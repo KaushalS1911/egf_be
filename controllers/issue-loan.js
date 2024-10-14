@@ -225,6 +225,7 @@ async function partRelease(req, res) {
     }
 }
 
+
 async function loanPartPayment(req, res) {
 
     try {
@@ -245,6 +246,35 @@ async function loanPartPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan part payment success", data: partPaymentDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function updatePartPaymentDetail(req, res) {
+
+    try {
+        const {loanId, partId} = req.params
+
+
+        const partDetail = await PartReleaseModel.create({
+            loan: loanId,
+            propertyImage,
+            ...req.body
+        })
+
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
+
+        let {interestLoanAmount} = loanDetails
+
+        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+
+        const nextInstallmentDate = getNextInterestPayDate(new Date())
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
+
+        return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -433,4 +463,4 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail}
+module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease,updatePartPaymentDetail, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail}
