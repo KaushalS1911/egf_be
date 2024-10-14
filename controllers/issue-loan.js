@@ -202,20 +202,27 @@ async function partRelease(req, res) {
 
         const propertyImage = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
+        const loanDetails = await IssuedLoanModel.findById(loanId)
+
+        const releasedProperty = req.body.property
+
+        let finalProperty = []
+
+        releasedProperty.forEach((e) => {
+            finalProperty = loanDetails.filter((item) => item.type !== e.type)
+        })
+
         const partDetail = await PartReleaseModel.create({
             loan: loanId,
             propertyImage,
             ...req.body
         })
 
-        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
-        console.log(loanDetails.interestLoanAmount, req.body)
         const interestLoanAmount =  Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid)
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
-        console.log(interestLoanAmount)
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount: Number(interestLoanAmount)}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount: Number(interestLoanAmount), propertyDetails: finalProperty}, {new: true})
 
         return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
     } catch (err) {
