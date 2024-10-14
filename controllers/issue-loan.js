@@ -212,7 +212,7 @@ async function partRelease(req, res) {
 
         let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+        interestLoanAmount =  Number(interestLoanAmount) - Number(req.body.amountPaid)
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
