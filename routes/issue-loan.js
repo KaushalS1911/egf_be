@@ -1,10 +1,10 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const {issueLoan, getAllLoans, updateLoan,loanPartPayment, partRelease, getSingleLoan,updatePartReleaseDetail, updateInterestPayment ,deleteMultipleLoans, disburseLoan,interestPayment,GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail} = require('../controllers/issue-loan')
+const {issueLoan, getAllLoans, updateLoan,loanPartPayment, partRelease, getSingleLoan,updatePartReleaseDetail, updatePartPaymentDetail,updateInterestPayment ,deleteMultipleLoans, disburseLoan,interestPayment,GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail} = require('../controllers/issue-loan')
 
 const storage = multer.memoryStorage();
-const upload = multer({storage: storage});
+const upload = multer({storage});
 
 router.post('/:companyId/issue-loan',  upload.single('property-image'), issueLoan);
 router.post('/disburse-loan', disburseLoan);
@@ -20,5 +20,6 @@ router.get('/loans/:loanId/loan-part-payment', GetPartPaymentDetail);
 router.get('/loans/:loanId/part-release', GetPartReleaseDetail);
 router.post('/loans/:loanId/part-release', partRelease);
 router.post('/loans/:loanId/part-payment', loanPartPayment);
+router.put('/loans/:loanId/part-payment/:partId', updatePartPaymentDetail);
 
 module.exports = router;

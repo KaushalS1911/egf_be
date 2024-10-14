@@ -13,6 +13,7 @@ const employeeRouter = require("../routes/employee")
 const configRouter = require("../routes/config")
 const companyRouter = require("../routes/company")
 const issueLoanRouter = require("../routes/issue-loan")
+const reminderRouter = require("../routes/reminder")
 const router = express.Router();
 
 
@@ -34,6 +35,7 @@ router.use('/company', propertyRouter)
 router.use('/company', penaltyRouter)
 router.use('/company', employeeRouter)
 router.use('/company', configRouter)
+router.use('/company', reminderRouter)
 
 // loans
 router.use('/company', issueLoanRouter)
