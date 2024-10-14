@@ -3,6 +3,7 @@ const PenaltyModel = require("../models/penalty");
 const InterestModel = require("../models/interest");
 const PartReleaseModel = require("../models/part-release");
 const PartPaymentModel = require("../models/loan-part-payment");
+const LoanCloseModel = require("../models/loan-close");
 const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
@@ -58,7 +59,7 @@ async function issueLoan(req, res) {
 async function disburseLoan(req, res) {
 
     try {
-        const {loan, companyBankDetail, bankAmount, cashAmount,pendingBankAmount, pendingCashAmount  } = req.body
+        const {loan, companyBankDetail, bankAmount, cashAmount, pendingBankAmount, pendingCashAmount} = req.body
 
         const loanDetail = await IssuedLoanModel.findById(loan)
 
@@ -69,7 +70,7 @@ async function disburseLoan(req, res) {
         loanDetail.pendingCashAmount = pendingCashAmount
         loanDetail.pendingBankAmount = pendingBankAmount
 
-        if(companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
+        if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
         const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
 
@@ -103,9 +104,39 @@ async function interestPayment(req, res) {
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date()
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: updatedAmount}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {
+            nextInstallmentDate,
+            lastInstallmentDate,
+            uchakInterestAmount: updatedAmount
+        }, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function loanClose(req, res) {
+    try {
+        const {loanId} = req.params
+
+        const closedLoan = await LoanCloseModel.create({
+            loan: loanId,
+            ...req.body
+        })
+
+        const loanDetail = await IssuedLoanModel.findById(loanId)
+
+        const loanAmount = req.body.paidLoanAmount - loanDetail.interestLoanAmount
+
+        loanDetail.status = "Closed"
+        loanDetail.interestLoanAmount = loanAmount
+        loanDetail.closedBy = req.body.closedBy
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true})
+
+        return res.status(201).json({status: 201, message: "Loan closed successfully", data: closedLoan});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -126,9 +157,17 @@ async function uchakInterestPayment(req, res) {
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date(date)
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: amountPaid}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {
+            nextInstallmentDate,
+            lastInstallmentDate,
+            uchakInterestAmount: amountPaid
+        }, {new: true})
 
-        return res.status(201).json({status: 201, message: "Loan uchak interest paid successfully", data: interestDetail});
+        return res.status(201).json({
+            status: 201,
+            message: "Loan uchak interest paid successfully",
+            data: interestDetail
+        });
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -147,7 +186,11 @@ async function updateInterestPayment(req, res) {
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
 
-        return res.status(201).json({status: 201, message: "Loan interest details updated successfully", data: updatedInterestDetail});
+        return res.status(201).json({
+            status: 201,
+            message: "Loan interest details updated successfully",
+            data: updatedInterestDetail
+        });
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -162,9 +205,9 @@ async function GetInterestPayment(req, res) {
         const interestDetail = await InterestModel.find({
             loan: loanId,
             deleted_at: null
-        }).sort({ createdAt: -1 }).populate({path: "loan", populate: {path: "scheme"}});
+        }).sort({createdAt: -1}).populate({path: "loan", populate: {path: "scheme"}});
 
-        return res.status(200).json({status: 200,  data: interestDetail});
+        return res.status(200).json({status: 200, data: interestDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -181,7 +224,7 @@ async function GetPartPaymentDetail(req, res) {
             deleted_at: null
         }).populate('loan')
 
-        return res.status(200).json({status: 200,  data: paymentDetail});
+        return res.status(200).json({status: 200, data: paymentDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -198,7 +241,7 @@ async function GetPartReleaseDetail(req, res) {
             deleted_at: null
         }).populate('loan')
 
-        return res.status(200).json({status: 200,  data: partReleaseDetail});
+        return res.status(200).json({status: 200, data: partReleaseDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -214,7 +257,7 @@ async function updatePartReleaseDetail(req, res) {
 
         let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+        interestLoanAmount = interestLoanAmount - req.body.amountPaid
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
@@ -222,7 +265,11 @@ async function updatePartReleaseDetail(req, res) {
 
         const updatedPartReleaseDetail = await PartReleaseModel.findByIdAndUpdate(partId, req.body, {new: true})
 
-        return res.status(200).json({status: 200, message: "Part release details updated successfully",  data: updatedPartReleaseDetail});
+        return res.status(200).json({
+            status: 200,
+            message: "Part release details updated successfully",
+            data: updatedPartReleaseDetail
+        });
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -252,11 +299,15 @@ async function partRelease(req, res) {
             ...req.body
         })
 
-        const interestLoanAmount =  Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid)
+        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid)
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount: Number(interestLoanAmount), propertyDetails: finalProperty}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {
+            nextInstallmentDate,
+            interestLoanAmount: Number(interestLoanAmount),
+            propertyDetails: finalProperty
+        }, {new: true})
 
         return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
     } catch (err) {
@@ -307,7 +358,7 @@ async function updatePartPaymentDetail(req, res) {
 
         let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount =  interestLoanAmount - req.body.amountPaid
+        interestLoanAmount = interestLoanAmount - req.body.amountPaid
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
@@ -330,12 +381,12 @@ async function getAllLoans(req, res) {
             deleted_at: null
         }
 
-        if(type) query.status = type
+        if (type) query.status = type
 
         const loans = await IssuedLoanModel.find(query)
             .populate({
                 path: "customer",
-                match: branch ? { "branch._id": branch } : {},
+                match: branch ? {"branch._id": branch} : {},
             })
             .populate("scheme");
 
@@ -351,7 +402,7 @@ async function updateLoan(req, res) {
         const {loanId} = req.params;
 
         let payload = req.body
-        if(req.file && req.file.buffer) payload.propertyImage = await uploadPropertyFile(req.file.buffer)
+        if (req.file && req.file.buffer) payload.propertyImage = await uploadPropertyFile(req.file.buffer)
 
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, payload, {new: true});
@@ -502,4 +553,22 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-module.exports = {issueLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans, disburseLoan,interestPayment,partRelease,updatePartPaymentDetail, loanPartPayment, GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail,updateInterestPayment,updatePartReleaseDetail,uchakInterestPayment}
+module.exports = {
+    issueLoan,
+    getAllLoans,
+    updateLoan,
+    getSingleLoan,
+    deleteMultipleLoans,
+    disburseLoan,
+    interestPayment,
+    partRelease,
+    updatePartPaymentDetail,
+    loanPartPayment,
+    GetInterestPayment,
+    GetPartPaymentDetail,
+    GetPartReleaseDetail,
+    updateInterestPayment,
+    updatePartReleaseDetail,
+    uchakInterestPayment,
+    loanClose
+}
