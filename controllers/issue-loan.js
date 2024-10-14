@@ -89,6 +89,8 @@ async function interestPayment(req, res) {
             ...req.body
         })
 
+        // if(req.body)
+
         const paymentDate = new Date(req.body.to)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date()
@@ -115,7 +117,7 @@ async function uchakInterestPayment(req, res) {
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date(req.body.date)
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate, uchakInterestAmount: req.body.amountPaid}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan uchak interest paid successfully", data: interestDetail});
     } catch (err) {
@@ -267,9 +269,9 @@ async function loanPartPayment(req, res) {
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
 
-        let {interestLoanAmount, totalAmount} = loanDetails
+        let {interestLoanAmount} = loanDetails
 
-        interestLoanAmount -= totalAmount
+        interestLoanAmount = interestLoanAmount - req.body.amountPaid
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})

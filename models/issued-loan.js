@@ -10,6 +10,7 @@ const issuedLoanSchema = new mongoose.Schema({
     jewellerName: String,
     nextInstallmentDate: {type: Date, default: null},
     lastInstallmentDate: {type: Date, default: null},
+    uchakInterestAmount: {type: Number, default: 0},
     propertyDetails: [],
     propertyImage: String,
     consultingCharge: {type: Number, default: 0},
