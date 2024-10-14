@@ -109,7 +109,7 @@ async function GetInterestPayment(req, res) {
         const interestDetail = await InterestModel.find({
             loan: loanId,
             deleted_at: null
-        }).sort({ createdAt: -1 });
+        }).sort({ createdAt: -1 }).populate("loan");
 
         return res.status(200).json({status: 200,  data: interestDetail});
     } catch (err) {

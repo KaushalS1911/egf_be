@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
 const addressSchema = require("./common/address");
-const bankAccountSchema = require("./common/bank");
 
 const customerSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
