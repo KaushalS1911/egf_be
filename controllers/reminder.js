@@ -20,7 +20,7 @@ async function getAllReminders(req, res) {
         const reminders = await ReminderModel.find({
             company: companyId,
             deleted_at: null,
-        }).populate("company").populate('loan');
+        }).populate("company").populate({path: "loan", populate: {path: "customer"}});
 
         return res.status(200).json({ status: 200, data: reminders });
     } catch (err) {
