@@ -386,6 +386,7 @@ async function getAllLoans(req, res) {
         const loans = await IssuedLoanModel.find(query)
             .populate({
                 path: "customer",
+                populate: "branch",
                 match: branch ? {"branch._id": branch} : {},
             })
             .populate("scheme");
