@@ -159,27 +159,33 @@ async function getUser(req, res) {
     try {
         const { id } = req.user;
 
+        // Fetch the user by ID and return 404 if not found
         const user = await UserModel.findById(id).lean();
         if (!user) {
             return res.status(404).json({ status: 404, message: "User not found" });
         }
 
-        user.branch = null;
+        // Initialize branch as null
+        let branch = null;
 
+        // If the user is not an Admin, fetch the corresponding employee and their branch
         if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({ user: user._id });
-            if (emp) {
-                user.branch = emp.branch || null;
-            }
+            const employee = await EmployeeModel.findOne({ user: user._id }).lean();
+            branch = employee?.branch || null;
         }
 
-        return res.status(200).json({ status: 200, data: user });
+        // Return the user data along with the branch (if applicable)
+        return res.status(200).json({
+            status: 200,
+            data: { ...user, branch }
+        });
 
-    } catch (err) {
-        console.error("Error fetching user:", err);
+    } catch (error) {
+        console.error("Error fetching user:", error);
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function setTokens(userId) {
     const tokens = {
