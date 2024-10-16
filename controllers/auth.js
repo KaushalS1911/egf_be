@@ -159,22 +159,18 @@ async function getUser(req, res) {
     try {
         const { id } = req.user;
 
-        // Fetch the user by ID and return 404 if not found
         const user = await UserModel.findById(id).lean();
         if (!user) {
             return res.status(404).json({ status: 404, message: "User not found" });
         }
 
-        // Initialize branch as null
         let branch = null;
 
-        // If the user is not an Admin, fetch the corresponding employee and their branch
         if (user.role !== 'Admin') {
             const employee = await EmployeeModel.findOne({ user: user._id }).lean();
             branch = employee?.branch || null;
         }
 
-        // Return the user data along with the branch (if applicable)
         return res.status(200).json({
             status: 200,
             data: { ...user, branch }
