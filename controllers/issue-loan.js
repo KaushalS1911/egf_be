@@ -102,7 +102,7 @@ async function interestPayment(req, res) {
 
         const paymentDate = new Date(to)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-        const lastInstallmentDate = new Date()
+        const lastInstallmentDate = new Date(to)
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {
             nextInstallmentDate,
