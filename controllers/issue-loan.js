@@ -303,13 +303,13 @@ async function partRelease(req, res) {
 
         const nextInstallmentDate = getNextInterestPayDate(new Date())
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {
+        const loan = await IssuedLoanModel.findByIdAndUpdate(loanId, {
             nextInstallmentDate,
             interestLoanAmount: Number(interestLoanAmount),
             propertyDetails: finalProperty
         }, {new: true})
 
-        return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
+        return res.status(201).json({status: 201, message: "Part released successfully", data: {...partDetail, loan }});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
