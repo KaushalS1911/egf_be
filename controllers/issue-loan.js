@@ -307,7 +307,7 @@ async function partRelease(req, res) {
             nextInstallmentDate,
             interestLoanAmount: Number(interestLoanAmount),
             propertyDetails: finalProperty
-        }, {new: true})
+        }, {new: true}).lean()
 
         return res.status(201).json({status: 201, message: "Part released successfully", data: {...partDetail, loan }});
     } catch (err) {
