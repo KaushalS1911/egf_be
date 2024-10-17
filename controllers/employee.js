@@ -13,8 +13,8 @@ async function createEmployee(req, res) {
 
     try {
         const { companyId } = req.params;
+        const {branch} = req.query
         const {
-            branch,
             firstName,
             middleName,
             lastName,
