@@ -280,35 +280,28 @@ async function partRelease(req, res) {
     try {
         const { loanId } = req.params;
 
-        // Upload property image if file exists
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
-        // Get loan details by loan ID
         const loanDetails = await IssuedLoanModel.findById(loanId);
         if (!loanDetails) {
             return res.status(404).json({ status: 404, message: "Loan not found" });
         }
 
-        // Extract and filter property details for part release
         const releasedProperty = req.body.property;
         const finalProperty = loanDetails?.propertyDetails.filter((item) =>
             !releasedProperty.some((e) => e.id === item.id)
         );
 
-        // Create a part release entry in the database
         const partDetail = await PartReleaseModel.create({
             loan: loanId,
             propertyImage,
             ...req.body
         });
 
-        // Calculate new interest loan amount
         const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid);
 
-        // Calculate the next installment date
         const nextInstallmentDate = getNextInterestPayDate(new Date());
 
-        // Update the loan details in the database and get the updated loan
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
@@ -323,15 +316,13 @@ async function partRelease(req, res) {
             return res.status(404).json({ status: 404, message: "Updated loan not found" });
         }
 
-        // Convert the loan document to a plain object
         const plainLoan = updatedLoan.toObject();
 
-        // Send the response with part detail and updated loan
         return res.status(201).json({
             status: 201,
             message: "Part released successfully",
             data: {
-                ...partDetail.toObject(), // Convert partDetail to a plain object
+                ...partDetail.toObject(),
                 loan: plainLoan
             }
         });
