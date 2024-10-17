@@ -148,8 +148,8 @@ async function getAllEmployees(req, res) {
 
 async function updateEmployee(req, res) {
     const { employeeId, companyId } = req.params;
+    const {branch} = req.query;
     const {
-        branch,
         firstName,
         middleName,
         lastName,
