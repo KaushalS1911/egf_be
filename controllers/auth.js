@@ -167,7 +167,7 @@ async function getUser(req, res) {
         let branch = null;
 
         if (user.role !== 'Admin') {
-            const employee = await EmployeeModel.findOne({ user: user._id }).lean();
+            const employee = await EmployeeModel.findOne({ user: user._id }).populate('branch').lean();
             branch = employee?.branch || null;
         }
 

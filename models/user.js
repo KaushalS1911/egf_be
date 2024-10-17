@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const userSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
     role: String,
+    otp: String,
     avatar_url: {type: String, default: null},
     firstName: String,
     middleName: String,
