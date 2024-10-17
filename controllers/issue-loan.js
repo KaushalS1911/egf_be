@@ -307,9 +307,11 @@ async function partRelease(req, res) {
             nextInstallmentDate,
             interestLoanAmount: Number(interestLoanAmount),
             propertyDetails: finalProperty
-        }, {new: true}).lean()
+        }, {new: true})
 
-        return res.status(201).json({status: 201, message: "Part released successfully", data: {...partDetail, loan }});
+        const plainLoan = loan ? loan.toObject() : null;
+
+        return res.status(201).json({status: 201, message: "Part released successfully", data: {...partDetail, loan: plainLoan }});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
