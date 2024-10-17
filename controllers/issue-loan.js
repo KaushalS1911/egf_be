@@ -277,46 +277,71 @@ async function updatePartReleaseDetail(req, res) {
 }
 
 async function partRelease(req, res) {
-
     try {
-        const {loanId} = req.params
+        const { loanId } = req.params;
 
-        const propertyImage = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+        // Upload property image if file exists
+        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
-        const loanDetails = await IssuedLoanModel.findById(loanId)
+        // Get loan details by loan ID
+        const loanDetails = await IssuedLoanModel.findById(loanId);
+        if (!loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
 
-        const releasedProperty = req.body.property
+        // Extract and filter property details for part release
+        const releasedProperty = req.body.property;
+        const finalProperty = loanDetails?.propertyDetails.filter((item) =>
+            !releasedProperty.some((e) => e.id === item.id)
+        );
 
-        let finalProperty = []
-
-        releasedProperty.forEach((e) => {
-            finalProperty = loanDetails?.propertyDetails.filter((item) => item.id !== e.id)
-        })
-
+        // Create a part release entry in the database
         const partDetail = await PartReleaseModel.create({
             loan: loanId,
             propertyImage,
             ...req.body
-        })
+        });
 
-        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid)
+        // Calculate new interest loan amount
+        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid);
 
-        const nextInstallmentDate = getNextInterestPayDate(new Date())
+        // Calculate the next installment date
+        const nextInstallmentDate = getNextInterestPayDate(new Date());
 
-        const loan = await IssuedLoanModel.findByIdAndUpdate(loanId, {
-            nextInstallmentDate,
-            interestLoanAmount: Number(interestLoanAmount),
-            propertyDetails: finalProperty
-        }, {new: true})
+        // Update the loan details in the database and get the updated loan
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            {
+                nextInstallmentDate,
+                interestLoanAmount,
+                propertyDetails: finalProperty
+            },
+            { new: true }
+        );
 
-        const plainLoan = loan ? loan.toObject() : null;
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Updated loan not found" });
+        }
 
-        return res.status(201).json({status: 201, message: "Part released successfully", data: {...partDetail, loan: plainLoan }});
+        // Convert the loan document to a plain object
+        const plainLoan = updatedLoan.toObject();
+
+        // Send the response with part detail and updated loan
+        return res.status(201).json({
+            status: 201,
+            message: "Part released successfully",
+            data: {
+                ...partDetail.toObject(), // Convert partDetail to a plain object
+                loan: plainLoan
+            }
+        });
+
     } catch (err) {
         console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 
 async function loanPartPayment(req, res) {
