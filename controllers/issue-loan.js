@@ -290,7 +290,7 @@ async function partRelease(req, res) {
         let finalProperty = []
 
         releasedProperty.forEach((e) => {
-            finalProperty = loanDetails?.propertyDetails.filter((item) => item.type !== e.type)
+            finalProperty = loanDetails?.propertyDetails.filter((item) => item.id !== e.id)
         })
 
         const partDetail = await PartReleaseModel.create({
