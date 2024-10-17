@@ -31,8 +31,6 @@ async function createCustomer(req, res) {
             bankDetails,remark
         } = req.body;
 
-        console.log(branch)
-
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
         const isCustomerExist = await CustomerModel.exists({
