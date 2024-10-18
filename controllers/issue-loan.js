@@ -153,6 +153,8 @@ async function uchakInterestPayment(req, res) {
             ...req.body
         })
 
+        const loanDetails = await IssuedLoanModel.findById(loanId)
+
         const paymentDate = new Date(date)
         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
         const lastInstallmentDate = new Date(date)
@@ -160,7 +162,7 @@ async function uchakInterestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(loanId, {
             nextInstallmentDate,
             lastInstallmentDate,
-            uchakInterestAmount: amountPaid
+            uchakInterestAmount: amountPaid + loanDetails?.uchakInterestAmount
         }, {new: true})
 
         return res.status(201).json({
