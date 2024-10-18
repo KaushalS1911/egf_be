@@ -59,7 +59,7 @@ async function issueLoan(req, res) {
 async function disburseLoan(req, res) {
 
     try {
-        const {loan, companyBankDetail, bankAmount, cashAmount, pendingBankAmount, pendingCashAmount} = req.body
+        const {loan, companyBankDetail, bankAmount, cashAmount, pendingBankAmount, pendingCashAmount, payingCashAmount, payingBankAmount} = req.body
 
         const loanDetail = await IssuedLoanModel.findById(loan)
 
@@ -69,6 +69,8 @@ async function disburseLoan(req, res) {
         loanDetail.bankAmount = bankAmount
         loanDetail.pendingCashAmount = pendingCashAmount
         loanDetail.pendingBankAmount = pendingBankAmount
+        loanDetail.payingCashAmount = payingCashAmount
+        loanDetail.payingBankAmount = payingBankAmount
 
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 

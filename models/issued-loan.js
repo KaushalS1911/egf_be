@@ -19,6 +19,8 @@ const issuedLoanSchema = new mongoose.Schema({
     paymentMode: String,
     cashAmount: Number,
     pendingCashAmount: {type: Number, default: 0},
+    payingCashAmount: {type: Number, default: 0},
+    payingBankAmount: {type: Number, default: 0},
     pendingBankAmount: {type: Number, default: 0},
     bankAmount: Number,
     interestLoanAmount: Number,
