@@ -16,6 +16,7 @@ const customerSchema = new mongoose.Schema({
     joiningDate: String,
     panCard: String,
     aadharCard: String,
+    referenceBy: String,
     otpContact: String,
     businessType: String,
     loanType: String,
