@@ -103,7 +103,8 @@ async function getAllInquiries(req, res) {
 
         const inquiries = await InquiryModel.find(query)
             .populate("company")
-            .populate("branch");
+            .populate("branch")
+            .populate('assignTo')
 
         return res.status(200).json({status: 200, data: inquiries});
     } catch (err) {
