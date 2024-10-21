@@ -1,5 +1,5 @@
 const InquiryModel = require("../models/inquiry")
-
+const readXlsxFile = require('read-excel-file/node');
 
 async function addInquiry(req, res) {
     const {companyId} = req.params;
@@ -36,6 +36,50 @@ async function addInquiry(req, res) {
         console.error("Error creating inquiry:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
+}
+
+async function addBulkInquiries(req,res) {
+    const fileBuffer = req.file.buffer;
+    const rows = await readXlsxFile(fileBuffer);
+    const header = rows.shift();
+
+    let successCount = 0;
+    let failureCount = 0;
+    const errors = [];
+
+    let inquiryData;
+
+    for (let row of rows) {
+        try {
+            inquiryData = mapRowToInquiry(row, header);
+
+            await addInquiry(req,res);
+
+            successCount++;
+        } catch (error) {
+            failureCount++;
+            errors.push({ row, error: error.message });
+        }
+    }
+
+    res.json({
+        data: inquiryData,
+        status: 200,
+        message: `${inquiryData.successCount} inquiries created successfully, ${inquiryData.failureCount} failed.`,
+        errors: inquiryData.errors
+    });
+}
+
+function mapRowToInquiry(row, header) {
+    const inquiryData = {};
+    header.forEach((col, index) => {
+        if (col === 'contact' || col === 'zipcode') {
+            inquiryData[col] = row[index].toString();
+        } else {
+            inquiryData[col] = row[index];
+        }
+    });
+    return inquiryData;
 }
 
 
@@ -146,4 +190,4 @@ async function deleteMultipleInquiries(req, res) {
 }
 
 
-module.exports = {addInquiry, getAllInquiries, updateInquiry, getSingleInquiry, deleteMultipleInquiries}
+module.exports = {addInquiry, getAllInquiries, updateInquiry, getSingleInquiry, deleteMultipleInquiries,addBulkInquiries}
