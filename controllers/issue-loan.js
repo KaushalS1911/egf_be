@@ -20,18 +20,19 @@ async function issueLoan(req, res) {
         } = req.body;
 
 
-        const isLoanExist = await IssuedLoanModel.exists({
-            company: companyId,
-            customer,
-            scheme,
-            deleted_at: {$eq: null}
-        });
+        // const isLoanExist = await IssuedLoanModel.exists({
+        //     company: companyId,
+        //     customer,
+        //     scheme,
+        //     deleted_at: {$eq: null}
+        // });
+        //
+        // if (isLoanExist) {
+        //     await session.abortTransaction();
+        //     await session.endSession();
+        //     return res.status(400).json({status: 400, message: "Loan already exists."});
+        // }
 
-        if (isLoanExist) {
-            await session.abortTransaction();
-            await session.endSession();
-            return res.status(400).json({status: 400, message: "Loan already exists."});
-        }
         const property = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const nextInstallmentDate = getNextInterestPayDate(req.body.issueDate)
         const issuedLoan = new IssuedLoanModel({
