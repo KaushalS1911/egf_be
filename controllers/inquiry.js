@@ -104,7 +104,7 @@ async function getAllInquiries(req, res) {
         const inquiries = await InquiryModel.find(query)
             .populate("company")
             .populate("branch")
-            .populate('assignTo')
+            .populate({path: 'assignTo', select: "_id user", populate: {path: "user", select: "firstName middleName lastName contact email"}})
 
         return res.status(200).json({status: 200, data: inquiries});
     } catch (err) {
