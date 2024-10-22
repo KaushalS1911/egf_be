@@ -38,37 +38,88 @@ async function addInquiry(req, res) {
     }
 }
 
-async function addBulkInquiries(req,res) {
-    const fileBuffer = req.file.buffer;
-    const rows = await readXlsxFile(fileBuffer);
-    const header = rows.shift();
+async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyId) {
+    const { firstName, lastName, email, contact, date, inquiryFor, remark } = inquiryData;
 
-    let successCount = 0;
-    let failureCount = 0;
-    const errors = [];
+    try {
+        const isInquiryExist = await InquiryModel.exists({
+            company: companyId,
+            branch,
+            $or: [{ email }, { contact }],
+            deleted_at: null
+        });
 
-    let inquiryData;
-
-    for (let row of rows) {
-        try {
-            inquiryData = mapRowToInquiry(row, header);
-
-            await addInquiry(req,res);
-
-            successCount++;
-        } catch (error) {
-            failureCount++;
-            errors.push({ row, error: error.message });
+        if (isInquiryExist) {
+            return { success: false, message: "Inquiry already exists" };
         }
-    }
 
-    res.json({
-        data: inquiryData,
-        status: 200,
-        message: `${inquiryData.successCount} inquiries created successfully, ${inquiryData.failureCount} failed.`,
-        errors: inquiryData.errors
-    });
+        const inquiry = await InquiryModel.create({
+            company: companyId,
+            branch,
+            assignTo,
+            firstName,
+            lastName,
+            email,
+            contact,
+            date,
+            inquiryFor,
+            remark
+        });
+
+        // Return success response
+        return { success: true, data: inquiry, message: "Inquiry created successfully" };
+    } catch (error) {
+        // Return error if something went wrong
+        console.error("Error creating inquiry:", error.message);
+        return { success: false, message: "Internal server error", error: error.message };
+    }
 }
+
+
+async function addBulkInquiries(req, res) {
+    try {
+        const {companyId} = req.params
+        const {assignTo, branch} = req.query
+        const fileBuffer = req.file.buffer;
+        const rows = await readXlsxFile(fileBuffer);
+
+        const header = rows.shift();
+
+        let successCount = 0;
+        let failureCount = 0;
+        const errors = [];
+
+        for (const row of rows) {
+            try {
+                const inquiryData = mapRowToInquiry(row, header);
+
+                const result = await addInquiryWithoutResponse(inquiryData, assignTo, branch, companyId);
+
+                if (result.success) {
+                    successCount++;
+                } else {
+                    failureCount++;
+                    errors.push({ row, message: result.message });
+                }
+            } catch (error) {
+                failureCount++;
+                errors.push({ row, message: error.message });
+            }
+        }
+
+        res.status(200).json({
+            successCount,
+            failureCount,
+            message: `${successCount} inquiries created successfully, ${failureCount} failed.`,
+            errors
+        });
+    } catch (error) {
+        // Handle errors that occur outside the loop
+        res.status(500).json({ error: error.message });
+    }
+}
+
+
 
 function mapRowToInquiry(row, header) {
     const inquiryData = {};
@@ -191,4 +242,4 @@ async function deleteMultipleInquiries(req, res) {
 }
 
 
-module.exports = {addInquiry, getAllInquiries, updateInquiry, getSingleInquiry, deleteMultipleInquiries,addBulkInquiries}
+module.exports = {addInquiry, getAllInquiries, updateInquiry, getSingleInquiry, deleteMultipleInquiries, addBulkInquiries}
