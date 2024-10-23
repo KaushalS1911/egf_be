@@ -14,6 +14,7 @@ const issuedLoanSchema = new mongoose.Schema({
     propertyDetails: [],
     propertyImage: String,
     consultingCharge: {type: Number, default: 0},
+    approvalCharge: {type: Number, default: 0},
     loanAmount: Number,
     amountPaid: {type: Number, default: 0},
     paymentMode: String,
