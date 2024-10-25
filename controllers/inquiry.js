@@ -187,7 +187,7 @@ async function updateInquiry(req, res) {
             return res.status(400).json({status: 400, message: "Inquiry already exists"});
         }
 
-        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, {...req.body, attempts: [...req.body.attempts,new Date()] }, {new: true});
+        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, {new: true});
 
         if (!updatedInquiry) {
             return res.status(404).json({status: 404, message: "Inquiry not found"});
