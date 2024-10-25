@@ -4,7 +4,7 @@ const readXlsxFile = require('read-excel-file/node');
 async function addInquiry(req, res) {
     const {companyId} = req.params;
     const {branch, assignTo} = req.query;
-    const {firstName, lastName, email, contact, date, inquiryFor, remark, response} = req.body;
+    const {firstName, lastName, email, contact, date, inquiryFor, remark, response, address} = req.body;
 
     try {
         const isInquiryExist = await InquiryModel.exists({
@@ -28,6 +28,7 @@ async function addInquiry(req, res) {
             contact,
             date,
             response,
+            address,
             inquiryFor,
             remark
         });
@@ -40,7 +41,7 @@ async function addInquiry(req, res) {
 }
 
 async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyId) {
-    const { firstName, lastName, email, contact, date, inquiryFor, remark } = inquiryData;
+    const { firstName, lastName, email, contact, date, inquiryFor, remark, address, response } = inquiryData;
 
     try {
         const isInquiryExist = await InquiryModel.exists({
@@ -63,6 +64,8 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
             email,
             contact,
             date,
+            address,
+            response,
             inquiryFor,
             remark
         });
@@ -184,7 +187,7 @@ async function updateInquiry(req, res) {
             return res.status(400).json({status: 400, message: "Inquiry already exists"});
         }
 
-        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, {new: true});
+        const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, {...req.body, attempts: [...req.body.attempts,new Date()] }, {new: true});
 
         if (!updatedInquiry) {
             return res.status(404).json({status: 404, message: "Inquiry not found"});

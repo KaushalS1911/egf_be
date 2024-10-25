@@ -12,7 +12,6 @@ const customerSchema = new mongoose.Schema({
     dob: String,
     drivingLicense: String,
     customerCode: String,
-    landline: String,
     joiningDate: String,
     panCard: String,
     aadharCard: String,

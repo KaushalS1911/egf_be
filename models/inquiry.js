@@ -9,6 +9,8 @@ const inquirySchema = new mongoose.Schema({
     lastName: String,
     inquiryFor: String,
     remark: String,
+    address: String,
+    attempts: [],
     date: Date,
     email: String,
     contact: String,
