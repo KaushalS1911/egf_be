@@ -5,7 +5,6 @@ const bankAccountSchema = require("./common/bank");
 
 const employeeSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
-    branch: {type: String, ref: "Branch", required: true},
     user: {type: String, ref: "User", required: true},
     drivingLicense: String,
     panCard: String,

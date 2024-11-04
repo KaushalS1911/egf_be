@@ -38,11 +38,12 @@ async function createEmployee(req, res) {
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-        const isEmployeeExist = await EmployeeModel.exists({
+        const isEmployeeExist = await UserModel.exists({
             company: companyId,
             branch,
+            email,
+            contact,
             deleted_at: null,
-            $or: [{ email }, { contact }]
         });
 
         if (isEmployeeExist) {
@@ -56,6 +57,7 @@ async function createEmployee(req, res) {
         const user = new UserModel({
             company: companyId,
             role,
+            branch,
             avatar_url: avatar,
             firstName,
             middleName,
@@ -69,7 +71,6 @@ async function createEmployee(req, res) {
 
         const employee = new EmployeeModel({
             company: companyId,
-            branch,
             user: user._id,
             drivingLicense,
             panCard,
@@ -176,7 +177,8 @@ async function updateEmployee(req, res) {
             company: companyId,
             branch,
             deleted_at: null,
-            $or: [{ email }, { contact }],
+            email,
+            contact,
             _id: { $ne: employeeId }
         });
 
@@ -187,7 +189,6 @@ async function updateEmployee(req, res) {
         const updatedEmp = await EmployeeModel.findByIdAndUpdate(
             employeeId,
             {
-                branch,
                 drivingLicense,
                 panCard,
                 aadharCard,
@@ -212,6 +213,7 @@ async function updateEmployee(req, res) {
         await UserModel.findByIdAndUpdate(
             updatedEmp.user,
             {
+                branch,
                 role,
                 firstName,
                 middleName,

@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
+    branch: {type: String, ref: "Branch", default: null},
     role: String,
     otp: String,
     avatar_url: {type: String, default: null},
