@@ -101,7 +101,7 @@ async function createEmployee(req, res) {
             email
         };
 
-        await sendMail(htmlContent, mailPayload);
+        // await sendMail(htmlContent, mailPayload);
 
         await session.commitTransaction();
         await session.endSession();
