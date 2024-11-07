@@ -132,7 +132,6 @@ async function getAllEmployees(req, res) {
 
         const employees = await EmployeeModel.find(query)
             .populate("company")
-            .populate("branch")
             .populate("user")
             .populate("reportingTo");
 
@@ -237,7 +236,6 @@ async function getSingleEmployee(req, res) {
     try {
         const employee = await EmployeeModel.findById(employeeId)
             .populate("company")
-            .populate("branch")
             .populate("user")
             .populate("reportingTo");
 
