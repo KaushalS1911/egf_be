@@ -1,18 +1,18 @@
 const mongoose = require('mongoose');
 const EmployeeModel = require("../models/employee");
 const UserModel = require("../models/user");
-const { uploadFile } = require("../helpers/avatar");
+const {uploadFile} = require("../helpers/avatar");
 const path = require("path");
 const ejs = require("ejs");
-const { sendMail } = require("../helpers/sendmail");
-const { createHash } = require('../helpers/hash');
+const {sendMail} = require("../helpers/sendmail");
+const {createHash} = require('../helpers/hash');
 
 async function createEmployee(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
         const {branch} = req.query
         const {
             firstName,
@@ -49,7 +49,7 @@ async function createEmployee(req, res) {
         if (isEmployeeExist) {
             await session.abortTransaction();
             await session.endSession();
-            return res.status(400).json({ status: 400, message: "Employee already exists." });
+            return res.status(400).json({status: 400, message: "Employee already exists."});
         }
 
         const encryptedPassword = await createHash(password);
@@ -67,7 +67,7 @@ async function createEmployee(req, res) {
             password: encryptedPassword
         });
 
-        await user.save({ session });
+        await user.save({session});
 
         const employee = new EmployeeModel({
             company: companyId,
@@ -86,7 +86,7 @@ async function createEmployee(req, res) {
             bankDetails
         });
 
-        await employee.save({ session });
+        await employee.save({session});
 
         const templatePath = path.join(__dirname, '../views/welcomeUser.ejs');
         const logoPath = path.join(__dirname, '../public/images/22.png');
@@ -106,19 +106,19 @@ async function createEmployee(req, res) {
         await session.commitTransaction();
         await session.endSession();
 
-        return res.status(201).json({ status: 201, message: "Employee created successfully", data: { id: employee._id } });
+        return res.status(201).json({status: 201, message: "Employee created successfully", data: {id: employee._id}});
 
     } catch (err) {
         await session.abortTransaction();
         await session.endSession();
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function getAllEmployees(req, res) {
-    const { companyId } = req.params;
-    const { branch } = req.query;
+    const {companyId} = req.params;
+    const {branch} = req.query;
 
     try {
         const query = {
@@ -132,22 +132,27 @@ async function getAllEmployees(req, res) {
 
         const employees = await EmployeeModel.find(query)
             .populate("company")
-            .populate("user")
+            .populate({
+                path: "user",
+                populate: {
+                    path: "branch"
+                }
+            })
             .populate("reportingTo");
 
         // if (!employees || employees.length === 0) {
         //     return res.status(404).json({ status: 404, message: "No employees found" });
         // }
 
-        return res.status(200).json({ status: 200, data: employees });
+        return res.status(200).json({status: 200, data: employees});
     } catch (err) {
         console.error("Error fetching employees:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function updateEmployee(req, res) {
-    const { employeeId, companyId } = req.params;
+    const {employeeId, companyId} = req.params;
     const {branch} = req.query;
     const {
         firstName,
@@ -178,11 +183,11 @@ async function updateEmployee(req, res) {
             deleted_at: null,
             email,
             contact,
-            _id: { $ne: employeeId }
+            _id: {$ne: employeeId}
         });
 
         if (isEmployeeExist) {
-            return res.status(400).json({ status: 400, message: "Employee already exists." });
+            return res.status(400).json({status: 400, message: "Employee already exists."});
         }
 
         const updatedEmp = await EmployeeModel.findByIdAndUpdate(
@@ -202,11 +207,11 @@ async function updateEmployee(req, res) {
                 temporaryAddress,
                 bankDetails
             },
-            { new: true }
+            {new: true}
         );
 
         if (!updatedEmp) {
-            return res.status(404).json({ status: 404, message: "Employee not found." });
+            return res.status(404).json({status: 404, message: "Employee not found."});
         }
 
         await UserModel.findByIdAndUpdate(
@@ -220,58 +225,64 @@ async function updateEmployee(req, res) {
                 email,
                 contact
             },
-            { new: true }
+            {new: true}
         );
 
-        return res.status(200).json({ status: 200, message: "Employee updated successfully" });
+        return res.status(200).json({status: 200, message: "Employee updated successfully"});
     } catch (err) {
         console.error("Error updating employee:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function getSingleEmployee(req, res) {
-    const { employeeId } = req.params;
+    const {employeeId} = req.params;
 
     try {
         const employee = await EmployeeModel.findById(employeeId)
             .populate("company")
-            .populate("user")
+            .populate({
+                path: "user",
+                populate: {
+                    path: "branch"
+                }
+            })
             .populate("reportingTo");
 
         if (!employee) {
-            return res.status(404).json({ status: 404, message: "Employee not found" });
+            return res.status(404).json({status: 404, message: "Employee not found"});
         }
 
-        return res.status(200).json({ status: 200, data: employee });
+        return res.status(200).json({status: 200, data: employee});
     } catch (err) {
         console.error("Error fetching employee:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function deleteMultipleEmployees(req, res) {
     try {
-        const { ids } = req.body;
+        const {ids} = req.body;
 
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ status: 400, message: "Invalid employee IDs." });
+            return res.status(400).json({status: 400, message: "Invalid employee IDs."});
         }
 
         await EmployeeModel.updateMany(
-            { user: { $in: ids } },
-            { $set: { deleted_at: new Date() } }
+            {user: {$in: ids}},
+            {$set: {deleted_at: new Date()}}
         );
 
         await UserModel.updateMany(
-        { _id: { $in: ids } },
-        { $set: { deleted_at: new Date() }
-        })
+            {_id: {$in: ids}},
+            {
+                $set: {deleted_at: new Date()}
+            })
 
-        return res.status(200).json({ status: 200, message: "Employees deleted successfully." });
+        return res.status(200).json({status: 200, message: "Employees deleted successfully."});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
