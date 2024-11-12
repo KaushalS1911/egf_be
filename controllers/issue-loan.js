@@ -120,6 +120,30 @@ async function interestPayment(req, res) {
     }
 }
 
+async function deleteInterestPayment(req, res) {
+    try {
+        const {loanId, id} = req.params
+
+        const interestDetails = await InterestModel.findById(id).sort({createdAt: -1})
+
+        const nextInstallmentDate = getNextInterestPayDate(new Date(interestDetails.to))
+        const lastInstallmentDate = new Date(interestDetails.to)
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+
+        const updatedInterestDetail = await InterestModel.findByIdAndDelete(id)
+
+        return res.status(201).json({
+            status: 201,
+            message: "Loan interest details deleted successfully",
+            data: updatedInterestDetail
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function loanClose(req, res) {
     try {
         const {loanId} = req.params
@@ -594,5 +618,6 @@ module.exports = {
     updateInterestPayment,
     updatePartReleaseDetail,
     uchakInterestPayment,
-    loanClose
+    loanClose,
+    deleteInterestPayment
 }
