@@ -140,11 +140,15 @@ async function getAllEmployees(req, res) {
             })
             .populate("reportingTo");
 
+        const filteredEmployees = branch
+            ? employees.filter(employee => employee.user && employee.user.branch === branch)
+            : employees;
+
         // if (!employees || employees.length === 0) {
         //     return res.status(404).json({ status: 404, message: "No employees found" });
         // }
 
-        return res.status(200).json({status: 200, data: employees});
+        return res.status(200).json({status: 200, data: filteredEmployees});
     } catch (err) {
         console.error("Error fetching employees:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
