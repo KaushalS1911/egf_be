@@ -71,7 +71,7 @@ async function login(req, res) {
     try {
         const {password, email} = req.body;
 
-        const user = await UserModel.findOne({email}).lean();
+        const user = await UserModel.findOne({email}).populate('branch');
         if (!user) {
             return res.status(404).json({status: 404, message: "User not found."});
         }
@@ -82,11 +82,11 @@ async function login(req, res) {
         }
 
         const tokens = await setTokens(user._id);
-
-        if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user._id});
-            user.branch = emp?.branch;
-        }
+        //
+        // if (user.role !== 'Admin') {
+        //     const emp = await EmployeeModel.findOne({user: user._id});
+        //     user.branch = emp?.branch;
+        // }
 
         return res.status(200).json({data: {...user, tokens}, message: "Logged in successfully."});
     } catch (err) {
