@@ -126,10 +126,6 @@ async function getAllEmployees(req, res) {
             deleted_at: null
         };
 
-        if (branch) {
-            query.branch = branch;
-        }
-
         const employees = await EmployeeModel.find(query)
             .populate("company")
             .populate({
@@ -141,7 +137,7 @@ async function getAllEmployees(req, res) {
             .populate("reportingTo");
 
         const filteredEmployees = branch
-            ? employees.filter(employee => employee.user && employee.user.branch === branch)
+            ? employees.filter(employee => employee.user && (employee.user.branch._id).toString() === branch)
             : employees;
 
         // if (!employees || employees.length === 0) {
