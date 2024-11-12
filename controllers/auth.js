@@ -1,6 +1,6 @@
 const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
-const EmployeeModel = require("../models/employee");
+const BranchModel = require("../models/branch");
 const ConfigModel = require("../models/config");
 const mongoose = require('mongoose')
 const path = require("path")
@@ -71,7 +71,13 @@ async function login(req, res) {
     try {
         const {password, email} = req.body;
 
-        const user = await UserModel.findOne({email}).populate('branch');
+        const user = await UserModel.findOne({email}).lean();
+
+        if(user && user.branch){
+            const userBranch = await BranchModel.findById(user.branch)
+            user.branch = userBranch
+        }
+
         if (!user) {
             return res.status(404).json({status: 404, message: "User not found."});
         }
