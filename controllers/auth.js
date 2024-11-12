@@ -159,21 +159,21 @@ async function getUser(req, res) {
     try {
         const { id } = req.user;
 
-        const user = await UserModel.findById(id).lean();
+        const user = await UserModel.findById(id).populate('branch');
         if (!user) {
             return res.status(404).json({ status: 404, message: "User not found" });
         }
 
-        let branch = null;
-
-        if (user.role !== 'Admin') {
-            const employee = await EmployeeModel.findOne({ user: user._id }).populate('branch').lean();
-            branch = employee?.branch || null;
-        }
+        // let branch = null;
+        //
+        // if (user.role !== 'Admin') {
+        //     const employee = await EmployeeModel.findOne({ user: user._id }).populate('branch').lean();
+        //     branch = employee?.branch || null;
+        // }
 
         return res.status(200).json({
             status: 200,
-            data: { ...user, branch }
+            data: user
         });
 
     } catch (error) {
