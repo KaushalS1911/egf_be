@@ -317,10 +317,11 @@ async function deletePartReleaseDetail(req, res) {
         const partDetails = await PartReleaseModel.findById(partId).select('_id amountPaid date')
 
         interestLoanAmount = interestLoanAmount + partDetails.amountPaid
+
         const entryDate = new Date(partDetails.date)
         const nextInstallmentDate = new Date(entryDate).setDate(entryDate.getDate() - 30);
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, { nextInstallmentDate , interestLoanAmount }, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, { nextInstallmentDate  , interestLoanAmount }, {new: true})
 
         const deletedPartReleaseDetail = await PartReleaseModel.findByIdAndDelete(partId)
 
@@ -328,6 +329,38 @@ async function deletePartReleaseDetail(req, res) {
             status: 200,
             message: "Part release details deleted successfully",
             data: deletedPartReleaseDetail
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function deletePartPaymentDetail(req, res) {
+
+    try {
+        const {loanId, paymentId} = req.params
+
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
+
+        let {interestLoanAmount} = loanDetails
+
+        const paymentDetails = await PartPaymentModel.findById(paymentId)
+
+        interestLoanAmount = interestLoanAmount + paymentDetails.amountPaid
+
+        const entryDate = new Date(paymentDetails.date)
+
+        const nextInstallmentDate = new Date(entryDate).setDate(entryDate.getDate() - 30);
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, { nextInstallmentDate  , interestLoanAmount }, {new: true})
+
+        const deletedPaymentDetail = await PartReleaseModel.findByIdAndDelete(paymentId)
+
+        return res.status(200).json({
+            status: 200,
+            message: "Payment details deleted successfully",
+            data: deletedPaymentDetail
         });
     } catch (err) {
         console.error(err);
@@ -414,34 +447,6 @@ async function loanPartPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
 
         return res.status(201).json({status: 201, message: "Loan part payment success", data: partPaymentDetail});
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
-    }
-}
-
-async function updatePartPaymentDetail(req, res) {
-
-    try {
-        const {loanId, partId} = req.params
-
-
-        const partDetail = await PartReleaseModel.create({
-            loan: loanId,
-            ...req.body
-        })
-
-        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
-
-        let {interestLoanAmount} = loanDetails
-
-        interestLoanAmount = interestLoanAmount - req.body.amountPaid
-
-        const nextInstallmentDate = getNextInterestPayDate(new Date())
-
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
-
-        return res.status(201).json({status: 201, message: "Part released successfully", data: partDetail});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -640,7 +645,6 @@ module.exports = {
     disburseLoan,
     interestPayment,
     partRelease,
-    updatePartPaymentDetail,
     loanPartPayment,
     GetInterestPayment,
     GetPartPaymentDetail,
@@ -651,4 +655,5 @@ module.exports = {
     loanClose,
     deleteInterestPayment,
     deletePartReleaseDetail,
+    deletePartPaymentDetail
 }

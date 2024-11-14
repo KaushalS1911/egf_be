@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const {issueLoan, getAllLoans, updateLoan,loanPartPayment, deleteInterestPayment, partRelease, uchakInterestPayment,loanClose, getSingleLoan,updatePartReleaseDetail, updatePartPaymentDetail,updateInterestPayment ,deleteMultipleLoans, disburseLoan,interestPayment,GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail} = require('../controllers/issue-loan')
+const {issueLoan, getAllLoans, updateLoan,loanPartPayment, deleteInterestPayment,deletePartReleaseDetail, partRelease, uchakInterestPayment,loanClose, getSingleLoan,updatePartReleaseDetail, deletePartPaymentDetail,updateInterestPayment ,deleteMultipleLoans, disburseLoan,interestPayment,GetInterestPayment,GetPartPaymentDetail,GetPartReleaseDetail} = require('../controllers/issue-loan')
 
 const storage = multer.memoryStorage();
 const upload = multer({storage});
@@ -23,6 +23,7 @@ router.get('/loans/:loanId/loan-part-payment', GetPartPaymentDetail);
 router.get('/loans/:loanId/part-release', GetPartReleaseDetail);
 router.post('/loans/:loanId/part-release', upload.single('property-image'), partRelease);
 router.post('/loans/:loanId/part-payment', loanPartPayment);
-router.put('/loans/:loanId/part-payment/:partId', updatePartPaymentDetail);
+router.delete('/loans/:loanId/part-payment/:paymentId', deletePartPaymentDetail);
+router.delete('/loans/:loanId/part-release/:partId', deletePartReleaseDetail);
 
 module.exports = router;
