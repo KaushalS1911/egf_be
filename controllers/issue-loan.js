@@ -122,27 +122,41 @@ async function interestPayment(req, res) {
 
 async function deleteInterestPayment(req, res) {
     try {
-        const {loanId, id} = req.params
+        const { loanId, id } = req.params;
 
-        const interestDetails = await InterestModel.findById(id).sort({createdAt: -1})
+        const interestDetails = await InterestModel.findById(id);
+        if (!interestDetails) {
+            return res.status(404).json({ status: 404, message: "Interest payment not found" });
+        }
 
-        const nextInstallmentDate = getNextInterestPayDate(new Date(interestDetails.to))
-        const lastInstallmentDate = new Date(interestDetails.to)
+        const nextInstallmentDate = getNextInterestPayDate(new Date(interestDetails.to));
+        const lastInstallmentDate = new Date(interestDetails.to);
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            { nextInstallmentDate, lastInstallmentDate },
+            { new: true }
+        );
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
 
-        const updatedInterestDetail = await InterestModel.findByIdAndDelete(id)
+        const deletedInterestDetail = await InterestModel.findByIdAndDelete(id);
+        if (!deletedInterestDetail) {
+            return res.status(404).json({ status: 404, message: "Interest payment not found during deletion" });
+        }
 
         return res.status(201).json({
             status: 201,
             message: "Loan interest details deleted successfully",
-            data: updatedInterestDetail
+            data: deletedInterestDetail,
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function loanClose(req, res) {
     try {
