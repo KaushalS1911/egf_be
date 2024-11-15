@@ -323,20 +323,30 @@ async function deletePartReleaseDetail(req, res) {
     try {
         const { loanId, partId } = req.params;
 
+        // Fetch part release details
         const partRelease = await PartReleaseModel.findById(partId);
         if (!partRelease) {
             return res.status(404).json({ status: 404, message: "Part release not found" });
         }
 
+        // Fetch loan details
         const loanDetails = await IssuedLoanModel.findById(loanId);
         if (!loanDetails) {
             return res.status(404).json({ status: 404, message: "Loan not found" });
         }
 
-        const restoredProperty = [...loanDetails.propertyDetails, ...partRelease.property];
+        // Safely merge property details and filter out any null or undefined values
+        const restoredProperty = [
+            ...(loanDetails.propertyDetails || []),
+            ...(partRelease.property || [])
+        ].filter(item => item != null);
 
-        const updatedInterestLoanAmount = Number(loanDetails.interestLoanAmount) + Number(partRelease.amountPaid);
+        // Update the loan's interest loan amount
+        const updatedInterestLoanAmount =
+            Number(loanDetails.interestLoanAmount || 0) +
+            Number(partRelease.amountPaid || 0);
 
+        // Update loan details in the database
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
@@ -353,17 +363,18 @@ async function deletePartReleaseDetail(req, res) {
         // Delete the part release entry
         await PartReleaseModel.findByIdAndDelete(partId);
 
+        // Return success response
         return res.status(200).json({
             status: 200,
             message: "Part release deleted and transaction reversed successfully",
             data: updatedLoan.toObject()
         });
-
     } catch (err) {
-        console.error(err);
+        console.error("Error in deletePartReleaseDetail:", err.message, err.stack);
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 
 async function deletePartPaymentDetail(req, res) {
