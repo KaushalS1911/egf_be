@@ -8,6 +8,7 @@ const configSchema = new mongoose.Schema({
     loanTypes: [],
     permissions: {},
     roles: [],
+    remarks: [],
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)
