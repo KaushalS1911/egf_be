@@ -4,7 +4,7 @@ const readXlsxFile = require('read-excel-file/node');
 async function addInquiry(req, res) {
     const {companyId} = req.params;
     const {branch, assignTo} = req.query;
-    const {firstName, lastName, email, contact, date, inquiryFor, remark, response, address} = req.body;
+    const {firstName, lastName, email, contact, date, inquiryFor, remark, response, address, recallingDate} = req.body;
 
     try {
         const isInquiryExist = await InquiryModel.exists({
@@ -27,6 +27,7 @@ async function addInquiry(req, res) {
             email,
             contact,
             date,
+            recallingDate,
             response,
             address,
             inquiryFor,
@@ -41,7 +42,7 @@ async function addInquiry(req, res) {
 }
 
 async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyId) {
-    const { firstName, lastName, email, contact, date, inquiryFor, remark, address, response } = inquiryData;
+    const { firstName, lastName, email, contact, date, inquiryFor, remark, address, response, recallingDate } = inquiryData;
 
     try {
         const isInquiryExist = await InquiryModel.exists({
@@ -64,6 +65,7 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
             email,
             contact,
             date,
+            recallingDate,
             address,
             response,
             inquiryFor,

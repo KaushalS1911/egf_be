@@ -12,6 +12,7 @@ const inquirySchema = new mongoose.Schema({
     address: String,
     attempts: [],
     date: Date,
+    recallingDate: {type: Date, default: null},
     email: String,
     contact: String,
     deleted_at: {type: Date, default: null},
