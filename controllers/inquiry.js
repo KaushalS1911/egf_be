@@ -1,5 +1,7 @@
 const InquiryModel = require("../models/inquiry")
 const readXlsxFile = require('read-excel-file/node');
+const { parse, isValid } = require('date-fns');
+
 
 async function addInquiry(req, res) {
     const {companyId} = req.params;
@@ -45,16 +47,16 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
     const { firstName, lastName, email, contact, date, inquiryFor, remark, address, response, recallingDate } = inquiryData;
 
     try {
-        // const isInquiryExist = await InquiryModel.exists({
-        //     company: companyId,
-        //     branch,
-        //     $or: [{ email }, { contact }],
-        //     deleted_at: null
-        // });
-        //
-        // if (isInquiryExist) {
-        //     return { success: false, message: "Inquiry already exists" };
-        // }
+        const isInquiryExist = await InquiryModel.exists({
+            company: companyId,
+            branch,
+            $or: [{ email }, { contact }],
+            deleted_at: null
+        });
+
+        if (isInquiryExist) {
+            return { success: false, message: "Inquiry already exists" };
+        }
 
         const inquiry = await InquiryModel.create({
             company: companyId,
@@ -72,10 +74,8 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
             remark
         });
 
-        // Return success response
         return { success: true, data: inquiry, message: "Inquiry created successfully" };
     } catch (error) {
-        // Return error if something went wrong
         console.error("Error creating inquiry:", error.message);
         return { success: false, message: "Internal server error", error: error.message };
     }
@@ -127,17 +127,33 @@ async function addBulkInquiries(req, res) {
 
 
 
+
 function mapRowToInquiry(row, header) {
     const inquiryData = {};
     header.forEach((col, index) => {
         if (col === 'contact' || col === 'zipcode') {
-            inquiryData[col] = row[index].toString();
+            inquiryData[col] = row[index]?.toString() || ""; // Convert to string
+        } else if (col === 'date' || col === 'recallingDate') {
+            const value = row[index];
+
+            if (value instanceof Date) {
+                // If already a Date object, use it directly
+                inquiryData[col] = value;
+            } else if (typeof value === 'string' && value.trim()) {
+                // If string, parse it with the expected format
+                const parsedDate = parse(value, 'dd-MM-yyyy', new Date());
+                inquiryData[col] = isValid(parsedDate) ? parsedDate : null; // Ensure valid date
+            } else {
+                // Handle empty or invalid date
+                inquiryData[col] = null;
+            }
         } else {
             inquiryData[col] = row[index];
         }
     });
     return inquiryData;
 }
+
 
 
 async function getAllInquiries(req, res) {
