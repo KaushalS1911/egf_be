@@ -87,7 +87,25 @@ async function disburseLoan(req, res) {
 async function interestPayment(req, res) {
     try {
         const {loanId} = req.params
-        const {uchakInterestAmount, amountPaid, to} = req.body
+        const {uchakInterestAmount, amountPaid, to, from} = req.body
+
+        const loanDetails = await IssuedLoanModel.findById(loanId)
+
+        const interestEntries = await InterestModel.find({loan: loanId}).sort({createdAt: -1})
+
+        let nextInstallmentDate = getNextInterestPayDate(new Date(to))
+        let lastInstallmentDate = new Date(to)
+
+        const noInterestEntries = interestEntries && interestEntries.length === 0;
+        const isWithinInstallmentPeriod =
+            new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
+            new Date(loanDetails.nextInstallmentDate) > new Date(to);
+
+        if (noInterestEntries || isWithinInstallmentPeriod) {
+            nextInstallmentDate = loanDetails.nextInstallmentDate;
+            lastInstallmentDate = loanDetails.lastInstallmentDate;
+        }
+
 
         const interestDetail = await InterestModel.create({
             loan: loanId,
@@ -102,10 +120,6 @@ async function interestPayment(req, res) {
                 0
             );
         }
-
-        const paymentDate = new Date(to)
-        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-        const lastInstallmentDate = new Date(to)
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {
             nextInstallmentDate,
