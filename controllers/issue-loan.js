@@ -124,13 +124,10 @@ async function deleteInterestPayment(req, res) {
     try {
         const { loanId, id } = req.params;
 
-        const interestDetails = await InterestModel.findById(id);
-        if (!interestDetails) {
-            return res.status(404).json({ status: 404, message: "Interest payment not found" });
-        }
+        const loan = await IssuedLoanModel.findById(loanId)
 
-        const nextInstallmentDate = getNextInterestPayDate(new Date(interestDetails.to));
-        const lastInstallmentDate = new Date(interestDetails.to);
+        const nextInstallmentDate = reverseNextInterestPayDate(new Date(loan.nextInstallmentDate));
+        const lastInstallmentDate = reverseNextInterestPayDate(new Date(loan.lastInstallmentDate));
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
@@ -687,6 +684,14 @@ function getNextInterestPayDate(issueDate) {
     let nextPayDate = new Date(issueDate);
 
     nextPayDate.setDate(nextPayDate.getDate() + 30);
+
+    return nextPayDate;
+}
+
+function reverseNextInterestPayDate(date) {
+    let nextPayDate = new Date(date);
+
+    nextPayDate.setDate(nextPayDate.getDate() - 30);
 
     return nextPayDate;
 }
