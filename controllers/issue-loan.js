@@ -391,6 +391,144 @@ async function updatePartReleaseDetail(req, res) {
     }
 }
 
+async function loanPartPayment(req, res) {
+    try {
+        const { loanId } = req.params;
+        const { amountPaid } = req.body;
+
+        const partPaymentDetail = await PartPaymentModel.create({
+            loan: loanId,
+            ...req.body,
+        });
+
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount');
+        if (!loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
+
+        const updatedInterestLoanAmount = Math.max(loanDetails.interestLoanAmount - amountPaid, 0);
+
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            { interestLoanAmount: updatedInterestLoanAmount },
+            { new: true }
+        );
+
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Failed to update loan details" });
+        }
+
+        return res.status(201).json({
+            status: 201,
+            message: "Loan part payment successful",
+            data: partPaymentDetail,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
+    }
+}
+
+
+async function deletePartPaymentDetail(req, res) {
+    try {
+        const { loanId, paymentId } = req.params;
+
+        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount nextInstallmentDate');
+        if (!loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
+
+        const { interestLoanAmount } = loanDetails;
+
+        const paymentDetails = await PartPaymentModel.findById(paymentId);
+        if (!paymentDetails) {
+            return res.status(404).json({ status: 404, message: "Part payment not found" });
+        }
+
+        const updatedInterestLoanAmount = interestLoanAmount + Number(paymentDetails.amountPaid);
+
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            { interestLoanAmount: updatedInterestLoanAmount },
+            { new: true }
+        );
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Failed to update loan details" });
+        }
+
+        const deletedPaymentDetail = await PartPaymentModel.findByIdAndDelete(paymentId);
+        if (!deletedPaymentDetail) {
+            return res.status(404).json({ status: 404, message: "Part payment not found during deletion" });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "Payment details deleted successfully",
+            data: deletedPaymentDetail,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
+    }
+}
+
+
+async function partRelease(req, res) {
+    try {
+        const { loanId } = req.params;
+
+        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+
+        const loanDetails = await IssuedLoanModel.findById(loanId);
+        if (!loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
+
+        const releasedProperty = req.body.property;
+        const finalProperty = loanDetails?.propertyDetails.filter((item) =>
+            !releasedProperty.some((e) => e.id === item.id)
+        );
+
+        const partDetail = await PartReleaseModel.create({
+            loan: loanId,
+            propertyImage,
+            ...req.body
+        });
+
+        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid);
+
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            {
+                interestLoanAmount,
+                propertyDetails: finalProperty
+            },
+            { new: true }
+        );
+
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Updated loan not found" });
+        }
+
+        const plainLoan = updatedLoan.toObject();
+
+        return res.status(201).json({
+            status: 201,
+            message: "Part released successfully",
+            data: {
+                ...partDetail.toObject(),
+                loan: plainLoan
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
+    }
+}
+
+
 async function deletePartReleaseDetail(req, res) {
     try {
         const { loanId, partId } = req.params;
@@ -444,140 +582,6 @@ async function deletePartReleaseDetail(req, res) {
     } catch (err) {
         console.error("Error in deletePartReleaseDetail:", err.message, err.stack);
         return res.status(500).json({ status: 500, message: "Internal server error" });
-    }
-}
-
-
-
-async function deletePartPaymentDetail(req, res) {
-    try {
-        const { loanId, paymentId } = req.params;
-
-        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount nextInstallmentDate');
-        if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
-        }
-
-        let { interestLoanAmount, nextInstallmentDate } = loanDetails;
-
-        const paymentDetails = await PartPaymentModel.findById(paymentId);
-        if (!paymentDetails) {
-            return res.status(404).json({ status: 404, message: "Part payment not found" });
-        }
-
-        interestLoanAmount += Number(paymentDetails.amountPaid);
-
-        const paymentEntryDate = new Date(paymentDetails.date);
-        const previousInstallmentDate = new Date(paymentEntryDate.setDate(paymentEntryDate.getDate() - 30));
-
-        await IssuedLoanModel.findByIdAndUpdate(
-            loanId,
-            {
-                interestLoanAmount,
-                nextInstallmentDate: previousInstallmentDate,
-            },
-            { new: true }
-        );
-
-        const deletedPaymentDetail = await PartPaymentModel.findByIdAndDelete(paymentId);
-        if (!deletedPaymentDetail) {
-            return res.status(404).json({ status: 404, message: "Part payment not found during deletion" });
-        }
-
-        return res.status(200).json({
-            status: 200,
-            message: "Payment details deleted successfully",
-            data: deletedPaymentDetail,
-        });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
-    }
-}
-
-
-async function partRelease(req, res) {
-    try {
-        const { loanId } = req.params;
-
-        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
-
-        const loanDetails = await IssuedLoanModel.findById(loanId);
-        if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
-        }
-
-        const releasedProperty = req.body.property;
-        const finalProperty = loanDetails?.propertyDetails.filter((item) =>
-            !releasedProperty.some((e) => e.id === item.id)
-        );
-
-        const partDetail = await PartReleaseModel.create({
-            loan: loanId,
-            propertyImage,
-            ...req.body
-        });
-
-        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid);
-
-        const nextInstallmentDate = getNextInterestPayDate(new Date());
-
-        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
-            loanId,
-            {
-                nextInstallmentDate,
-                interestLoanAmount,
-                propertyDetails: finalProperty
-            },
-            { new: true }
-        );
-
-        if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Updated loan not found" });
-        }
-
-        const plainLoan = updatedLoan.toObject();
-
-        return res.status(201).json({
-            status: 201,
-            message: "Part released successfully",
-            data: {
-                ...partDetail.toObject(),
-                loan: plainLoan
-            }
-        });
-
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
-    }
-}
-
-
-
-async function loanPartPayment(req, res) {
-
-    try {
-        const {loanId} = req.params
-
-        const partPaymentDetail = await PartPaymentModel.create({
-            loan: loanId,
-            ...req.body
-        })
-
-        const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount')
-
-        let {interestLoanAmount} = loanDetails
-
-        interestLoanAmount = interestLoanAmount - req.body.amountPaid
-        const nextInstallmentDate = getNextInterestPayDate(new Date())
-
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, interestLoanAmount}, {new: true})
-
-        return res.status(201).json({status: 201, message: "Loan part payment success", data: partPaymentDetail});
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
