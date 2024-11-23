@@ -86,79 +86,125 @@ async function disburseLoan(req, res) {
 
 async function interestPayment(req, res) {
     try {
-        const {loanId} = req.params
-        const {uchakInterestAmount, amountPaid, to, from} = req.body
+        const { loanId } = req.params;
+        const { uchakInterestAmount, amountPaid, to, from } = req.body;
 
-        const loanDetails = await IssuedLoanModel.findById(loanId)
+        // Fetch necessary data in parallel
+        const [loanDetails, interestEntries] = await Promise.all([
+            IssuedLoanModel.findById(loanId),
+            InterestModel.find({ loan: loanId }).select('_id'),
+        ]);
 
-        const interestEntries = await InterestModel.find({loan: loanId}).sort({createdAt: -1})
-
-        let nextInstallmentDate = getNextInterestPayDate(new Date(to))
-        let lastInstallmentDate = new Date(to)
-
-        const noInterestEntries = interestEntries && interestEntries.length === 0;
-        const isWithinInstallmentPeriod =
-            new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
-            new Date(loanDetails.nextInstallmentDate) > new Date(to);
-
-        if (noInterestEntries || isWithinInstallmentPeriod) {
-            nextInstallmentDate = loanDetails.nextInstallmentDate;
-            lastInstallmentDate = loanDetails.lastInstallmentDate;
+        if (!loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
         }
 
+        // Calculate next and last installment dates
+        const { nextInstallmentDate, lastInstallmentDate } = calculateInstallmentDates(
+            loanDetails,
+            from,
+            to,
+            interestEntries
+        );
 
+        // Create a new interest entry
         const interestDetail = await InterestModel.create({
             loan: loanId,
-            ...req.body
-        })
+            ...req.body,
+        });
 
-        let updatedAmount = uchakInterestAmount
+        // Update the outstanding interest amount
+        const updatedUchakAmount = calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid);
 
-        if (uchakInterestAmount && uchakInterestAmount > 0) {
-            updatedAmount = Math.max(
-                uchakInterestAmount - amountPaid,
-                0
-            );
-        }
+        // Update the loan details
+        await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            {
+                nextInstallmentDate,
+                lastInstallmentDate,
+                uchakInterestAmount: updatedUchakAmount,
+            },
+            { new: true }
+        );
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {
-            nextInstallmentDate,
-            lastInstallmentDate,
-            uchakInterestAmount: updatedAmount
-        }, {new: true})
-
-        return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
+        return res.status(201).json({
+            status: 201,
+            message: "Loan interest paid successfully",
+            data: interestDetail,
+        });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
+
+function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
+    const nextInstallmentDate = getNextInterestPayDate(new Date(to));
+    const lastInstallmentDate = new Date(to);
+
+    const noInterestEntries = interestEntries && interestEntries.length === 0;
+    const isWithinInstallmentPeriod =
+        new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
+        new Date(loanDetails.nextInstallmentDate) > new Date(to);
+
+    return {
+        nextInstallmentDate: noInterestEntries || isWithinInstallmentPeriod
+            ? loanDetails.nextInstallmentDate
+            : nextInstallmentDate,
+        lastInstallmentDate,
+    };
+}
+
+
+function calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid) {
+    if (uchakInterestAmount && uchakInterestAmount > 0) {
+        return Math.max(uchakInterestAmount - amountPaid, 0);
+    }
+    return 0;
+}
+
 
 async function deleteInterestPayment(req, res) {
     try {
         const { loanId, id } = req.params;
 
-        const loan = await IssuedLoanModel.findById(loanId)
+        // Fetch necessary details
+        const [interestDetails, loanDetails, interestEntries] = await Promise.all([
+            InterestModel.findById(id),
+            IssuedLoanModel.findById(loanId),
+            InterestModel.find({ loan: loanId }).select('_id')
+        ]);
 
-        const nextInstallmentDate = reverseNextInterestPayDate(new Date(loan.nextInstallmentDate));
-        const lastInstallmentDate = reverseNextInterestPayDate(new Date(loan.lastInstallmentDate));
-
-        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
-            loanId,
-            { nextInstallmentDate, lastInstallmentDate },
-            { new: true }
-        );
-        if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+        if (!interestDetails || !loanDetails) {
+            return res.status(404).json({ status: 404, message: "Loan or Interest details not found" });
         }
 
+        // Determine next installment date
+        let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails, interestEntries);
+
+        // Update the loan with adjusted installment dates
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loanId,
+            {
+                nextInstallmentDate,
+                lastInstallmentDate: new Date(interestDetails.from),
+            },
+            { new: true }
+        );
+
+        if (!updatedLoan) {
+            return res.status(404).json({ status: 404, message: "Loan not found during update" });
+        }
+
+        // Delete the interest entry
         const deletedInterestDetail = await InterestModel.findByIdAndDelete(id);
         if (!deletedInterestDetail) {
             return res.status(404).json({ status: 404, message: "Interest payment not found during deletion" });
         }
 
-        return res.status(201).json({
-            status: 201,
+        return res.status(200).json({
+            status: 200,
             message: "Loan interest details deleted successfully",
             data: deletedInterestDetail,
         });
@@ -167,6 +213,23 @@ async function deleteInterestPayment(req, res) {
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
+
+function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntries) {
+    const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
+
+    const isWithinInstallmentPeriod =
+        new Date(loanDetails.lastInstallmentDate).toDateString() ===
+        new Date(interestDetails.from).toDateString() &&
+        new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
+
+    if (isSingleInterestEntry || isWithinInstallmentPeriod) {
+        return loanDetails.nextInstallmentDate;
+    }
+
+    return reverseNextInterestPayDate(new Date(loanDetails.nextInstallmentDate));
+}
+
 
 
 async function loanClose(req, res) {
@@ -195,38 +258,38 @@ async function loanClose(req, res) {
     }
 }
 
-async function uchakInterestPayment(req, res) {
-    try {
-        const {loanId} = req.params
-        const {date, amountPaid} = req.body
-
-        const interestDetail = await UchakInterestModel.create({
-            loan: loanId,
-            ...req.body
-        })
-
-        const loanDetails = await IssuedLoanModel.findById(loanId)
-
-        const paymentDate = new Date(date)
-        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-        const lastInstallmentDate = new Date(date)
-
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {
-            nextInstallmentDate,
-            lastInstallmentDate,
-            uchakInterestAmount: amountPaid + loanDetails?.uchakInterestAmount
-        }, {new: true})
-
-        return res.status(201).json({
-            status: 201,
-            message: "Loan uchak interest paid successfully",
-            data: interestDetail
-        });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
-    }
-}
+// async function uchakInterestPayment(req, res) {
+//     try {
+//         const {loanId} = req.params
+//         const {date, amountPaid} = req.body
+//
+//         const interestDetail = await UchakInterestModel.create({
+//             loan: loanId,
+//             ...req.body
+//         })
+//
+//         const loanDetails = await IssuedLoanModel.findById(loanId)
+//
+//         const paymentDate = new Date(date)
+//         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
+//         const lastInstallmentDate = new Date(date)
+//
+//         await IssuedLoanModel.findByIdAndUpdate(loanId, {
+//             nextInstallmentDate,
+//             lastInstallmentDate,
+//             uchakInterestAmount: amountPaid + loanDetails?.uchakInterestAmount
+//         }, {new: true})
+//
+//         return res.status(201).json({
+//             status: 201,
+//             message: "Loan uchak interest paid successfully",
+//             data: interestDetail
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         return res.status(500).json({status: 500, message: "Internal server error"});
+//     }
+// }
 
 async function updateInterestPayment(req, res) {
     try {
@@ -234,11 +297,9 @@ async function updateInterestPayment(req, res) {
 
         const updatedInterestDetail = await InterestModel.findByIdAndUpdate(interestId, req.body, {new: true})
 
-        const paymentDate = new Date(req.body.to)
-        const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-        const lastInstallmentDate = new Date()
+        const lastInstallmentDate = new Date(req.body.to)
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {nextInstallmentDate, lastInstallmentDate}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {lastInstallmentDate}, {new: true})
 
         return res.status(201).json({
             status: 201,
