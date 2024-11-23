@@ -791,7 +791,6 @@ module.exports = {
     GetPartReleaseDetail,
     updateInterestPayment,
     updatePartReleaseDetail,
-    uchakInterestPayment,
     loanClose,
     deleteInterestPayment,
     deletePartReleaseDetail,
