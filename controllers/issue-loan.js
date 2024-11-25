@@ -140,7 +140,7 @@ async function interestPayment(req, res) {
 
 
 function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
-    const nextInstallmentDate = getNextInterestPayDate(new Date(to));
+    const nextInstallmentDate = getNextInterestPayDate(new Date(loanDetails.nextInstallmentDate));
     const lastInstallmentDate = new Date(to);
 
     const noInterestEntries = interestEntries && interestEntries.length === 0;
