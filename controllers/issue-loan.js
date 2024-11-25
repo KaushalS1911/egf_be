@@ -86,55 +86,49 @@ async function disburseLoan(req, res) {
 
 async function interestPayment(req, res) {
     try {
-        const { loanId } = req.params;
-        const { uchakInterestAmount, amountPaid, to, from } = req.body;
+        const {loanId} = req.params
+        const {uchakInterestAmount, amountPaid, to, from} = req.body
 
-        // Fetch necessary data in parallel
-        const [loanDetails, interestEntries] = await Promise.all([
-            IssuedLoanModel.findById(loanId),
-            InterestModel.find({ loan: loanId }).select('_id'),
-        ]);
+        const loanDetails = await IssuedLoanModel.findById(loanId)
 
-        if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+        const interestEntries = await InterestModel.find({loan: loanId}).select('_id')
+
+        let nextInstallmentDate = getNextInterestPayDate(new Date(to))
+        let lastInstallmentDate = new Date(to)
+
+        const noInterestEntries = interestEntries && interestEntries.length === 0;
+        const isWithinInstallmentPeriod =
+            new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
+            new Date(loanDetails.nextInstallmentDate) > new Date(to);
+
+        if (noInterestEntries || isWithinInstallmentPeriod) {
+            nextInstallmentDate = loanDetails.nextInstallmentDate;
         }
 
-        // Calculate next and last installment dates
-        const { nextInstallmentDate, lastInstallmentDate } = calculateInstallmentDates(
-            loanDetails,
-            from,
-            to,
-            interestEntries
-        );
-
-        // Create a new interest entry
         const interestDetail = await InterestModel.create({
             loan: loanId,
-            ...req.body,
-        });
+            ...req.body
+        })
 
-        // Update the outstanding interest amount
-        const updatedUchakAmount = calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid);
+        let updatedAmount = uchakInterestAmount
 
-        // Update the loan details
-        await IssuedLoanModel.findByIdAndUpdate(
-            loanId,
-            {
-                nextInstallmentDate,
-                lastInstallmentDate,
-                uchakInterestAmount: updatedUchakAmount,
-            },
-            { new: true }
-        );
+        if (uchakInterestAmount && uchakInterestAmount > 0) {
+            updatedAmount = Math.max(
+                uchakInterestAmount - amountPaid,
+                0
+            );
+        }
 
-        return res.status(201).json({
-            status: 201,
-            message: "Loan interest paid successfully",
-            data: interestDetail,
-        });
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {
+            nextInstallmentDate,
+            lastInstallmentDate,
+            uchakInterestAmount: updatedAmount
+        }, {new: true})
+
+        return res.status(201).json({status: 201, message: "Loan interest paid successfully", data: interestDetail});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -144,12 +138,13 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
     const lastInstallmentDate = new Date(to);
 
     const noInterestEntries = interestEntries && interestEntries.length === 0;
+    const anyInterestEntry = interestEntries && interestEntries.length !== 0;
     const isWithinInstallmentPeriod =
         new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(to);
 
     return {
-        nextInstallmentDate: noInterestEntries || isWithinInstallmentPeriod
+        nextInstallmentDate: noInterestEntries || (isWithinInstallmentPeriod && anyInterestEntry)
             ? loanDetails.nextInstallmentDate
             : nextInstallmentDate,
         lastInstallmentDate,
