@@ -93,7 +93,7 @@ async function interestPayment(req, res) {
 
         const interestEntries = await InterestModel.find({loan: loanId}).select('_id')
 
-        let nextInstallmentDate = getNextInterestPayDate(new Date(to))
+        let nextInstallmentDate = getNextInterestPayDate(new Date(loanDetails.nextInstallmentDate))
         let lastInstallmentDate = new Date(to)
 
         const noInterestEntries = interestEntries && interestEntries.length === 0;
