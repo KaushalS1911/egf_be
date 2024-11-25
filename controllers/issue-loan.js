@@ -223,7 +223,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntr
         new Date(interestDetails.from).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
 
-    if (isSingleInterestEntry || isWithinInstallmentPeriod) {
+    if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
     }
 
