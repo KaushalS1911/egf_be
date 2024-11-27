@@ -714,47 +714,6 @@ const generateTransactionNumber = async (companyId) => {
     return transactionNumber;
 };
 
-const applyPenaltyIfLate = async (loanId, installmentId, paymentDate) => {
-    const loan = await IssuedLoanModel.findById(loanId).populate('scheme');
-
-    const {installments, scheme, company, loanAmount} = loan
-
-    const installment = installments.id(installmentId);
-
-    const dueDate = new Date(installment.date);
-    const daysLate = Math.floor((paymentDate - dueDate) / (1000 * 60 * 60 * 24));
-
-    let newInterestRate = scheme.interestRate;
-
-    const penaltyMaster = await PenaltyModel.find({company: company});
-    let penaltyApplied = false;
-
-    for (let range of penaltyMaster.ranges) {
-        if (daysLate >= range.afterDueDateFromDate && daysLate <= range.afterDueDateToDate) {
-            newInterestRate += range.penaltyInterest;
-            penaltyApplied = true;
-            break;
-        }
-    }
-
-    let daysBetweenInstallments = 30;
-
-    if (!penaltyApplied) {
-        daysBetweenInstallments = 30 + daysLate;
-        newInterestRate = loan.interestRate
-        installment.amount = calculateInterest(loanAmount, newInterestRate, daysBetweenInstallments)
-        console.log('No penalty applied. Paid on time or within grace period.');
-    }
-
-    installment.amount = calculateInterest(loanAmount, newInterestRate, daysBetweenInstallments);
-    installment.status = 'Paid';
-    installment.date = paymentDate;
-    loan.nextInstallmentDate = new Date(paymentDate.setDate(paymentDate.getDate() + 30));
-
-    await loan.save();
-
-};
-
 const calculateInterest = (loanAmount, rateOfInterest, days) => {
     return (loanAmount * rateOfInterest * days) / (30 * 100);
 };
@@ -762,17 +721,28 @@ const calculateInterest = (loanAmount, rateOfInterest, days) => {
 function getNextInterestPayDate(issueDate) {
     let nextPayDate = new Date(issueDate);
 
-    nextPayDate.setDate(nextPayDate.getDate() + 30);
+    // Add 1 month to the current date
+    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
+
+    // If the day of the month is greater than the last day of the month, adjust it to the last day of that month
+    if (nextPayDate.getDate() < new Date(issueDate).getDate()) {
+        nextPayDate.setDate(0); // Set to the last day of the previous month
+    }
 
     return nextPayDate;
 }
 
+
 function reverseNextInterestPayDate(date) {
-    let nextPayDate = new Date(date);
+    let previousPayDate = new Date(date);
 
-    nextPayDate.setDate(nextPayDate.getDate() - 30);
+    previousPayDate.setMonth(previousPayDate.getMonth() - 1);
 
-    return nextPayDate;
+    if (previousPayDate.getDate() < new Date(date).getDate()) {
+        previousPayDate.setDate(0);
+    }
+
+    return previousPayDate;
 }
 
 
