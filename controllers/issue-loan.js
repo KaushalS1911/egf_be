@@ -721,12 +721,10 @@ const calculateInterest = (loanAmount, rateOfInterest, days) => {
 function getNextInterestPayDate(issueDate) {
     let nextPayDate = new Date(issueDate);
 
-    // Add 1 month to the current date
     nextPayDate.setMonth(nextPayDate.getMonth() + 1);
 
-    // If the day of the month is greater than the last day of the month, adjust it to the last day of that month
     if (nextPayDate.getDate() < new Date(issueDate).getDate()) {
-        nextPayDate.setDate(0); // Set to the last day of the previous month
+        nextPayDate.setDate(0);
     }
 
     return nextPayDate;

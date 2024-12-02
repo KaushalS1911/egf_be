@@ -36,7 +36,7 @@ async function getAllCarats(req, res) {
         const carats = await CaratModel.find({
             company: companyId,
             deleted_at: null,
-        }).populate("company");
+        }).populate("company").sort({name: 1});
 
         return res.status(200).json({ status: 200, data: carats });
     } catch (err) {
