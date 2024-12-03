@@ -17,8 +17,9 @@ async function addPenalty(req, res) {
             return res.status(400).json({ status: 400, message: "Penalty already exists" });
         }
 
-        const penaltyCount = await PenaltyModel.countDocuments({ company: companyId, deleted_at: null });
-        const penaltyCode = `P${(penaltyCount + 1).toString().padStart(3, '0')}`;
+        const timestamp = Date.now().toString();
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const penaltyCode = `P${timestamp}${randomSuffix}`;
 
         const penalty = await PenaltyModel.create({
             company: companyId,
@@ -35,6 +36,7 @@ async function addPenalty(req, res) {
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function getAllPenalties(req, res) {
     const { companyId } = req.params;
