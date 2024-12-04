@@ -243,10 +243,8 @@ async function loanClose(req, res) {
 
         const loanDetail = await IssuedLoanModel.findById(loanId)
 
-        const loanAmount = req.body.paidLoanAmount - loanDetail.interestLoanAmount
-
         loanDetail.status = "Closed"
-        loanDetail.interestLoanAmount = loanAmount
+        loanDetail.interestLoanAmount = 0
         loanDetail.closedBy = req.body.closedBy
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true})
