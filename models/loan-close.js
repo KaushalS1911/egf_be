@@ -3,7 +3,6 @@ const mongoose = require('mongoose')
 const loanCloseSchema = new mongoose.Schema({
     loan: {type: String, ref: "Issued Loan", required: true},
     totalLoanAmount: Number,
-    paidLoanAmount: Number,
     closingCharge: Number,
     remark: String,
     paymentDetail: Object,
