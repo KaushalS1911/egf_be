@@ -712,10 +712,6 @@ const generateTransactionNumber = async (companyId) => {
     return transactionNumber;
 };
 
-const calculateInterest = (loanAmount, rateOfInterest, days) => {
-    return (loanAmount * rateOfInterest * days) / (30 * 100);
-};
-
 function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
