@@ -39,7 +39,7 @@ async function issueLoan(req, res) {
             ...req.body,
             nextInstallmentDate,
             company: companyId,
-            loanNo: await generateLoanNumber(companyId),
+            // loanNo: await generateLoanNumber(companyId),
             transactionNo: await generateTransactionNumber(companyId),
             propertyImage: property,
         });
@@ -256,38 +256,24 @@ async function loanClose(req, res) {
     }
 }
 
-// async function uchakInterestPayment(req, res) {
-//     try {
-//         const {loanId} = req.params
-//         const {date, amountPaid} = req.body
-//
-//         const interestDetail = await UchakInterestModel.create({
-//             loan: loanId,
-//             ...req.body
-//         })
-//
-//         const loanDetails = await IssuedLoanModel.findById(loanId)
-//
-//         const paymentDate = new Date(date)
-//         const nextInstallmentDate = getNextInterestPayDate(paymentDate)
-//         const lastInstallmentDate = new Date(date)
-//
-//         await IssuedLoanModel.findByIdAndUpdate(loanId, {
-//             nextInstallmentDate,
-//             lastInstallmentDate,
-//             uchakInterestAmount: amountPaid + loanDetails?.uchakInterestAmount
-//         }, {new: true})
-//
-//         return res.status(201).json({
-//             status: 201,
-//             message: "Loan uchak interest paid successfully",
-//             data: interestDetail
-//         });
-//     } catch (err) {
-//         console.error(err);
-//         return res.status(500).json({status: 500, message: "Internal server error"});
-//     }
-// }
+async function uchakInterestPayment(req, res) {
+    try {
+        const {loanId} = req.params
+        const interestDetail = await UchakInterestModel.create({
+            loan: loanId,
+            ...req.body
+        })
+
+        return res.status(201).json({
+            status: 201,
+            message: "Loan uchak interest paid successfully",
+            data: interestDetail
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
 
 async function updateInterestPayment(req, res) {
     try {
@@ -670,32 +656,6 @@ async function deleteMultipleLoans(req, res) {
     }
 }
 
-const getCurrentFinancialYear = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    if (currentMonth >= 4) {
-        return `${currentYear.toString().slice(-2)}_${(currentYear + 1).toString().slice(-2)}`;
-    } else {
-        return `${(currentYear - 1).toString().slice(-2)}_${currentYear.toString().slice(-2)}`;
-    }
-};
-
-const generateLoanNumber = async (companyId) => {
-    const financialYear = getCurrentFinancialYear();
-
-    const loanCount = await IssuedLoanModel.countDocuments({
-        company: companyId,
-        loanNo: {$regex: `^EGF/${financialYear}`}
-    });
-
-    const newLoanCount = loanCount + 1;
-
-    const loanNumber = `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
-
-    return loanNumber;
-};
-
-
 const generateTransactionNumber = async (companyId) => {
     const prefix = 'TRXN';
 
@@ -762,5 +722,6 @@ module.exports = {
     loanClose,
     deleteInterestPayment,
     deletePartReleaseDetail,
-    deletePartPaymentDetail
+    deletePartPaymentDetail,
+    uchakInterestPayment
 }
