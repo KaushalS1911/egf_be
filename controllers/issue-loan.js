@@ -717,11 +717,14 @@ const calculateInterest = (loanAmount, rateOfInterest, days) => {
 };
 
 function getNextInterestPayDate(issueDate) {
+    let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
 
     nextPayDate.setMonth(nextPayDate.getMonth() + 1);
 
-    if (nextPayDate.getDate() < new Date(issueDate).getDate()) {
+    nextPayDate.setDate(originalDate.getDate() - 1);
+
+    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
         nextPayDate.setDate(0);
     }
 
@@ -730,11 +733,14 @@ function getNextInterestPayDate(issueDate) {
 
 
 function reverseNextInterestPayDate(date) {
+    let originalDate = new Date(date)
     let previousPayDate = new Date(date);
 
     previousPayDate.setMonth(previousPayDate.getMonth() - 1);
 
-    if (previousPayDate.getDate() < new Date(date).getDate()) {
+    previousPayDate.setDate(originalDate.getDate() - 1);
+
+    if (previousPayDate.getDate() !== originalDate.getDate() - 1) {
         previousPayDate.setDate(0);
     }
 
