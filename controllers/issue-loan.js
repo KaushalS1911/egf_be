@@ -39,7 +39,7 @@ async function issueLoan(req, res) {
             ...req.body,
             nextInstallmentDate,
             company: companyId,
-            // loanNo: await generateLoanNumber(companyId),
+            loanNo: await generateLoanNumber(companyId),
             transactionNo: await generateTransactionNumber(companyId),
             propertyImage: property,
         });
@@ -703,6 +703,30 @@ function reverseNextInterestPayDate(date) {
     return previousPayDate;
 }
 
+const getCurrentFinancialYear = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    if (currentMonth >= 4) {
+        return `${currentYear.toString().slice(-2)}_${(currentYear + 1).toString().slice(-2)}`;
+    } else {
+        return `${(currentYear - 1).toString().slice(-2)}_${currentYear.toString().slice(-2)}`;
+    }
+};
+
+const generateLoanNumber = async (companyId) => {
+    const financialYear = getCurrentFinancialYear();
+
+    const loanCount = await IssuedLoanModel.countDocuments({
+        company: companyId,
+        loanNo: {$regex: `^EGF/${financialYear}`}
+    });
+
+    const newLoanCount = loanCount + 1;
+
+    const loanNumber = `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
+
+    return loanNumber;
+};
 
 module.exports = {
     issueLoan,
