@@ -338,7 +338,7 @@ async function GetPartReleaseDetail(req, res) {
         const partReleaseDetail = await PartReleaseModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate('loan')
+        }).populate({path: "loan", populate: [{path: "scheme"},{path: "customer", populate: {path: "branch"}}]})
 
         return res.status(200).json({status: 200, data: partReleaseDetail});
     } catch (err) {
