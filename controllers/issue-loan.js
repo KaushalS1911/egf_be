@@ -694,9 +694,9 @@ function reverseNextInterestPayDate(date) {
 
     previousPayDate.setMonth(previousPayDate.getMonth() - 1);
 
-    previousPayDate.setDate(originalDate.getDate() - 1);
+    previousPayDate.setDate(originalDate.getDate() + 1);
 
-    if (previousPayDate.getDate() !== originalDate.getDate() - 1) {
+    if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
         previousPayDate.setDate(0);
     }
 
