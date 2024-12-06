@@ -675,21 +675,46 @@ const generateTransactionNumber = async (companyId) => {
 function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
-    let daysInMonth = new Date(originalDate.getFullYear(), originalDate.getMonth() + 1, 0).getDate();
 
-    nextPayDate.setDate(originalDate.getDate() + (daysInMonth === 30 ? 29 : (daysInMonth === 31 ? 30 : 28)));
+    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
+    nextPayDate.setDate(originalDate.getDate() - 1);
 
+    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
+        nextPayDate.setDate(0);
+    }
     return nextPayDate;
 }
 
 
-function reverseNextInterestPayDate(date) {
-    let originalDate = new Date(date);
-    let previousPayDate = new Date(date);
-    let daysInMonth = new Date(originalDate.getFullYear(), originalDate.getMonth(), 0).getDate();
-    previousPayDate.setDate(originalDate.getDate() - (daysInMonth === 30 ? 29 : (daysInMonth === 31 ? 30 : 28)));
+// function reverseNextInterestPayDate(date) {
+//     let originalDate = new Date(date)
+//     let previousPayDate = new Date(date);
+//
+//     previousPayDate.setMonth(previousPayDate.getMonth() - 1);
+//
+//     previousPayDate.setDate(originalDate.getDate() + 1);
+//
+//     if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
+//         previousPayDate.setDate(0);
+//     }
+//
+//     return previousPayDate;
+// }
+function reverseNextInterestPayDate(issueDate) {
+    let prevPayDate = new Date(issueDate);
 
-    return previousPayDate;
+    // Subtract one month
+    prevPayDate.setMonth(prevPayDate.getMonth() - 1);
+
+    // Set to the same day as the original date minus 1
+    prevPayDate.setDate(new Date(issueDate).getDate() - 1);
+
+    // If the day doesn't match, set to the last day of the previous month
+    if (prevPayDate.getDate() !== new Date(issueDate).getDate() - 1) {
+        prevPayDate.setDate(0);
+    }
+
+    return prevPayDate;
 }
 
 const getCurrentFinancialYear = () => {
