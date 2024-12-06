@@ -149,7 +149,10 @@ async function updateCustomer(req, res) {
     try {
         const { customerId } = req.params;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, req.body, { new: true });
+        const payload = req.body
+        if(req.query.branch) payload.branch = req.query.branch
+
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, payload, { new: true });
 
         if (!updatedCustomer) {
             return res.status(404).json({ status: 404, message: "Customer not found." });
