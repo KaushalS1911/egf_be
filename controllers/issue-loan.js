@@ -60,7 +60,16 @@ async function issueLoan(req, res) {
 async function disburseLoan(req, res) {
 
     try {
-        const {loan, companyBankDetail, bankAmount, cashAmount, pendingBankAmount, pendingCashAmount, payingCashAmount, payingBankAmount} = req.body
+        const {
+            loan,
+            companyBankDetail,
+            bankAmount,
+            cashAmount,
+            pendingBankAmount,
+            pendingCashAmount,
+            payingCashAmount,
+            payingBankAmount
+        } = req.body
 
         const loanDetail = await IssuedLoanModel.findById(loan)
 
@@ -86,21 +95,21 @@ async function disburseLoan(req, res) {
 
 async function interestPayment(req, res) {
     try {
-        const { loanId } = req.params;
-        const { uchakInterestAmount, amountPaid, to, from } = req.body;
+        const {loanId} = req.params;
+        const {uchakInterestAmount, amountPaid, to, from} = req.body;
 
         // Fetch necessary data in parallel
         const [loanDetails, interestEntries] = await Promise.all([
             IssuedLoanModel.findById(loanId),
-            InterestModel.find({ loan: loanId }).select('_id'),
+            InterestModel.find({loan: loanId}).select('_id'),
         ]);
 
         if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
         // Calculate next and last installment dates
-        const { nextInstallmentDate, lastInstallmentDate } = calculateInstallmentDates(
+        const {nextInstallmentDate, lastInstallmentDate} = calculateInstallmentDates(
             loanDetails,
             from,
             to,
@@ -124,7 +133,7 @@ async function interestPayment(req, res) {
                 lastInstallmentDate,
                 uchakInterestAmount: updatedUchakAmount,
             },
-            { new: true }
+            {new: true}
         );
 
         return res.status(201).json({
@@ -134,7 +143,7 @@ async function interestPayment(req, res) {
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -167,17 +176,17 @@ function calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid) {
 
 async function deleteInterestPayment(req, res) {
     try {
-        const { loanId, id } = req.params;
+        const {loanId, id} = req.params;
 
         // Fetch necessary details
         const [interestDetails, loanDetails, interestEntries] = await Promise.all([
             InterestModel.findById(id),
             IssuedLoanModel.findById(loanId),
-            InterestModel.find({ loan: loanId }).select('_id')
+            InterestModel.find({loan: loanId}).select('_id')
         ]);
 
         if (!interestDetails || !loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan or Interest details not found" });
+            return res.status(404).json({status: 404, message: "Loan or Interest details not found"});
         }
 
         // Determine next installment date
@@ -190,17 +199,17 @@ async function deleteInterestPayment(req, res) {
                 nextInstallmentDate,
                 lastInstallmentDate: new Date(interestDetails.from),
             },
-            { new: true }
+            {new: true}
         );
 
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Loan not found during update" });
+            return res.status(404).json({status: 404, message: "Loan not found during update"});
         }
 
         // Delete the interest entry
         const deletedInterestDetail = await InterestModel.findByIdAndDelete(id);
         if (!deletedInterestDetail) {
-            return res.status(404).json({ status: 404, message: "Interest payment not found during deletion" });
+            return res.status(404).json({status: 404, message: "Interest payment not found during deletion"});
         }
 
         return res.status(200).json({
@@ -210,7 +219,7 @@ async function deleteInterestPayment(req, res) {
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -226,10 +235,9 @@ function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntr
     if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
     }
-
-    return reverseNextInterestPayDate(new Date(loanDetails.nextInstallmentDate));
+    let nextInstallmentDate = new Date(loanDetails.nextInstallmentDate);
+    return reverseNextInterestPayDate(interestEntries.length === 0 ? new Date(loanDetails.nextInstallmentDate) : nextInstallmentDate.setDate(nextInstallmentDate.getDate() + 1));
 }
-
 
 
 async function loanClose(req, res) {
@@ -304,7 +312,10 @@ async function GetInterestPayment(req, res) {
         const interestDetail = await InterestModel.find({
             loan: loanId,
             deleted_at: null
-        }).sort({createdAt: -1}).populate({path: "loan", populate: [{path: "scheme"},{path: "customer", populate: {path: "branch"}}]});
+        }).sort({createdAt: -1}).populate({
+            path: "loan",
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]
+        });
 
         return res.status(200).json({status: 200, data: interestDetail});
     } catch (err) {
@@ -338,7 +349,7 @@ async function GetPartReleaseDetail(req, res) {
         const partReleaseDetail = await PartReleaseModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate({path: "loan", populate: [{path: "scheme"},{path: "customer", populate: {path: "branch"}}]})
+        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]})
 
         return res.status(200).json({status: 200, data: partReleaseDetail});
     } catch (err) {
@@ -377,8 +388,8 @@ async function updatePartReleaseDetail(req, res) {
 
 async function loanPartPayment(req, res) {
     try {
-        const { loanId } = req.params;
-        const { amountPaid } = req.body;
+        const {loanId} = req.params;
+        const {amountPaid} = req.body;
 
         const partPaymentDetail = await PartPaymentModel.create({
             loan: loanId,
@@ -387,19 +398,19 @@ async function loanPartPayment(req, res) {
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount totalAmount');
         if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
         const updatedInterestLoanAmount = Math.max(loanDetails.interestLoanAmount - amountPaid, 0);
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
-            { interestLoanAmount: updatedInterestLoanAmount },
-            { new: true }
+            {interestLoanAmount: updatedInterestLoanAmount},
+            {new: true}
         );
 
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Failed to update loan details" });
+            return res.status(404).json({status: 404, message: "Failed to update loan details"});
         }
 
         return res.status(201).json({
@@ -409,41 +420,41 @@ async function loanPartPayment(req, res) {
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 
 async function deletePartPaymentDetail(req, res) {
     try {
-        const { loanId, paymentId } = req.params;
+        const {loanId, paymentId} = req.params;
 
         const loanDetails = await IssuedLoanModel.findById(loanId).select('interestLoanAmount nextInstallmentDate');
         if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
-        const { interestLoanAmount } = loanDetails;
+        const {interestLoanAmount} = loanDetails;
 
         const paymentDetails = await PartPaymentModel.findById(paymentId);
         if (!paymentDetails) {
-            return res.status(404).json({ status: 404, message: "Part payment not found" });
+            return res.status(404).json({status: 404, message: "Part payment not found"});
         }
 
         const updatedInterestLoanAmount = interestLoanAmount + Number(paymentDetails.amountPaid);
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
-            { interestLoanAmount: updatedInterestLoanAmount },
-            { new: true }
+            {interestLoanAmount: updatedInterestLoanAmount},
+            {new: true}
         );
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Failed to update loan details" });
+            return res.status(404).json({status: 404, message: "Failed to update loan details"});
         }
 
         const deletedPaymentDetail = await PartPaymentModel.findByIdAndDelete(paymentId);
         if (!deletedPaymentDetail) {
-            return res.status(404).json({ status: 404, message: "Part payment not found during deletion" });
+            return res.status(404).json({status: 404, message: "Part payment not found during deletion"});
         }
 
         return res.status(200).json({
@@ -453,20 +464,20 @@ async function deletePartPaymentDetail(req, res) {
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 
 async function partRelease(req, res) {
     try {
-        const { loanId } = req.params;
+        const {loanId} = req.params;
 
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
         const loanDetails = await IssuedLoanModel.findById(loanId);
         if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
         const releasedProperty = req.body.property;
@@ -488,11 +499,11 @@ async function partRelease(req, res) {
                 interestLoanAmount,
                 propertyDetails: finalProperty
             },
-            { new: true }
+            {new: true}
         );
 
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Updated loan not found" });
+            return res.status(404).json({status: 404, message: "Updated loan not found"});
         }
 
         const plainLoan = updatedLoan.toObject();
@@ -508,25 +519,25 @@ async function partRelease(req, res) {
 
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 
 async function deletePartReleaseDetail(req, res) {
     try {
-        const { loanId, partId } = req.params;
+        const {loanId, partId} = req.params;
 
         // Fetch part release details
         const partRelease = await PartReleaseModel.findById(partId);
         if (!partRelease) {
-            return res.status(404).json({ status: 404, message: "Part release not found" });
+            return res.status(404).json({status: 404, message: "Part release not found"});
         }
 
         // Fetch loan details
         const loanDetails = await IssuedLoanModel.findById(loanId);
         if (!loanDetails) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
         // Safely merge property details and filter out any null or undefined values
@@ -547,11 +558,11 @@ async function deletePartReleaseDetail(req, res) {
                 propertyDetails: restoredProperty,
                 interestLoanAmount: updatedInterestLoanAmount
             },
-            { new: true }
+            {new: true}
         );
 
         if (!updatedLoan) {
-            return res.status(404).json({ status: 404, message: "Updated loan not found" });
+            return res.status(404).json({status: 404, message: "Updated loan not found"});
         }
 
         // Delete the part release entry
@@ -565,7 +576,7 @@ async function deletePartReleaseDetail(req, res) {
         });
     } catch (err) {
         console.error("Error in deletePartReleaseDetail:", err.message, err.stack);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -687,13 +698,17 @@ function reverseNextInterestPayDate(date) {
     let originalDate = new Date(date)
     let previousPayDate = new Date(date);
 
-    previousPayDate.setMonth(previousPayDate.getMonth() - 1);
-
-    previousPayDate.setDate(originalDate.getDate() +  1);
-
-    if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
-        previousPayDate.setDate(0);
-    }
+    // previousPayDate.setMonth(previousPayDate.getMonth() - 1);
+    //
+    // previousPayDate.setDate(originalDate.getDate() +  1);
+    //
+    // if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
+    //     previousPayDate.setDate(0);
+    // }
+    let year = originalDate.getFullYear();
+    let month = originalDate.getMonth();
+    let daysInMonth = new Date(year, month + 1, 0).getDate();
+    previousPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
 
     return previousPayDate;
 }
