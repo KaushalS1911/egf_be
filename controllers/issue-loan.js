@@ -686,35 +686,19 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-// function reverseNextInterestPayDate(date) {
-//     let originalDate = new Date(date)
-//     let previousPayDate = new Date(date);
-//
-//     previousPayDate.setMonth(previousPayDate.getMonth() - 1);
-//
-//     previousPayDate.setDate(originalDate.getDate() + 1);
-//
-//     if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
-//         previousPayDate.setDate(0);
-//     }
-//
-//     return previousPayDate;
-// }
-function reverseNextInterestPayDate(issueDate) {
-    let prevPayDate = new Date(issueDate);
+function reverseNextInterestPayDate(date) {
+    let originalDate = new Date(date)
+    let previousPayDate = new Date(date);
 
-    // Subtract one month
-    prevPayDate.setMonth(prevPayDate.getMonth() - 1);
+    previousPayDate.setMonth(previousPayDate.getMonth() - 1);
 
-    // Set to the same day as the original date minus 1
-    prevPayDate.setDate(new Date(issueDate).getDate() - 1);
+    previousPayDate.setDate(originalDate.getDate() +  1);
 
-    // If the day doesn't match, set to the last day of the previous month
-    if (prevPayDate.getDate() !== new Date(issueDate).getDate() - 1) {
-        prevPayDate.setDate(0);
+    if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
+        previousPayDate.setDate(0);
     }
 
-    return prevPayDate;
+    return previousPayDate;
 }
 
 const getCurrentFinancialYear = () => {
