@@ -682,9 +682,9 @@ function getNextInterestPayDate(issueDate) {
 
     nextPayDate.setDate(originalDate.getDate() + daysInMonth);
 
-    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
-        nextPayDate.setDate(0);
-    }
+    // if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
+    //     nextPayDate.setDate(0);
+    // }
     return nextPayDate;
 }
 
