@@ -676,15 +676,13 @@ function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
 
-    let daysInMonth = new Date(originalDate.getFullYear(), originalDate.getMonth(), 0).getDate();
+    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
 
-    // nextPayDate.setMonth(nextPayDate.getMonth() + 1);
+    nextPayDate.setDate(originalDate.getDate() - 1);
 
-    nextPayDate.setDate(originalDate.getDate() + daysInMonth);
-
-    // if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
-    //     nextPayDate.setDate(0);
-    // }
+    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
+        nextPayDate.setDate(0);
+    }
     return nextPayDate;
 }
 
