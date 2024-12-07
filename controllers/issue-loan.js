@@ -675,13 +675,10 @@ const generateTransactionNumber = async (companyId) => {
 function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
-    let daysInMonth = new Date(originalDate.getFullYear(), originalDate.getMonth(), 0).getDate();
-
+    let year = originalDate.getFullYear();
+    let month = originalDate.getMonth();
+    let daysInMonth = new Date(year, month + 1, 0).getDate();
     nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
-
-    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
-        nextPayDate.setDate(0);
-    }
     return nextPayDate;
 }
 
