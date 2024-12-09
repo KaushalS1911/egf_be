@@ -130,7 +130,7 @@ async function interestPayment(req, res) {
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate,
+                lastInstallmentDate: new Date(new Date(lastInstallmentDate).setDate(new Date(lastInstallmentDate).getDate() + 1)),
                 uchakInterestAmount: updatedUchakAmount,
             },
             {new: true}
