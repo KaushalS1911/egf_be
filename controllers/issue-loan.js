@@ -197,7 +197,7 @@ async function deleteInterestPayment(req, res) {
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate: new Date(interestDetails.from),
+                lastInstallmentDate:new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)),
             },
             {new: true}
         );
