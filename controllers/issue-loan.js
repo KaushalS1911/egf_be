@@ -235,8 +235,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntr
     if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
     }
-    let nextInstallmentDate = new Date(loanDetails.nextInstallmentDate);
-    return reverseNextInterestPayDate(interestEntries.length === 0 ? new Date(loanDetails.nextInstallmentDate) : nextInstallmentDate.setDate(nextInstallmentDate.getDate() + 1));
+    return reverseNextInterestPayDate(new Date(loanDetails.nextInstallmentDate));
 }
 
 
