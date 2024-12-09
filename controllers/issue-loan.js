@@ -155,7 +155,7 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
     const noInterestEntries = interestEntries && interestEntries.length === 0;
     const isWithinInstallmentPeriod =
         new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(from).toDateString() &&
-        new Date(loanDetails.nextInstallmentDate) > new Date(to);
+        new Date(loanDetails.nextInstallmentDate) > new Date(to + 1);
 
     return {
         nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
@@ -235,8 +235,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntr
     if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
     }
-    let nextInstallmentDate = new Date(loanDetails.nextInstallmentDate);
-    return reverseNextInterestPayDate(interestEntries.length === 0 ? new Date(loanDetails.nextInstallmentDate) : nextInstallmentDate.setDate(nextInstallmentDate.getDate() + 1));
+    return reverseNextInterestPayDate(new Date(loanDetails.nextInstallmentDate));
 }
 
 
@@ -697,18 +696,10 @@ function getNextInterestPayDate(issueDate) {
 function reverseNextInterestPayDate(date) {
     let originalDate = new Date(date)
     let previousPayDate = new Date(date);
-
-    // previousPayDate.setMonth(previousPayDate.getMonth() - 1);
-    //
-    // previousPayDate.setDate(originalDate.getDate() +  1);
-    //
-    // if (previousPayDate.getDate() !== originalDate.getDate() + 1) {
-    //     previousPayDate.setDate(0);
-    // }
     let year = originalDate.getFullYear();
     let month = originalDate.getMonth();
     let daysInMonth = new Date(year, month + 1, 0).getDate();
-    previousPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
+    previousPayDate.setDate(originalDate.getDate() - (daysInMonth - 1));
 
     return previousPayDate;
 }
