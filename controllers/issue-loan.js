@@ -111,7 +111,7 @@ async function interestPayment(req, res) {
         // Calculate next and last installment dates
         const {nextInstallmentDate, lastInstallmentDate} = calculateInstallmentDates(
             loanDetails,
-            interestEntries.length > 0 ? from : new Date(new Date(from).setDate(new Date(from).getDate() + 1)),
+            from,
             to,
             interestEntries
         );
@@ -130,7 +130,7 @@ async function interestPayment(req, res) {
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate,
+                lastInstallmentDate: new Date(new Date(lastInstallmentDate).setDate(new Date(lastInstallmentDate).getDate() + 1)),
                 uchakInterestAmount: updatedUchakAmount,
             },
             {new: true}
@@ -692,7 +692,6 @@ function getNextInterestPayDate(issueDate) {
     nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
     return nextPayDate;
 }
-
 
 
 function reverseNextInterestPayDate(currentDate) {
