@@ -689,14 +689,15 @@ function getNextInterestPayDate(issueDate) {
 
     nextPayDate.setMonth(nextPayDate.getMonth() + 1);
 
-    nextPayDate.setDate(originalDate.getDate() - 1);
-
-    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
-        nextPayDate.setDate(0);
+    if (nextPayDate.getDate() < originalDate.getDate()) {
+        nextPayDate.setDate(0); // Move to the last day of the previous month
+    } else {
+        nextPayDate.setDate(originalDate.getDate() - 1);
     }
 
     return nextPayDate;
 }
+
 
 
 function reverseNextInterestPayDate(date) {
