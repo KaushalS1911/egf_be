@@ -684,19 +684,22 @@ const generateTransactionNumber = async (companyId) => {
 };
 
 function getNextInterestPayDate(issueDate) {
+    const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+
     let originalDate = new Date(issueDate);
-    let nextPayDate = new Date(issueDate);
+    let currentYear = originalDate.getFullYear();
+    let currentMonth = originalDate.getMonth();
 
-    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
+    // Get the number of days in the current month
+    let daysToAdd = daysInMonth(currentYear, currentMonth);
 
-    if (nextPayDate.getDate() < originalDate.getDate()) {
-        nextPayDate.setDate(0); // Move to the last day of the previous month
-    } else {
-        nextPayDate.setDate(originalDate.getDate());
-    }
+    // Add those days to the issue date
+    let nextPayDate = new Date(originalDate);
+    nextPayDate.setDate(nextPayDate.getDate() + daysToAdd);
 
     return nextPayDate;
 }
+
 
 
 
