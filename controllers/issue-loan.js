@@ -130,7 +130,7 @@ async function interestPayment(req, res) {
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate: new Date(new Date(lastInstallmentDate).setDate(new Date(lastInstallmentDate).getDate() + 1)),
+                lastInstallmentDate,
                 uchakInterestAmount: updatedUchakAmount,
             },
             {new: true}
@@ -149,7 +149,7 @@ async function interestPayment(req, res) {
 
 
 function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
-    const nextInstallmentDate = getNextInterestPayDate(interestEntries.length === 0 ? new Date(loanDetails.nextInstallmentDate) : new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
+    const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
     const noInterestEntries = interestEntries && interestEntries.length === 0;
