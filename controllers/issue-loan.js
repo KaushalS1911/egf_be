@@ -694,31 +694,15 @@ function getNextInterestPayDate(issueDate) {
 }
 
 
-function reverseNextInterestPayDate(currentDate) {
-    const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-
-    let originalDate = new Date(currentDate);
-    let currentYear = originalDate.getFullYear();
-    let currentMonth = originalDate.getMonth();
-
-    // Calculate the number of days in the previous month
-    let previousMonth = currentMonth - 1;
-    let yearOfPreviousMonth = currentYear;
-
-    // Handle year wrap-around if previous month is December of the previous year
-    if (previousMonth < 0) {
-        previousMonth = 11; // December
-        yearOfPreviousMonth = currentYear - 1;
-    }
-
-    let daysToSubtract = daysInMonth(yearOfPreviousMonth, previousMonth);
-
-    // Subtract those days from the current date
-    let previousPayDate = new Date(originalDate);
-    previousPayDate.setDate(previousPayDate.getDate() - daysToSubtract);
-
-    return previousPayDate;
+function reverseNextInterestPayDate(nextPayDate) {
+    let calculatedDate = new Date(nextPayDate);
+    let year = calculatedDate.getFullYear();
+    let month = calculatedDate.getMonth();
+    let daysInMonth = new Date(year, month, 0).getDate();
+    calculatedDate.setDate(calculatedDate.getDate() - (daysInMonth - 1));
+    return calculatedDate;
 }
+
 
 const getCurrentFinancialYear = () => {
     const currentYear = new Date().getFullYear();
