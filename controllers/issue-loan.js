@@ -111,7 +111,7 @@ async function interestPayment(req, res) {
         // Calculate next and last installment dates
         const {nextInstallmentDate, lastInstallmentDate} = calculateInstallmentDates(
             loanDetails,
-            from,
+            interestEntries.length > 0 ? from : new Date(new Date(from).setDate(new Date(from).getDate() + 1)),
             to,
             interestEntries
         );
