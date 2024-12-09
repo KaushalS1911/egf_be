@@ -685,10 +685,15 @@ const generateTransactionNumber = async (companyId) => {
 function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let nextPayDate = new Date(issueDate);
-    let year = originalDate.getFullYear();
-    let month = originalDate.getMonth();
-    let daysInMonth = new Date(year, month + 1, 0).getDate();
-    nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
+
+    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
+
+    nextPayDate.setDate(originalDate.getDate() - 1);
+
+    if (nextPayDate.getDate() !== originalDate.getDate() - 1) {
+        nextPayDate.setDate(0);
+    }
+
     return nextPayDate;
 }
 
@@ -696,10 +701,14 @@ function getNextInterestPayDate(issueDate) {
 function reverseNextInterestPayDate(date) {
     let originalDate = new Date(date)
     let previousPayDate = new Date(date);
-    let year = originalDate.getFullYear();
-    let month = originalDate.getMonth();
-    let daysInMonth = new Date(year, month + 1, 0).getDate();
-    previousPayDate.setDate(originalDate.getDate() - (daysInMonth - 1));
+
+    previousPayDate.setMonth(previousPayDate.getMonth() - 1);
+
+    previousPayDate.setDate(originalDate.getDate() - 1);
+
+    if (previousPayDate.getDate() !== originalDate.getDate() - 1) {
+        previousPayDate.setDate(0);
+    }
 
     return previousPayDate;
 }
