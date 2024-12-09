@@ -692,7 +692,7 @@ function getNextInterestPayDate(issueDate) {
     if (nextPayDate.getDate() < originalDate.getDate()) {
         nextPayDate.setDate(0); // Move to the last day of the previous month
     } else {
-        nextPayDate.setDate(originalDate.getDate() - 1);
+        nextPayDate.setDate(originalDate.getDate());
     }
 
     return nextPayDate;
