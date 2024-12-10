@@ -103,7 +103,6 @@ async function interestPayment(req, res) {
             IssuedLoanModel.findById(loanId),
             InterestModel.find({loan: loanId}).select('_id'),
         ]);
-
         if (!loanDetails) {
             return res.status(404).json({status: 404, message: "Loan not found"});
         }
@@ -156,7 +155,6 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
     const isWithinInstallmentPeriod =
         new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(to);
-
     return {
         nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
             ? loanDetails.nextInstallmentDate
