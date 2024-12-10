@@ -121,11 +121,11 @@ async function interestPayment(req, res) {
             loan: loanId,
             ...req.body,
         });
-
-        // Update the outstanding interest amount
+        //
+        // // Update the outstanding interest amount
         const updatedUchakAmount = calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid);
-
-        // Update the loan details
+        //
+        // // Update the loan details
         await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
@@ -154,7 +154,7 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
 
     const noInterestEntries = interestEntries && interestEntries.length === 0;
     const isWithinInstallmentPeriod =
-        new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() + 1)).toDateString() &&
+        new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(to);
 
     return {
@@ -197,7 +197,7 @@ async function deleteInterestPayment(req, res) {
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate:new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)),
+                lastInstallmentDate: new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)),
             },
             {new: true}
         );
