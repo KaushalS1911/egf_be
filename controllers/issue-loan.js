@@ -243,7 +243,10 @@ async function deleteInterestPayment(req, res) {
 function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntries) {
     const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
-    const isWithinInstallmentPeriod = new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
+    const isWithinInstallmentPeriod =
+        new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
+        new Date(interestDetails.from).toDateString() &&
+        new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
 
     if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
