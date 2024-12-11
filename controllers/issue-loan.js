@@ -226,7 +226,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntr
     const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
     const isWithinInstallmentPeriod =
-        new Date(loanDetails.lastInstallmentDate).toDateString() ===
+        new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
         new Date(interestDetails.from).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
 
