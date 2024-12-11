@@ -148,46 +148,23 @@ async function interestPayment(req, res) {
 }
 
 function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
-
-    let isUpdated = true
-
-    const nextInstallmentDate = getNextInterestPayDate(
-        new Date(
-            new Date(loanDetails.nextInstallmentDate).setDate(
-                new Date(loanDetails.nextInstallmentDate).getDate() + 1
-            )
-        )
-    );
-
+    const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
-    const noInterestEntries = !interestEntries || interestEntries.length === 0;
+    const noInterestEntries = interestEntries && interestEntries.length === 0;
 
-    let isWithinInstallmentPeriod = new Date(loanDetails.nextInstallmentDate) > lastInstallmentDate;
+    let isWithinInstallmentPeriod
 
     if (loanDetails.lastInstallmentDate) {
-        const adjustedFrom = new Date(from);
-        adjustedFrom.setDate(adjustedFrom.getDate() - 1);
-
-        const lastInstallmentMatches =
-            new Date(loanDetails.lastInstallmentDate).toDateString() === adjustedFrom.toDateString();
-
-        isWithinInstallmentPeriod = lastInstallmentMatches &&
-            new Date(loanDetails.nextInstallmentDate) > lastInstallmentDate;
+        isWithinInstallmentPeriod = (new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) && (new Date(loanDetails.nextInstallmentDate) > new Date(to))
+    } else {
+        isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
     }
-
-
-    if( (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod){
-        isUpdated = false
-    }
-
     return {
-        nextInstallmentDate:
-            (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
-                ? loanDetails.nextInstallmentDate
-                : nextInstallmentDate,
+        nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
+            ? loanDetails.nextInstallmentDate
+            : nextInstallmentDate,
         lastInstallmentDate,
-        isUpdated
     };
 }
 
@@ -252,9 +229,9 @@ async function deleteInterestPayment(req, res) {
 function calculateNextInstallmentDate(loanDetails, interestDetails) {
     // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
-    if(interestDetails.isUpdated){
+    if (interestDetails.isUpdated) {
         return loanDetails.lastInstallmentDate
-    }else{
+    } else {
         return loanDetails.nextInstallmentDate
     }
 
