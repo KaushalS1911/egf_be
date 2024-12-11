@@ -157,10 +157,14 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
     let isWithinInstallmentPeriod
 
     if (loanDetails.lastInstallmentDate) {
+        console.log("Hello I am calling.... ", loanDetails.lastInstallmentDate)
         isWithinInstallmentPeriod = (new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) && (new Date(loanDetails.nextInstallmentDate) > new Date(to))
+        console.log("Hello I am calling....1 ", isWithinInstallmentPeriod)
     } else {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
+        console.log("Hello I am calling....2 ", isWithinInstallmentPeriod)
     }
+        console.log("Hello I am calling....3 ", (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod)
 
     if((noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod){
         isUpdated = false
