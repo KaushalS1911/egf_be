@@ -252,7 +252,7 @@ async function deleteInterestPayment(req, res) {
 function calculateNextInstallmentDate(loanDetails, interestDetails) {
     // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
-    if(loanDetails.isUpdated){
+    if(interestDetails.isUpdated){
         return loanDetails.lastInstallmentDate
     }else{
         return loanDetails.nextInstallmentDate
