@@ -153,7 +153,7 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
 
     const noInterestEntries = interestEntries && interestEntries.length === 0;
     const isWithinInstallmentPeriod =
-        new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString() &&
+        (!noInterestEntries && new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) &&
         new Date(loanDetails.nextInstallmentDate) > new Date(to);
     return {
         nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
