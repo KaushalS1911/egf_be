@@ -195,10 +195,9 @@ async function deleteInterestPayment(req, res) {
         const {loanId, id} = req.params;
 
         // Fetch necessary details
-        const [interestDetails, loanDetails, interestEntries] = await Promise.all([
+        const [interestDetails, loanDetails] = await Promise.all([
             InterestModel.findById(id),
             IssuedLoanModel.findById(loanId),
-            InterestModel.find({loan: loanId}).select('_id')
         ]);
 
         if (!interestDetails || !loanDetails) {
@@ -206,14 +205,14 @@ async function deleteInterestPayment(req, res) {
         }
 
         // Determine next installment date
-        let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails, interestEntries);
+        let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails);
 
         // Update the loan with adjusted installment dates
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
                 nextInstallmentDate,
-                lastInstallmentDate: new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)),
+                lastInstallmentDate: new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)) || null,
             },
             {new: true}
         );
@@ -240,15 +239,15 @@ async function deleteInterestPayment(req, res) {
 }
 
 
-function calculateNextInstallmentDate(loanDetails, interestDetails, interestEntries) {
-    const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
+function calculateNextInstallmentDate(loanDetails, interestDetails) {
+    // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
     const isWithinInstallmentPeriod =
-        new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
-        new Date(interestDetails.from).toDateString() &&
+        // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
+        // new Date(interestDetails.from).toDateString() &&
         new Date(loanDetails.nextInstallmentDate) > new Date(interestDetails.to);
 
-    if ((isSingleInterestEntry && isWithinInstallmentPeriod) || isWithinInstallmentPeriod) {
+    if (isWithinInstallmentPeriod) {
         return loanDetails.nextInstallmentDate;
     }
     return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
