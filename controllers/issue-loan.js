@@ -146,19 +146,37 @@ async function interestPayment(req, res) {
     }
 }
 
-
 function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
-    const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
+    const nextInstallmentDate = getNextInterestPayDate(
+        new Date(
+            new Date(loanDetails.nextInstallmentDate).setDate(
+                new Date(loanDetails.nextInstallmentDate).getDate() + 1
+            )
+        )
+    );
+
     const lastInstallmentDate = new Date(to);
 
-    const noInterestEntries = interestEntries && interestEntries.length === 0;
-    const isWithinInstallmentPeriod =
-        (!noInterestEntries && new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) &&
-        new Date(loanDetails.nextInstallmentDate) > new Date(to);
+    const noInterestEntries = !interestEntries || interestEntries.length === 0;
+
+    let isWithinInstallmentPeriod = new Date(loanDetails.nextInstallmentDate) > lastInstallmentDate;
+
+    if (loanDetails.lastInstallmentDate) {
+        const adjustedFrom = new Date(from);
+        adjustedFrom.setDate(adjustedFrom.getDate() - 1);
+
+        const lastInstallmentMatches =
+            new Date(loanDetails.lastInstallmentDate).toDateString() === adjustedFrom.toDateString();
+
+        isWithinInstallmentPeriod = lastInstallmentMatches &&
+            new Date(loanDetails.nextInstallmentDate) > lastInstallmentDate;
+    }
+
     return {
-        nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
-            ? loanDetails.nextInstallmentDate
-            : nextInstallmentDate,
+        nextInstallmentDate:
+            (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
+                ? loanDetails.nextInstallmentDate
+                : nextInstallmentDate,
         lastInstallmentDate,
     };
 }
