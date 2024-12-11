@@ -13,6 +13,7 @@ const interestSchema = new mongoose.Schema({
     amountPaid: {type: Number, default: 0},
     cr_dr: {type: Number, default: 0},
     paymentDetail: {type: Object, default: null},
+    isUpdate: {type: Boolean}
 }, {timestamps: true})
 
 module.exports = mongoose.model('Interest', interestSchema)
