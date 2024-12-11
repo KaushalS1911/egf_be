@@ -99,9 +99,8 @@ async function interestPayment(req, res) {
         const {uchakInterestAmount, amountPaid, to, from} = req.body;
 
         // Fetch necessary data in parallel
-        const [loanDetails, interestEntries] = await Promise.all([
+        const [loanDetails] = await Promise.all([
             IssuedLoanModel.findById(loanId),
-            InterestModel.find({loan: loanId}).select('_id'),
         ]);
         if (!loanDetails) {
             return res.status(404).json({status: 404, message: "Loan not found"});
@@ -112,7 +111,6 @@ async function interestPayment(req, res) {
             loanDetails,
             from,
             to,
-            interestEntries
         );
 
         // Create a new interest entry
@@ -147,12 +145,12 @@ async function interestPayment(req, res) {
     }
 }
 
-function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
+function calculateInstallmentDates(loanDetails, from, to) {
     let isUpdated = true
     const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
-    const noInterestEntries = interestEntries && interestEntries.length === 0;
+    // const noInterestEntries = interestEntries && interestEntries.length === 0;
 
     let isWithinInstallmentPeriod
 
@@ -164,14 +162,14 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
         console.log("Hello I am calling....2 ", isWithinInstallmentPeriod)
     }
-        console.log("Hello I am calling....3 ", (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod)
+        console.log("Hello I am calling....3 ", (isWithinInstallmentPeriod))
 
-    if((noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod){
+    if(isWithinInstallmentPeriod){
         isUpdated = false
     }
 
     return {
-        nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
+        nextInstallmentDate: isWithinInstallmentPeriod
             ? loanDetails.nextInstallmentDate
             : nextInstallmentDate,
         lastInstallmentDate,
