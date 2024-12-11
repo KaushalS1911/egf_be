@@ -148,6 +148,7 @@ async function interestPayment(req, res) {
 }
 
 function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
+    let isUpdated = true
     const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
@@ -160,11 +161,17 @@ function calculateInstallmentDates(loanDetails, from, to, interestEntries) {
     } else {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
     }
+
+    if((noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod){
+        isUpdated = false
+    }
+
     return {
         nextInstallmentDate: (noInterestEntries && isWithinInstallmentPeriod) || isWithinInstallmentPeriod
             ? loanDetails.nextInstallmentDate
             : nextInstallmentDate,
         lastInstallmentDate,
+        isUpdated
     };
 }
 
