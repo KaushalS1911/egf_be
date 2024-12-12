@@ -117,19 +117,17 @@ async function interestPayment(req, res) {
         const interestDetail = await InterestModel.create({
             loan: loanId,
             isUpdated,
+            amountPaid: amountPaid + uchakInterestAmount,
             ...req.body,
         });
         //
-        // // Update the outstanding interest amount
-        const updatedUchakAmount = calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid);
-        //
-        // // Update the loan details
+
         await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
                 nextInstallmentDate,
                 lastInstallmentDate,
-                uchakInterestAmount: updatedUchakAmount,
+                uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
             },
             {new: true}
         );
@@ -201,7 +199,7 @@ async function deleteInterestPayment(req, res) {
         let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails);
 
         if(interestDetails.uchakInterestAmount !== 0){
-            loanDetails.uchakInterestAmount += interestDetails.uchakInterestAmount
+            loanDetails.uchakInterestAmount = interestDetails.uchakInterestAmount
         }
 
         // Update the loan with adjusted installment dates
