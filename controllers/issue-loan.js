@@ -285,6 +285,8 @@ async function uchakInterestPayment(req, res) {
             ...req.body
         })
 
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: req.body.amountPaid}, {new: true})
+
         return res.status(201).json({
             status: 201,
             message: "Loan uchak interest paid successfully",

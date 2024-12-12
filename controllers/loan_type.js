@@ -1,14 +1,14 @@
 const LoanModel = require("../models/loan_type");
-const ClosedLoanModel = require("../models/loan-close");
 
 async function addLoan(req, res) {
     const { companyId } = req.params;
-    const { loanType, remark } = req.body;
+    const { loanType, remark, approvalCharge } = req.body;
 
     try {
         const isLoanExist = await LoanModel.exists({
             company: companyId,
             loanType,
+            approvalCharge,
             deleted_at: null
         });
 
@@ -31,18 +31,8 @@ async function getAllLoans(req, res) {
     try {
         const loans = await LoanModel.find({ company: companyId, deleted_at: null }).populate("company");
 
-        const result = await Promise.all(
-            loans.map(async (loan) => {
-                if (loan.status === 'Closed') {
-                    const closedLoan = await ClosedLoanModel.findOne({ loan: loan._id });
-                    loan.closingCharge = closedLoan?.closingCharge || null;
-                    loan.closingDate = closedLoan?.createdAt || null;
-                }
-                return loan;
-            })
-        );
+        return res.status(200).json({ status: 200, data: loans });
 
-        return res.status(200).json({ status: 200, data: result });
     } catch (err) {
         console.error("Error fetching loans:", err.message);
         return res.status(500).json({ status: 500, message: "Internal server error" });
