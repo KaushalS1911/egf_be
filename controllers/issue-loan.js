@@ -339,6 +339,25 @@ async function GetInterestPayment(req, res) {
     }
 }
 
+async function GetUchakInterestPayment(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const interestDetail = await UchakInterestModel.find({
+            loan: loanId,
+        }).sort({createdAt: -1}).populate({
+            path: "loan",
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]
+        });
+
+        return res.status(200).json({status: 200, data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function GetPartPaymentDetail(req, res) {
 
     try {
@@ -755,6 +774,7 @@ module.exports = {
     partRelease,
     loanPartPayment,
     GetInterestPayment,
+    GetUchakInterestPayment,
     GetPartPaymentDetail,
     GetPartReleaseDetail,
     updateInterestPayment,
