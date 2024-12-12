@@ -82,12 +82,9 @@ async function deleteMultipleLoans(req, res) {
             return res.status(400).json({ status: 400, message: "No loan IDs provided" });
         }
 
-        const result = await LoanModel.updateMany(
-            { _id: { $in: ids } },
-            { $set: { deleted_at: new Date() } }
-        );
+        const result = await LoanModel.deleteMany({ _id: { $in: ids } });
 
-        if (result.modifiedCount === 0) {
+        if (result.deletedCount === 0) {
             return res.status(404).json({ status: 404, message: "No loans found for the provided IDs" });
         }
 
@@ -97,5 +94,6 @@ async function deleteMultipleLoans(req, res) {
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 module.exports = { addLoan, getAllLoans, updateLoan, getSingleLoan, deleteMultipleLoans };
