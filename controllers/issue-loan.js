@@ -201,15 +201,14 @@ async function deleteInterestPayment(req, res) {
         // Determine next installment date
         let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails);
 
-        if(interestDetails.uchakInterestAmount !== 0){
-            loanDetails.uchakInterestAmount = interestDetails.uchakInterestAmount
-        }
+        // if(interestDetails.uchakInterestAmount !== 0){
+        //     loanDetails.uchakInterestAmount = interestDetails.uchakInterestAmount
+        // }
 
         // Update the loan with adjusted installment dates
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
-                ...loanDetails,
                 nextInstallmentDate,
                 lastInstallmentDate: new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)) || null,
             },
