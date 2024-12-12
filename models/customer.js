@@ -18,7 +18,7 @@ const customerSchema = new mongoose.Schema({
     referenceBy: String,
     otpContact: String,
     businessType: String,
-    loanType: String,
+    loanType: Object,
     status: {type: String, default: "Active"},
     remark: String,
     avatar_url: {type: String, default: null},
