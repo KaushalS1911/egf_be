@@ -69,7 +69,6 @@ async function disburseLoan(req, res) {
             pendingCashAmount,
             payingCashAmount,
             payingBankAmount,
-            approvalCharge
         } = req.body
 
         const loanDetail = await IssuedLoanModel.findById(loan)
@@ -82,7 +81,6 @@ async function disburseLoan(req, res) {
         loanDetail.pendingBankAmount = pendingBankAmount
         loanDetail.payingCashAmount = payingCashAmount
         loanDetail.payingBankAmount = payingBankAmount
-        loanDetail.approvalCharge = approvalCharge
 
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
