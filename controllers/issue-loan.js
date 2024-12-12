@@ -153,10 +153,14 @@ function calculateInstallmentDates(loanDetails, from, to) {
     let isWithinInstallmentPeriod
 
     if (loanDetails.lastInstallmentDate) {
+        console.log("Hello I am calling.... ", loanDetails.lastInstallmentDate)
         isWithinInstallmentPeriod = (new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) && (new Date(loanDetails.nextInstallmentDate) > new Date(to))
+        console.log("Hello I am calling....1 ", isWithinInstallmentPeriod)
     } else {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
+        console.log("Hello I am calling....2 ", isWithinInstallmentPeriod)
     }
+    console.log("Hello I am calling....3 ", (isWithinInstallmentPeriod))
 
     if(isWithinInstallmentPeriod){
         isUpdated = false
@@ -185,10 +189,9 @@ async function deleteInterestPayment(req, res) {
         const {loanId, id} = req.params;
 
         // Fetch necessary details
-        let [interestDetails, loanDetails, interestEntries] = await Promise.all([
+        let [interestDetails, loanDetails] = await Promise.all([
             InterestModel.findById(id),
             IssuedLoanModel.findById(loanId),
-            InterestModel.countDocuments({loan: loanId})
         ]);
 
         if (!interestDetails || !loanDetails) {
