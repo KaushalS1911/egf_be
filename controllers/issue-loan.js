@@ -187,7 +187,7 @@ async function deleteInterestPayment(req, res) {
         const {loanId, id} = req.params;
 
         // Fetch necessary details
-        const [interestDetails, loanDetails, interestEntries] = await Promise.all([
+        let [interestDetails, loanDetails, interestEntries] = await Promise.all([
             InterestModel.findById(id),
             IssuedLoanModel.findById(loanId),
             InterestModel.countDocuments({loan: loanId})
@@ -200,10 +200,15 @@ async function deleteInterestPayment(req, res) {
         // Determine next installment date
         let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails);
 
+        if(interestDetails.uchakInterestAmount !== 0){
+            loanDetails.uchakInterestAmount += interestDetails.uchakInterestAmount
+        }
+
         // Update the loan with adjusted installment dates
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
+                ...loanDetails,
                 nextInstallmentDate,
                 lastInstallmentDate: interestEntries !== 0 ? new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)) : null,
             },
