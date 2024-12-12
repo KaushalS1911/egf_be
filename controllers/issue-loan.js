@@ -355,6 +355,29 @@ async function GetUchakInterestPayment(req, res) {
     }
 }
 
+async function deleteUchakInterestPayment(req, res) {
+
+    try {
+        const {loanId, id} = req.params
+
+        let [interestDetails, loanDetails] = await Promise.all([
+            UchakInterestModel.findById(id),
+            IssuedLoanModel.findById(loanId),
+        ]);
+
+        const interestDetail = await UchakInterestModel.findById(id)
+
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount - interestDetails.amountPaid })
+
+        await UchakInterestModel.findByIdAndDelete(id)
+
+        return res.status(200).json({status: 200, data: interestDetail});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function GetPartPaymentDetail(req, res) {
 
     try {
@@ -780,5 +803,6 @@ module.exports = {
     deleteInterestPayment,
     deletePartReleaseDetail,
     deletePartPaymentDetail,
-    uchakInterestPayment
+    uchakInterestPayment,
+    deleteUchakInterestPayment
 }
