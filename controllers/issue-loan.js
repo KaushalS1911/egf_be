@@ -148,19 +148,14 @@ function calculateInstallmentDates(loanDetails, from, to) {
     const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
-    // const noInterestEntries = interestEntries && interestEntries.length === 0;
 
     let isWithinInstallmentPeriod
 
     if (loanDetails.lastInstallmentDate) {
-        console.log("Hello I am calling.... ", loanDetails.lastInstallmentDate)
         isWithinInstallmentPeriod = (new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString()) && (new Date(loanDetails.nextInstallmentDate) > new Date(to))
-        console.log("Hello I am calling....1 ", new Date(loanDetails.lastInstallmentDate).toDateString() , new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString(), new Date(loanDetails.lastInstallmentDate).toDateString() === new Date(new Date(from).setDate(new Date(from).getDate() - 1)).toDateString(),new Date(loanDetails.nextInstallmentDate), new Date(to))
     } else {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
-        console.log("Hello I am calling....2 ", isWithinInstallmentPeriod)
     }
-    console.log("Hello I am calling....3 ", (isWithinInstallmentPeriod))
 
     if(isWithinInstallmentPeriod){
         isUpdated = false
@@ -201,14 +196,11 @@ async function deleteInterestPayment(req, res) {
         // Determine next installment date
         let nextInstallmentDate = calculateNextInstallmentDate(loanDetails, interestDetails);
 
-        // if(interestDetails.uchakInterestAmount !== 0){
-        //     loanDetails.uchakInterestAmount = interestDetails.uchakInterestAmount
-        // }
-
         // Update the loan with adjusted installment dates
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
+                uchakInterestAmount: interestDetails.uchakInterestAmount,
                 nextInstallmentDate,
                 lastInstallmentDate: new Date(new Date(interestDetails.from).setDate(new Date(interestDetails.from).getDate() - 1)) || null,
             },
