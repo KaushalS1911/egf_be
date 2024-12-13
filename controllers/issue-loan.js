@@ -277,12 +277,13 @@ async function loanClose(req, res) {
 async function uchakInterestPayment(req, res) {
     try {
         const {loanId} = req.params
+        const loanDetails = await IssuedLoanModel.findById(loanId)
         const interestDetail = await UchakInterestModel.create({
             loan: loanId,
             ...req.body
         })
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: req.body.amountPaid}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true})
 
         return res.status(201).json({
             status: 201,
