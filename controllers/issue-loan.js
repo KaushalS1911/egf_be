@@ -96,7 +96,7 @@ async function disburseLoan(req, res) {
 async function interestPayment(req, res) {
     try {
         const {loanId} = req.params;
-        const {uchakInterestAmount, amountPaid, to, from, panelty} = req.body;
+        const {uchakInterestAmount, amountPaid, to, from, penalty} = req.body;
 
         const [loanDetails] = await Promise.all([
             IssuedLoanModel.findById(loanId),
@@ -122,7 +122,7 @@ async function interestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
-                status: panelty > 0 ? "Overdue": "Regular",
+                status: Number(penalty) > 0 ? "Overdue": "Regular",
                 nextInstallmentDate,
                 lastInstallmentDate,
                 uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
