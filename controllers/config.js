@@ -4,7 +4,7 @@ async function getConfigs(req, res) {
     try {
         const { companyId } = req.params;
 
-        const configs = await ConfigModel.find({ company: companyId });
+        const configs = await ConfigModel.find({ company: companyId }).populate("company");
 
         if (!configs.length) {
             return res.status(404).json({ status: 404, message: "No configurations found for this company." });
