@@ -9,7 +9,7 @@ const configSchema = new mongoose.Schema({
     permissions: {},
     roles: [],
     remarks: [],
-    exportConfig: {}
+    exportPolicyConfig: []
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)
