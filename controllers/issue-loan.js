@@ -122,7 +122,7 @@ async function interestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
-                tempStatus: panelty > 0 ? "Overdue": "Regular",
+                status: panelty > 0 ? "Overdue": "Regular",
                 nextInstallmentDate,
                 lastInstallmentDate,
                 uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
