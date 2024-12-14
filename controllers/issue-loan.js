@@ -96,9 +96,8 @@ async function disburseLoan(req, res) {
 async function interestPayment(req, res) {
     try {
         const {loanId} = req.params;
-        const {uchakInterestAmount, amountPaid, to, from} = req.body;
+        const {uchakInterestAmount, amountPaid, to, from, panelty} = req.body;
 
-        // Fetch necessary data in parallel
         const [loanDetails] = await Promise.all([
             IssuedLoanModel.findById(loanId),
         ]);
@@ -106,14 +105,12 @@ async function interestPayment(req, res) {
             return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
-        // Calculate next and last installment dates
         const {nextInstallmentDate, lastInstallmentDate, isUpdated} = calculateInstallmentDates(
             loanDetails,
             from,
             to,
         );
 
-        // Create a new interest entry
         const interestDetail = await InterestModel.create({
             loan: loanId,
             isUpdated,
@@ -125,6 +122,7 @@ async function interestPayment(req, res) {
         await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
+                tempStatus: panelty > 0 ? "Overdue": "Regular",
                 nextInstallmentDate,
                 lastInstallmentDate,
                 uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
