@@ -47,7 +47,7 @@ async function updateCompanyLogo(req, res) {
             return res.status(404).json({ status: 404, message: "Company not found" });
         }
 
-        return res.status(200).json({ status: 200, message: "Company logo updated successfully" });
+        return res.status(200).json({ status: 200, message: "Company logo updated successfully", data: updatedCompany });
     } catch (err) {
         console.error("Error updating company logo:", err.message);
         return res.status(500).json({ status: 500, message: "Internal server error" });
