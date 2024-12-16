@@ -34,11 +34,8 @@ async function createCustomer(req, res) {
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
         const isCustomerExist = await CustomerModel.exists({
-            company: companyId,
-            branch,
             deleted_at: null,
             $or: [{aadharCard}, {panCard}],
-            $or: [{ email }, { contact }]
         });
 
         if (isCustomerExist) {
