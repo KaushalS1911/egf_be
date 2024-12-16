@@ -36,10 +36,8 @@ async function createCustomer(req, res) {
         const isCustomerExist = await CustomerModel.exists({
             company: companyId,
             branch,
-            aadharCard,
-            panCard,
             deleted_at: null,
-            $or: [{ email }, { contact }]
+            $or: [{ email }, { contact }, {aadharCard}, {panCard}]
         });
 
         if (isCustomerExist) {
