@@ -37,7 +37,8 @@ async function createCustomer(req, res) {
             company: companyId,
             branch,
             deleted_at: null,
-            $or: [{ email }, { contact }, {aadharCard}, {panCard}]
+            $or: [{aadharCard}, {panCard}],
+            $or: [{ email }, { contact }]
         });
 
         if (isCustomerExist) {
