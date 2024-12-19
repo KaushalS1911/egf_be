@@ -651,7 +651,7 @@ async function getAllLoans(req, res) {
                 populate: "branch",
                 match: branch ? {"branch._id": branch} : {},
             })
-            .populate("scheme").populate("closedBy").sort({createdAt: -1});
+            .populate("scheme").populate("closedBy").populate("issuedBy").sort({createdAt: -1});
 
         return res.status(200).json({status: 200, data: loans});
     } catch (err) {
