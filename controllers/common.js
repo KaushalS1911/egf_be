@@ -44,6 +44,7 @@ async function updateOverdueLoans(){
             {
                 updateMany: {
                     filter: {
+                        deleted_at: null,
                         nextInstallmentDate: { $lt: today },
                         status: { $ne: 'Closed' }
                     },
@@ -53,6 +54,7 @@ async function updateOverdueLoans(){
             {
                 updateMany: {
                     filter: {
+                        deleted_at: null,
                         nextInstallmentDate: { $gte: today },
                         status: { $ne: 'Closed' }
                     },
