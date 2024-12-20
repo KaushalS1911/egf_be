@@ -58,7 +58,7 @@ const fetchPartReleaseDetails = async (query, branch) => {
 const dailyReport = async (req, res) => {
     try {
         const {companyId} = req.params;
-        const {branch, date, username} = req.query;
+        const {branch, date} = req.query;
 
         const query = {
             company: companyId,
@@ -103,6 +103,3 @@ const dailyReport = async (req, res) => {
 };
 
 module.exports = {dailyReport};
-
-
-module.exports = {dailyReport}
