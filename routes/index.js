@@ -15,6 +15,7 @@ const companyRouter = require("../routes/company")
 const issueLoanRouter = require("../routes/issue-loan")
 const reminderRouter = require("../routes/reminder")
 const commonRouter = require("../routes/common")
+const reportRouter = require("../routes/reports")
 const router = express.Router();
 
 
@@ -38,6 +39,7 @@ router.use('/company', employeeRouter)
 router.use('/company', configRouter)
 router.use('/company', reminderRouter)
 router.use('/company', commonRouter)
+router.use('/company', reportRouter)
 
 // loans
 router.use('/company', issueLoanRouter)
