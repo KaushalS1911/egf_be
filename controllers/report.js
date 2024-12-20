@@ -57,8 +57,15 @@ const fetchPartReleaseDetails = async (query, branch) => {
 
 const dailyReport = async (req, res) => {
     try {
-        const {companyId} = req.params;
-        const {branch, date} = req.query;
+        const { companyId } = req.params;
+        const { branch, date } = req.query;
+
+        if (!date || isNaN(new Date(date))) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid or missing 'date' parameter",
+            });
+        }
 
         const query = {
             company: companyId,
@@ -76,11 +83,11 @@ const dailyReport = async (req, res) => {
             partPaymentDetail,
             partReleaseDetail,
         ] = await Promise.all([
-            fetchLoans(query, branch),
-            fetchInterestDetails(query, branch),
-            fetchUchakInterestDetails(query, branch),
-            fetchPartPaymentDetails(query, branch),
-            fetchPartReleaseDetails(query, branch),
+            fetchLoans(query, branch || null),
+            fetchInterestDetails(query, branch || null),
+            fetchUchakInterestDetails(query, branch || null),
+            fetchPartPaymentDetails(query, branch || null),
+            fetchPartReleaseDetails(query, branch || null),
         ]);
 
         return res.status(200).json({
@@ -101,5 +108,6 @@ const dailyReport = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {dailyReport};
