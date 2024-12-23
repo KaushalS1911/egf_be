@@ -31,11 +31,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', appRouter);
 
-cron.schedule('* * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
     updateOverdueLoans().then(r => {
         console.log("Loan status updated successfully")
     })
-    console.log('Running Daily Task at 2:30 PM:', new Date().toLocaleString());
 });
 
 app.listen(port, () => {
