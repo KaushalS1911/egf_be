@@ -31,7 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', appRouter);
 
-cron.schedule('2 * * * *', () => {
+cron.schedule('* * * * *', () => {
     updateOverdueLoans().then(r => {
         console.log("Loan status updated successfully")
     })
