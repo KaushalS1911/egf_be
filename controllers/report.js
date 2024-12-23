@@ -111,8 +111,20 @@ const dailyReport = async (req, res) => {
 const loanSummary = async (req, res) => {
     try {
         const { companyId } = req.params;
+        const {username, status} = req.query;
 
-        const loans = await IssuedLoanModel.find({ company: companyId, deleted_at: null });
+        const query = {
+            company: companyId,
+            deleted_at: null
+        }
+
+        if(username && status === 'closed'){
+            query.closedBy = username
+        }else{
+            query.issuedBy = username
+        }
+
+        const loans = await IssuedLoanModel.find(query);
 
         const result = await Promise.all(loans.map(async (loan) => {
             const interests = await InterestModel.find({ loan: loan._id }).select('amountPaid');
