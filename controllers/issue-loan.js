@@ -410,6 +410,23 @@ async function GetPartReleaseDetail(req, res) {
     }
 }
 
+async function GetClosedLoanDetails(req, res) {
+
+    try {
+        const {loanId} = req.params
+
+        const closedLoanDetails = await LoanCloseModel.find({
+            loan: loanId,
+            deleted_at: null
+        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer"}]})
+
+        return res.status(200).json({status: 200, data: closedLoanDetails});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 async function updatePartReleaseDetail(req, res) {
 
     try {
@@ -802,5 +819,6 @@ module.exports = {
     deletePartReleaseDetail,
     deletePartPaymentDetail,
     uchakInterestPayment,
-    deleteUchakInterestPayment
+    deleteUchakInterestPayment,
+    GetClosedLoanDetails
 }
