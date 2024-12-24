@@ -384,7 +384,7 @@ async function GetPartPaymentDetail(req, res) {
         const paymentDetail = await PartPaymentModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate('loan')
+        }).populate({path: "loan", populate: 'customer'})
 
         return res.status(200).json({status: 200, data: paymentDetail});
     } catch (err) {
