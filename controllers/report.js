@@ -1,4 +1,4 @@
-import moment from "moment";
+const moment = require("moment");
 const IssuedLoanModel = require("../models/issued-loan")
 const InterestModel = require("../models/interest")
 const UchakInterestModel = require("../models/uchak-interest-payment")
@@ -112,7 +112,7 @@ const dailyReport = async (req, res) => {
 
 const loanSummary = async (req, res) => {
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
 
         const query = {
             company: companyId,
@@ -122,7 +122,7 @@ const loanSummary = async (req, res) => {
         const loans = await IssuedLoanModel.find(query);
 
         const result = await Promise.all(loans.map(async (loan) => {
-            const interests = await InterestModel.find({ loan: loan._id }).select('amountPaid');
+            const interests = await InterestModel.find({loan: loan._id}).select('amountPaid');
 
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
 
@@ -142,8 +142,8 @@ const loanSummary = async (req, res) => {
 
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
-                    afterDueDateFromDate: { $lte: penaltyDays },
-                    afterDueDateToDate: { $gte: penaltyDays },
+                    afterDueDateFromDate: {$lte: penaltyDays},
+                    afterDueDateToDate: {$gte: penaltyDays},
                 }).select('penaltyInterest');
 
                 const penaltyInterest = penaltyData?.penaltyInterest || 0;
@@ -176,5 +176,4 @@ const loanSummary = async (req, res) => {
 };
 
 
-
-module.exports = {dailyReport,loanSummary};
+module.exports = {dailyReport, loanSummary};
