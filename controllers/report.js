@@ -111,18 +111,18 @@ const dailyReport = async (req, res) => {
 const loanSummary = async (req, res) => {
     try {
         const { companyId } = req.params;
-        const {username, status} = req.query;
+        // const {username, status} = req.query;
 
         const query = {
             company: companyId,
             deleted_at: null
         }
 
-        if(username && status === 'closed'){
-            query.closedBy = username
-        }else{
-            query.issuedBy = username
-        }
+        // if(username && status === 'closed'){
+        //     query.closedBy = username
+        // }else{
+        //     query.issuedBy = username
+        // }
 
         const loans = await IssuedLoanModel.find(query);
 
