@@ -77,6 +77,9 @@ const dailyReport = async (req, res) => {
                 $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
             },
         };
+
+        const {createdAt} = query
+
         const [
             interestDetail,
             loans,
@@ -84,11 +87,11 @@ const dailyReport = async (req, res) => {
             partPaymentDetail,
             partReleaseDetail,
         ] = await Promise.all([
-            fetchInterestDetails(query, branch || null),
+            fetchInterestDetails({createdAt}, branch || null),
             fetchLoans(query, branch || null),
-            fetchUchakInterestDetails(query, branch || null),
-            fetchPartPaymentDetails(query, branch || null),
-            fetchPartReleaseDetails(query, branch || null),
+            fetchUchakInterestDetails({createdAt }, branch || null),
+            fetchPartPaymentDetails({createdAt}, branch || null),
+            fetchPartReleaseDetails({createdAt}, branch || null),
         ]);
 
         return res.status(200).json({
