@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const EmployeeModel = require("../models/employee");
 const UserModel = require("../models/user");
+const BranchModel = require("../models/branch");
 const {uploadFile} = require("../helpers/avatar");
 const path = require("path");
 const ejs = require("ejs");
@@ -128,17 +129,24 @@ async function getAllEmployees(req, res) {
 
         const employees = await EmployeeModel.find(query)
             .populate("company")
-            .populate({
-                path: "user",
-                populate: {
-                    path: "branch"
-                }
-            })
+            .populate("user")
             .populate("reportingTo");
 
+
+        const updatedEmployees = await Promise.all(employees.map(async (emp) => {
+            if (emp?.user?.branch) {
+                emp.user.branch = await BranchModel.findById(emp.user.branch);
+            } else {
+                emp.user.branch = null;
+            }
+            return emp;
+        }));
+
+
         const filteredEmployees = branch
-            ? employees.filter(employee => employee.user && (employee.user.branch._id).toString() === branch)
-            : employees;
+            ? updatedEmployees.filter(employee => employee.user && employee.user.branch?._id?.toString() === branch)
+            : updatedEmployees;
+
 
         // if (!employees || employees.length === 0) {
         //     return res.status(404).json({ status: 404, message: "No employees found" });
