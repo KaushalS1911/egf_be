@@ -56,6 +56,7 @@ async function updateOverdueLoans(){
                     filter: {
                         deleted_at: null,
                         nextInstallmentDate: { $gte: today },
+                        lastInstallmentDate: { $ne: null },
                         status: { $ne: 'Closed' }
                     },
                     update: { $set: { status: 'Regular' } }
