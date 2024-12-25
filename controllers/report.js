@@ -119,7 +119,7 @@ const loanSummary = async (req, res) => {
             deleted_at: null,
         };
 
-        const loans = await IssuedLoanModel.find(query).populate("customer").populate("issuedBy").populate('closedBy');
+        const loans = await IssuedLoanModel.find(query).populate({path: "customer", populate: "branch"}).populate("issuedBy").populate('closedBy');
 
         const result = await Promise.all(loans.map(async (loan) => {
             const interests = await InterestModel.find({loan: loan._id}).select('amountPaid');
