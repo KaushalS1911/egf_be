@@ -1,9 +1,11 @@
+import moment from "moment";
 const IssuedLoanModel = require("../models/issued-loan")
 const InterestModel = require("../models/interest")
 const UchakInterestModel = require("../models/uchak-interest-payment")
 const PartPaymentModel = require("../models/loan-part-payment")
 const PartReleaseModel = require("../models/part-release")
 const PenaltyModel = require("../models/penalty")
+
 const fetchLoans = async (query, branch) => {
     return IssuedLoanModel.find(query)
         .populate({
@@ -112,41 +114,32 @@ const loanSummary = async (req, res) => {
     try {
         const { companyId } = req.params;
 
-        // Define the base query
         const query = {
             company: companyId,
             deleted_at: null,
         };
 
-        // Fetch loans based on the query
         const loans = await IssuedLoanModel.find(query);
 
-        // Process each loan to calculate required fields
         const result = await Promise.all(loans.map(async (loan) => {
             const interests = await InterestModel.find({ loan: loan._id }).select('amountPaid');
 
-            // Calculate total paid interest
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
 
-            // Add totalPaidInterest to the loan object
-            loan = loan.toObject(); // Convert Mongoose document to plain JS object
+            loan = loan.toObject();
             loan.totalPaidInterest = totalPaidInterest;
 
-            // Calculate days since the last installment
-            const today = new Date();
-            const lastInstallmentDate = new Date(loan.lastInstallmentDate);
-            const daysDiff = Math.floor((today - lastInstallmentDate) / (1000 * 60 * 60 * 24));
+            const today = moment();
+            const lastInstallmentDate = moment(loan.lastInstallmentDate);
+            const daysDiff = today.diff(lastInstallmentDate, 'days');
 
-            // Add days difference to the loan object
             loan.day = daysDiff;
 
-            // Calculate pending interest and penalty
             let pendingInterest = 0;
 
             if (daysDiff > 30) {
                 const penaltyDays = daysDiff - 30;
 
-                // Fetch penalty data
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
                     afterDueDateFromDate: { $lte: penaltyDays },
@@ -155,25 +148,20 @@ const loanSummary = async (req, res) => {
 
                 const penaltyInterest = penaltyData?.penaltyInterest || 0;
 
-                // Calculate penalty amount
                 const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * penaltyDays / 365);
 
-                // Calculate regular interest amount
                 const interestAmount = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
 
                 pendingInterest = penaltyAmount + interestAmount;
             } else {
-                // Calculate only the regular interest amount
                 pendingInterest = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
             }
 
-            // Add pendingInterest to the loan object
             loan.pendingInterest = pendingInterest;
 
             return loan;
         }));
 
-        // Respond with the processed result
         return res.status(200).json({
             message: "Report data fetched successfully",
             data: result,
