@@ -111,35 +111,42 @@ const dailyReport = async (req, res) => {
 const loanSummary = async (req, res) => {
     try {
         const { companyId } = req.params;
-        // const {username, status} = req.query;
 
+        // Define the base query
         const query = {
             company: companyId,
-            deleted_at: null
-        }
+            deleted_at: null,
+        };
 
-        // if(username && status === 'closed'){
-        //     query.closedBy = username
-        // }else{
-        //     query.issuedBy = username
-        // }
-
+        // Fetch loans based on the query
         const loans = await IssuedLoanModel.find(query);
 
+        // Process each loan to calculate required fields
         const result = await Promise.all(loans.map(async (loan) => {
             const interests = await InterestModel.find({ loan: loan._id }).select('amountPaid');
+
+            // Calculate total paid interest
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
 
+            // Add totalPaidInterest to the loan object
+            loan = loan.toObject(); // Convert Mongoose document to plain JS object
             loan.totalPaidInterest = totalPaidInterest;
 
+            // Calculate days since the last installment
             const today = new Date();
             const lastInstallmentDate = new Date(loan.lastInstallmentDate);
             const daysDiff = Math.floor((today - lastInstallmentDate) / (1000 * 60 * 60 * 24));
+
+            // Add days difference to the loan object
             loan.day = daysDiff;
+
+            // Calculate pending interest and penalty
+            let pendingInterest = 0;
 
             if (daysDiff > 30) {
                 const penaltyDays = daysDiff - 30;
 
+                // Fetch penalty data
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
                     afterDueDateFromDate: { $lte: penaltyDays },
@@ -148,17 +155,25 @@ const loanSummary = async (req, res) => {
 
                 const penaltyInterest = penaltyData?.penaltyInterest || 0;
 
-                const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * daysDiff / 365);
+                // Calculate penalty amount
+                const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * penaltyDays / 365);
+
+                // Calculate regular interest amount
                 const interestAmount = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
-                loan.pendingInterest = penaltyAmount + interestAmount;
-            }else{
-                const interestAmount = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
-                loan.pendingInterest =  interestAmount;
+
+                pendingInterest = penaltyAmount + interestAmount;
+            } else {
+                // Calculate only the regular interest amount
+                pendingInterest = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
             }
+
+            // Add pendingInterest to the loan object
+            loan.pendingInterest = pendingInterest;
 
             return loan;
         }));
 
+        // Respond with the processed result
         return res.status(200).json({
             message: "Report data fetched successfully",
             data: result,
@@ -171,6 +186,7 @@ const loanSummary = async (req, res) => {
         });
     }
 };
+
 
 
 module.exports = {dailyReport,loanSummary};
