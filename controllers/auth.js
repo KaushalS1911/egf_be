@@ -1,6 +1,7 @@
 const CompanyModel = require("../models/company");
 const UserModel = require("../models/user");
 const BranchModel = require("../models/branch");
+const EmployeeModel = require("../models/employee");
 const ConfigModel = require("../models/config");
 const mongoose = require('mongoose')
 const path = require("path")
@@ -72,8 +73,6 @@ async function login(req, res) {
 
         const user = await UserModel.findOne({email}).lean();
 
-
-
         if (user && user?.branch) {
             const userBranch = await BranchModel.findById(user?.branch)
             user.branch = userBranch
@@ -89,11 +88,11 @@ async function login(req, res) {
         }
 
         const tokens = await setTokens(user._id);
-        //
-        // if (user.role !== 'Admin') {
-        //     const emp = await EmployeeModel.findOne({user: user._id});
-        //     user.branch = emp?.branch;
-        // }
+
+        if (user.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user._id});
+            user.employeeId = emp?._id;
+        }
 
         return res.status(200).json({data: {...user, tokens}, message: "Logged in successfully."});
     } catch (err) {
@@ -171,12 +170,10 @@ async function getUser(req, res) {
             return res.status(404).json({status: 404, message: "User not found"});
         }
 
-        // let branch = null;
-        //
-        // if (user.role !== 'Admin') {
-        //     const employee = await EmployeeModel.findOne({ user: user._id }).populate('branch').lean();
-        //     branch = employee?.branch || null;
-        // }
+        if (user.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user._id});
+            user.employeeId = emp?._id;
+        }
 
         return res.status(200).json({
             status: 200,
