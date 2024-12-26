@@ -16,23 +16,23 @@ async function register(req, res) {
     session.startTransaction();
 
     try {
-        const { firstName, middleName, lastName, email, contact, companyName, role, password } = req.body;
+        const {firstName, middleName, lastName, email, contact, companyName, role, password} = req.body;
 
-        const isCompanyExist = await CompanyModel.exists({ name: companyName, deleted_at: null });
+        const isCompanyExist = await CompanyModel.exists({name: companyName, deleted_at: null});
         if (isCompanyExist) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(400).json({ status: 400, message: "Company already exists." });
+            return res.status(400).json({status: 400, message: "Company already exists."});
         }
 
-        const company = new CompanyModel({ name: companyName });
-        await company.save({ session });
+        const company = new CompanyModel({name: companyName});
+        await company.save({session});
 
-        const isUserExist = await UserModel.exists({ email, deleted_at: null });
+        const isUserExist = await UserModel.exists({email, deleted_at: null});
         if (isUserExist) {
             await session.abortTransaction();
             session.endSession();
-            return res.status(400).json({ status: 400, message: "User already exists." });
+            return res.status(400).json({status: 400, message: "User already exists."});
         }
 
         const encryptedPassword = await createHash(password);
@@ -47,24 +47,23 @@ async function register(req, res) {
             role,
             password: encryptedPassword
         });
-        await user.save({ session });
+        await user.save({session});
 
-        await setConfigs(company._id, { session });
+        await setConfigs(company._id, {session});
 
         await session.commitTransaction();
         session.endSession();
 
-        return res.status(201).json({ status: 201, message: "Registered successfully", data: user });
+        return res.status(201).json({status: 201, message: "Registered successfully", data: user});
 
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
 
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
-
 
 
 async function login(req, res) {
@@ -73,9 +72,11 @@ async function login(req, res) {
 
         const user = await UserModel.findOne({email}).lean();
 
-        if(user && user.branch){
-            const userBranch = await BranchModel.findById(user.branch)
-            user.branch = userBranch
+
+
+        if (user && user?.branch) {
+            const userBranch = await BranchModel.findById(user?.branch)
+            user?.branch = userBranch
         }
 
         if (!user) {
@@ -128,7 +129,7 @@ async function forgotPassword(req, res) {
             email: user.email
         }
 
-        await sendMail(htmlContent,mailPayload)
+        await sendMail(htmlContent, mailPayload)
 
         return res.status(200).json({message: 'Password reset link sent to your email.'});
     } catch (error) {
@@ -137,9 +138,9 @@ async function forgotPassword(req, res) {
     }
 }
 
-async function resetPassword(req,res){
-    const { token } = req.params;
-    const { newPassword } = req.body;
+async function resetPassword(req, res) {
+    const {token} = req.params;
+    const {newPassword} = req.body;
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -147,7 +148,7 @@ async function resetPassword(req,res){
         const user = await UserModel.findById(decoded.id);
 
         if (!user) {
-            return res.status(400).json({ message: 'Invalid token or user does not exist.' });
+            return res.status(400).json({message: 'Invalid token or user does not exist.'});
         }
 
         const encryptedPassword = await createHash(newPassword);
@@ -155,19 +156,19 @@ async function resetPassword(req,res){
         user.password = encryptedPassword;
         await user.save();
 
-        res.json({ message: 'Password reset successfully.' });
+        res.json({message: 'Password reset successfully.'});
     } catch (error) {
-        res.status(500).json({ message: 'Server error or token expired.' });
+        res.status(500).json({message: 'Server error or token expired.'});
     }
 }
 
 async function getUser(req, res) {
     try {
-        const { id } = req.user;
+        const {id} = req.user;
 
         const user = await UserModel.findById(id).populate('branch');
         if (!user) {
-            return res.status(404).json({ status: 404, message: "User not found" });
+            return res.status(404).json({status: 404, message: "User not found"});
         }
 
         // let branch = null;
@@ -184,7 +185,7 @@ async function getUser(req, res) {
 
     } catch (error) {
         console.error("Error fetching user:", error);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -213,4 +214,4 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = {register, login, forgotPassword, getUser,resetPassword};
+module.exports = {register, login, forgotPassword, getUser, resetPassword};
