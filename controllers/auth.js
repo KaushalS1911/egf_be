@@ -76,7 +76,7 @@ async function login(req, res) {
 
         if (user && user?.branch) {
             const userBranch = await BranchModel.findById(user?.branch)
-            user?.branch = userBranch
+            user.branch = userBranch
         }
 
         if (!user) {
