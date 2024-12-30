@@ -17,10 +17,26 @@ const reminderRouter = require("../routes/reminder")
 const commonRouter = require("../routes/common")
 const reportRouter = require("../routes/reports")
 const router = express.Router();
+const multer = require('multer')
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './public/images')
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, uniqueSuffix + '-' + file.originalname)
+    }
+})
+
+const upload = multer({ storage })
 
 
 router.get('/', function (req, res, next) {
     res.render('index', {title: 'EGF'});
+});
+
+router.post('/print-file', upload.single('print'), function (req, res, next) {
+
 });
 
 router.use('/auth', authRouter)

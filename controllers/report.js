@@ -190,10 +190,10 @@ const loanSummary = async (req, res) => {
 
 const loanDetail = async (req, res) => {
     try {
-        const {companyId, loanId} = req.params;
+        const { loanId} = req.params;
 
         const query = {
-            company: companyId,
+            loan: loanId,
         };
 
         const [
@@ -203,11 +203,11 @@ const loanDetail = async (req, res) => {
             partReleaseDetail,
             loanCloseDetail
         ] = await Promise.all([
-            fetchInterestDetails({...query, loan: loanId},  null),
-            fetchUchakInterestDetails({...query, loan: loanId },  null),
-            fetchPartPaymentDetails({...query, loan: loanId },  null),
-            fetchPartReleaseDetails({...query, loan: loanId },  null),
-            fetchLoanCloseDetails({...query, loan: loanId },  null),
+            fetchInterestDetails(query,  null),
+            fetchUchakInterestDetails(query ,  null),
+            fetchPartPaymentDetails(query,  null),
+            fetchPartReleaseDetails(query,  null),
+            fetchLoanCloseDetails(query,  null),
         ]);
 
         return res.status(200).json({
