@@ -179,7 +179,6 @@ async function getUser(req, res) {
             status: 200,
             data: user
         });
-
     } catch (error) {
         console.error("Error fetching user:", error);
         return res.status(500).json({status: 500, message: "Internal server error"});

@@ -4,6 +4,7 @@ const InterestModel = require("../models/interest")
 const UchakInterestModel = require("../models/uchak-interest-payment")
 const PartPaymentModel = require("../models/loan-part-payment")
 const PartReleaseModel = require("../models/part-release")
+const CloseLoanModel = require("../models/loan-close")
 const PenaltyModel = require("../models/penalty")
 
 const fetchLoans = async (query, branch) => {
@@ -50,6 +51,15 @@ const fetchPartPaymentDetails = async (query, branch) => {
 
 const fetchPartReleaseDetails = async (query, branch) => {
     return PartReleaseModel.find(query).populate({
+        path: "loan",
+        populate: [
+            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
+        ],
+    });
+};
+
+const fetchLoanCloseDetails = async (query, branch) => {
+    return CloseLoanModel.find(query).populate({
         path: "loan",
         populate: [
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
@@ -178,5 +188,46 @@ const loanSummary = async (req, res) => {
     }
 };
 
+const loanDetail = async (req, res) => {
+    try {
+        const {companyId, loanId} = req.params;
 
-module.exports = {dailyReport, loanSummary};
+        const query = {
+            company: companyId,
+        };
+
+        const [
+            interestDetail,
+            uchakInterestDetail,
+            partPaymentDetail,
+            partReleaseDetail,
+            loanCloseDetail
+        ] = await Promise.all([
+            fetchInterestDetails({...query, loan: loanId},  null),
+            fetchUchakInterestDetails({...query, loan: loanId },  null),
+            fetchPartPaymentDetails({...query, loan: loanId },  null),
+            fetchPartReleaseDetails({...query, loan: loanId },  null),
+            fetchLoanCloseDetails({...query, loan: loanId },  null),
+        ]);
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                interestDetail,
+                uchakInterestDetail,
+                partPaymentDetail,
+                partReleaseDetail,
+                loanCloseDetail
+            },
+        });
+    } catch (err) {
+        console.error("Error fetching daily report:", err.message);
+        return res.status(500).json({
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+};
+
+
+module.exports = {dailyReport, loanSummary, loanDetail};
