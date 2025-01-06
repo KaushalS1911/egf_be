@@ -17,6 +17,8 @@ const otherIssuedLoanRouter = require("../routes/other-issued-loan")
 const reminderRouter = require("../routes/reminder")
 const commonRouter = require("../routes/common")
 const reportRouter = require("../routes/reports")
+const verificationRouter = require("../routes/verification")
+
 const router = express.Router();
 const multer = require('multer')
 const storage = multer.diskStorage({
@@ -57,6 +59,7 @@ router.use('/company', configRouter)
 router.use('/company', reminderRouter)
 router.use('/company', commonRouter)
 router.use('/company', reportRouter)
+router.use('/verification', verificationRouter)
 
 // loans
 router.use('/company', issueLoanRouter)
