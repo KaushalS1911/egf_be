@@ -10,7 +10,7 @@ async function addOtherLoan(req, res) {
     try {
         const {companyId} = req.params
 
-        const issueLoan = new OtherIssuedLoanModel.create({
+        const issueLoan = await OtherIssuedLoanModel.create({
             ...req.body,
             company: companyId,
             otherNumber: await generateLoanNumber(companyId),
