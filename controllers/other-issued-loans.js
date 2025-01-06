@@ -122,4 +122,4 @@ const generateLoanNumber = async (companyId) => {
     return `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
 };
 
-module.exports = {addOtherLoan, getAllOtherLoans};
+module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan};
