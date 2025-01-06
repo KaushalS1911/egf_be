@@ -4,8 +4,8 @@ const { addOtherLoan, getAllOtherLoans, updateOtherLoan, getSingleOtherLoan, del
 
 router.post('/:companyId/other-loan-issue', addOtherLoan);
 router.get('/:companyId/other-loans', getAllOtherLoans);
-router.delete('/:companyId/loans', deleteMultipleOtherLoans);
-router.get('/:companyId/loans/:loanId', getSingleOtherLoan);
-router.put('/:companyId/loans/:loanId', updateOtherLoan);
+router.delete('/:companyId/other-loans', deleteMultipleOtherLoans);
+router.get('/:companyId/other-loans/:loanId', getSingleOtherLoan);
+router.put('/:companyId/other-loans/:loanId', updateOtherLoan);
 
 module.exports = router;
