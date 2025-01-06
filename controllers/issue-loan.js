@@ -820,5 +820,5 @@ module.exports = {
     deletePartPaymentDetail,
     uchakInterestPayment,
     deleteUchakInterestPayment,
-    GetClosedLoanDetails
+    GetClosedLoanDetails, getCurrentFinancialYear
 }

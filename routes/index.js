@@ -13,6 +13,7 @@ const employeeRouter = require("../routes/employee")
 const configRouter = require("../routes/config")
 const companyRouter = require("../routes/company")
 const issueLoanRouter = require("../routes/issue-loan")
+const otherIssuedLoanRouter = require("../routes/other-issued-loan")
 const reminderRouter = require("../routes/reminder")
 const commonRouter = require("../routes/common")
 const reportRouter = require("../routes/reports")
@@ -59,5 +60,6 @@ router.use('/company', reportRouter)
 
 // loans
 router.use('/company', issueLoanRouter)
+router.use('/company', otherIssuedLoanRouter)
 
 module.exports = router;
