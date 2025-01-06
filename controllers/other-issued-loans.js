@@ -41,6 +41,7 @@ async function getAllOtherLoans(req, res) {
         const loans = await OtherIssuedLoanModel.find(query)
             .populate({
                 path: "loan",
+                populate: [{path: "customer"},{path: "scheme"}],
             })
 
         return res.status(200).json({status: 200, data: loans});
