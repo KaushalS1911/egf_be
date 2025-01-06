@@ -23,7 +23,7 @@ router.post("/send-otp", async (req, res) => {
             }
         );
 
-        const refId = response.data.refId;
+        const refId = response.data.ref_id;
         return res.status(200).json({ data: refId, message: "OTP sent successfully" });
     } catch (error) {
         const status = error.response?.status || 500;
