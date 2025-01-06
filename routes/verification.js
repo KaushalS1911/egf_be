@@ -43,7 +43,7 @@ router.post("/aadhaar-details", async (req, res) => {
 
         const response = await axios.post(
             "https://api.cashfree.com/verification/offline-aadhaar/verify",
-            { otp, ref_id: refId },
+            { otp: otp.toString(), ref_id: refId },
             {
                 headers: {
                     "x-client-id": process.env.CLIENT_ID,
