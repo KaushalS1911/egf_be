@@ -15,6 +15,7 @@ const customerSchema = new mongoose.Schema({
     joiningDate: String,
     panCard: {type: String, unique: true},
     aadharCard: {type: String, unique: true},
+    isAadharVerified: {type: Boolean, default: false},
     referenceBy: String,
     otpContact: String,
     businessType: String,
