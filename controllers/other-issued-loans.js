@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const OtherIssuedLoanModel = require("../models/other-issued-loan");
-const {getCurrentFinancialYear} = require("./issue-loan");
 
 
 async function addOtherLoan(req, res) {
@@ -10,17 +9,16 @@ async function addOtherLoan(req, res) {
     try {
         const {companyId} = req.params
 
-        const issueLoan = await OtherIssuedLoanModel.create({
+        const issuedLoan = await OtherIssuedLoanModel.create({
             ...req.body,
             company: companyId,
-            otherNumber: await generateLoanNumber(companyId),
         });
 
-        await issueLoan.save({session});
+        await issuedLoan.save({session});
         await session.commitTransaction();
         await session.endSession();
 
-        return res.status(201).json({status: 201, message: "Other Loan issued successfully", data: issueLoan});
+        return res.status(201).json({status: 201, message: "Other Loan issued successfully", data: issuedLoan});
     } catch (err) {
         await session.abortTransaction();
         await session.endSession();
@@ -108,18 +106,5 @@ async function deleteMultipleOtherLoans(req, res) {
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
-
-const generateLoanNumber = async (companyId) => {
-    const financialYear = getCurrentFinancialYear();
-
-    const loanCount = await OtherIssuedLoanModel.countDocuments({
-        company: companyId,
-        otherNumber: {$regex: `^EGF/${financialYear}`}
-    });
-
-    const newLoanCount = loanCount + 1;
-
-    return `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
-};
 
 module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan};

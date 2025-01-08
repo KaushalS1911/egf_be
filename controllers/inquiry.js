@@ -6,8 +6,7 @@ const { parse, isValid } = require('date-fns');
 async function addInquiry(req, res) {
     const {companyId} = req.params;
     const {branch, assignTo} = req.query;
-    const {firstName, lastName, email, contact, date, inquiryFor, remark, response, address, recallingDate} = req.body;
-
+    const {email, contact} = req.body
     try {
         const isInquiryExist = await InquiryModel.exists({
             company: companyId,
@@ -21,19 +20,10 @@ async function addInquiry(req, res) {
         }
 
         const inquiry = await InquiryModel.create({
+            ...req.body,
             company: companyId,
             branch,
             assignTo,
-            firstName,
-            lastName,
-            email,
-            contact,
-            date,
-            recallingDate,
-            response,
-            address,
-            inquiryFor,
-            remark
         });
 
         return res.status(200).json({status: 200, data: inquiry, message: "Inquiry created successfully"});
@@ -44,7 +34,7 @@ async function addInquiry(req, res) {
 }
 
 async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyId) {
-    const { firstName, lastName, email, contact, date, inquiryFor, remark, address, response, recallingDate } = inquiryData;
+    const { email, contact } = inquiryData;
 
     try {
         const isInquiryExist = await InquiryModel.exists({
@@ -59,19 +49,10 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
         }
 
         const inquiry = await InquiryModel.create({
+            ...req.body,
             company: companyId,
             branch,
             assignTo,
-            firstName,
-            lastName,
-            email,
-            contact,
-            date,
-            recallingDate,
-            address,
-            response,
-            inquiryFor,
-            remark
         });
 
         return { success: true, data: inquiry, message: "Inquiry created successfully" };
@@ -124,8 +105,6 @@ async function addBulkInquiries(req, res) {
         res.status(500).json({ error: error.message });
     }
 }
-
-
 
 
 function mapRowToInquiry(row, header) {

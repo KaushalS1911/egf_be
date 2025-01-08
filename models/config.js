@@ -65,7 +65,9 @@ const configSchema = new mongoose.Schema({
     permissions: {type: Object, default: defaultPermissions},
     roles: [],
     remarks: [],
-    exportPolicyConfig: []
+    exportPolicyConfig: [],
+    months: [],
+    otherNames: []
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)
