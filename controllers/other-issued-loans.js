@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const OtherIssuedLoanModel = require("../models/other-issued-loan");
-
+const OtherLoanInterestModel = require("../models/other-loan-interest-payment");
+const OtherLoanCloseModel = require("../models/other-loan-close");
 
 async function addOtherLoan(req, res) {
     const session = await mongoose.startSession();
@@ -107,4 +108,92 @@ async function deleteMultipleOtherLoans(req, res) {
     }
 }
 
-module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan};
+async function otherLoanInterestPayment(req,res){
+    try{
+        const {loanId} = req.params;
+
+        const interestDetails = await OtherLoanInterestModel.create({...req.body, otherLoan: loanId})
+
+        return res.status(200).json({status: 200, message: "Interest payment success", data: interestDetails});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function getAllInterestsOfOtherLoan(req,res){
+    try{
+        const {loanId} = req.params;
+
+        const interestDetails = await OtherLoanInterestModel.find({otherLoan: loanId})
+
+        return res.status(200).json({status: 200, data: interestDetails});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function deleteOtherLoanInterest(req,res){
+    try{
+        const {id} = req.params;
+
+        const interestDetails = await OtherLoanInterestModel.findByIdAndDelete(id, req.body, {new: true})
+
+        return res.status(200).json({status: 200, data: interestDetails, message: "Other Loans interest details updated successfully"});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function otherLoanClose(req,res){
+    try{
+        const {loanId} = req.params;
+
+        const loanDetails = await OtherLoanCloseModel.create({...req.body, otherLoan: loanId})
+
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {isActive: false}, {new: true})
+
+        return res.status(200).json({status: 200, message: "Other loan closed successfully", data: loanDetails});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function getClosedOtherLoan(req,res){
+    try{
+        const {loanId} = req.params;
+
+        const loanDetails = await OtherLoanCloseModel.find({otherLoan: loanId})
+
+        return res.status(200).json({status: 200, data: loanDetails});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function deleteOtherLoanClosingDetails(req,res){
+    try{
+        const {id} = req.params;
+
+        const loanDetails = await OtherLoanCloseModel.findByIdAndDelete(id, req.body, {new: true})
+
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {isActive: true}, {new: true})
+
+        return res.status(200).json({status: 200, data: loanDetails, message: "Other Loans close details updated successfully"});
+
+    }catch (e) {
+        console.error(e)
+        return res.json({status: 500, message: "Internal server error"});
+    }
+}
+
+module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan, otherLoanInterestPayment, getAllInterestsOfOtherLoan, deleteOtherLoanInterest, otherLoanClose, getClosedOtherLoan, deleteOtherLoanClosingDetails};
