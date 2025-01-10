@@ -226,39 +226,39 @@ async function deleteInterestPayment(req, res) {
 }
 
 
-// function calculateNextInstallmentDate(loanDetails, interestDetails) {
-//     // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
-//
-//     if (interestDetails.isUpdated) {
-//         return loanDetails.lastInstallmentDate
-//     } else {
-//         return loanDetails.nextInstallmentDate
-//     }
-//
-//     // const isWithinInstallmentPeriod =
-//     //     // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
-//     //     // new Date(interestDetails.from).toDateString() &&
-//     //     new Date(loanDetails.lastInstallmentDate) > new Date(interestDetails.to);
-//     //
-//     // if (isWithinInstallmentPeriod) {
-//     //     return loanDetails.nextInstallmentDate;
-//     // }
-//     // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
-// }
 function calculateNextInstallmentDate(loanDetails, interestDetails) {
-    const getLastDateOfMonth = (date) => {
-        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-        return new Date(nextMonth - 1);
-    };
+    // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
-    // if (interestDetails.isUpdated) {
-    //     const lastInstallmentDate = new Date(loanDetails.lastInstallmentDate);
-    //     return getLastDateOfMonth(lastInstallmentDate);
-    // } else {
-        const nextInstallmentDate = new Date(interestDetails.from);
-        return getLastDateOfMonth(nextInstallmentDate);
+    if (interestDetails.isUpdated) {
+        return loanDetails.lastInstallmentDate
+    } else {
+        return loanDetails.nextInstallmentDate
+    }
+
+    // const isWithinInstallmentPeriod =
+    //     // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
+    //     // new Date(interestDetails.from).toDateString() &&
+    //     new Date(loanDetails.lastInstallmentDate) > new Date(interestDetails.to);
+    //
+    // if (isWithinInstallmentPeriod) {
+    //     return loanDetails.nextInstallmentDate;
     // }
+    // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
 }
+// function calculateNextInstallmentDate(loanDetails, interestDetails) {
+//     const getLastDateOfMonth = (date) => {
+//         const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+//         return new Date(nextMonth - 1);
+//     };
+//
+//     // if (interestDetails.isUpdated) {
+//     //     const lastInstallmentDate = new Date(loanDetails.lastInstallmentDate);
+//     //     return getLastDateOfMonth(lastInstallmentDate);
+//     // } else {
+//         const nextInstallmentDate = new Date(interestDetails.from);
+//         return getLastDateOfMonth(nextInstallmentDate);
+//     // }
+// }
 
 
 async function loanClose(req, res) {
@@ -767,13 +767,16 @@ const generateTransactionNumber = async (companyId) => {
 };
 
 function getNextInterestPayDate(issueDate) {
-    let originalDate = new Date(issueDate);
-    let nextPayDate = new Date(issueDate);
-    let year = originalDate.getFullYear();
-    let month = originalDate.getMonth();
-    let daysInMonth = new Date(year, month + 1, 0).getDate();
-    nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
-    return nextPayDate;
+    // let originalDate = new Date(issueDate);
+    // let nextPayDate = new Date(issueDate);
+    // let year = originalDate.getFullYear();
+    // let month = originalDate.getMonth();
+    // let daysInMonth = new Date(year, month + 1, 0).getDate();
+    // nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
+    // return nextPayDate;
+    const date = new Date(issueDate);
+    const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    return new Date(nextMonth - 1);
 }
 
 
