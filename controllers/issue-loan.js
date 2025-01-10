@@ -767,16 +767,16 @@ const generateTransactionNumber = async (companyId) => {
 };
 
 function getNextInterestPayDate(issueDate) {
-    // let originalDate = new Date(issueDate);
-    // let nextPayDate = new Date(issueDate);
-    // let year = originalDate.getFullYear();
-    // let month = originalDate.getMonth();
-    // let daysInMonth = new Date(year, month + 1, 0).getDate();
-    // nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
-    // return nextPayDate;
-    const date = new Date(issueDate);
-    const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-    return new Date(nextMonth - 1);
+    let originalDate = new Date(issueDate);
+    let nextPayDate = new Date(issueDate);
+    let year = originalDate.getFullYear();
+    let month = originalDate.getMonth();
+    let daysInMonth = new Date(year, month + 1, 0).getDate();
+    nextPayDate.setDate(originalDate.getDate() + (daysInMonth - 1));
+    return nextPayDate;
+    // const date = new Date(issueDate);
+    // const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    // return new Date(nextMonth - 1);
 }
 
 
