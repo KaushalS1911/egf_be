@@ -255,7 +255,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails) {
     //     const lastInstallmentDate = new Date(loanDetails.lastInstallmentDate);
     //     return getLastDateOfMonth(lastInstallmentDate);
     // } else {
-        const nextInstallmentDate = new Date(loanDetails.nextInstallmentDate);
+        const nextInstallmentDate = new Date(interestDetails.from);
         return getLastDateOfMonth(nextInstallmentDate);
     // }
 }
