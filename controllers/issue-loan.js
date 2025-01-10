@@ -245,20 +245,6 @@ function calculateNextInstallmentDate(loanDetails, interestDetails) {
     // }
     // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
 }
-// function calculateNextInstallmentDate(loanDetails, interestDetails) {
-//     const getLastDateOfMonth = (date) => {
-//         const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-//         return new Date(nextMonth - 1);
-//     };
-//
-//     // if (interestDetails.isUpdated) {
-//     //     const lastInstallmentDate = new Date(loanDetails.lastInstallmentDate);
-//     //     return getLastDateOfMonth(lastInstallmentDate);
-//     // } else {
-//         const nextInstallmentDate = new Date(interestDetails.from);
-//         return getLastDateOfMonth(nextInstallmentDate);
-//     // }
-// }
 
 
 async function loanClose(req, res) {
@@ -773,11 +759,6 @@ function getNextInterestPayDate(issueDate) {
     let nextPayDate = new Date(year, month + 1, 0);
     return nextPayDate;
 }
-
-    // const date = new Date(issueDate);
-    // const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-    // return new Date(nextMonth - 1);
-
 
 function reverseNextInterestPayDate(nextPayDate) {
     let calculatedDate = new Date(nextPayDate);
