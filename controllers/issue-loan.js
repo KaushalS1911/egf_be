@@ -226,24 +226,38 @@ async function deleteInterestPayment(req, res) {
 }
 
 
+// function calculateNextInstallmentDate(loanDetails, interestDetails) {
+//     // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
+//
+//     if (interestDetails.isUpdated) {
+//         return loanDetails.lastInstallmentDate
+//     } else {
+//         return loanDetails.nextInstallmentDate
+//     }
+//
+//     // const isWithinInstallmentPeriod =
+//     //     // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
+//     //     // new Date(interestDetails.from).toDateString() &&
+//     //     new Date(loanDetails.lastInstallmentDate) > new Date(interestDetails.to);
+//     //
+//     // if (isWithinInstallmentPeriod) {
+//     //     return loanDetails.nextInstallmentDate;
+//     // }
+//     // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
+// }
 function calculateNextInstallmentDate(loanDetails, interestDetails) {
-    // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
+    const getLastDateOfMonth = (date) => {
+        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        return new Date(nextMonth - 1);
+    };
 
     if (interestDetails.isUpdated) {
-        return loanDetails.lastInstallmentDate
+        const lastInstallmentDate = new Date(loanDetails.lastInstallmentDate);
+        return getLastDateOfMonth(lastInstallmentDate);
     } else {
-        return loanDetails.nextInstallmentDate
+        const nextInstallmentDate = new Date(loanDetails.nextInstallmentDate);
+        return getLastDateOfMonth(nextInstallmentDate);
     }
-
-    // const isWithinInstallmentPeriod =
-    //     // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
-    //     // new Date(interestDetails.from).toDateString() &&
-    //     new Date(loanDetails.lastInstallmentDate) > new Date(interestDetails.to);
-    //
-    // if (isWithinInstallmentPeriod) {
-    //     return loanDetails.nextInstallmentDate;
-    // }
-    // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
 }
 
 
