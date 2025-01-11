@@ -37,16 +37,16 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
     const { email, contact } = inquiryData;
 
     try {
-        const isInquiryExist = await InquiryModel.exists({
-            company: companyId,
-            branch,
-            $or: [{ email }, { contact }],
-            deleted_at: null
-        });
-
-        if (isInquiryExist) {
-            return { success: false, message: "Inquiry already exists" };
-        }
+        // const isInquiryExist = await InquiryModel.exists({
+        //     company: companyId,
+        //     branch,
+        //     $or: [{ email }, { contact }],
+        //     deleted_at: null
+        // });
+        //
+        // if (isInquiryExist) {
+        //     return { success: false, message: "Inquiry already exists" };
+        // }
 
         const inquiry = await InquiryModel.create({
             ...req.body,
