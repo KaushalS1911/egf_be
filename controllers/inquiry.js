@@ -110,11 +110,10 @@ async function addBulkInquiries(req, res) {
 function mapRowToInquiry(row, header) {
     const inquiryData = {};
     header.forEach((col, index) => {
+        const value = row[index];
         if (col === 'contact' || col === 'zipcode') {
-            inquiryData[col] = row[index]?.toString() || ""; // Convert to string
+            inquiryData[col] = value?.toString() || ""; // Convert to string
         } else if (col === 'date' || col === 'recallingDate') {
-            const value = row[index];
-
             if (value instanceof Date) {
                 // If already a Date object, use it directly
                 inquiryData[col] = value;
@@ -127,11 +126,13 @@ function mapRowToInquiry(row, header) {
                 inquiryData[col] = null;
             }
         } else {
-            inquiryData[col] = row[index];
+            // For non-date columns, ensure null or undefined values are replaced with an empty string
+            inquiryData[col] = value == null ? "" : value;
         }
     });
     return inquiryData;
 }
+
 
 
 

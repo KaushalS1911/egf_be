@@ -13,7 +13,7 @@ router.post('/:companyId/other-loans/:loanId/interest', otherLoanInterestPayment
 router.get('/:companyId/other-loans/:loanId/interest', getAllInterestsOfOtherLoan);
 router.delete('/:companyId/other-loans/:loanId/interest/:id', deleteOtherLoanInterest);
 
-// Closeing details of other loans
+// Closing details of other loans
 router.post('/:companyId/other-loans/:loanId/loan-close', otherLoanClose);
 router.get('/:companyId/other-loans/:loanId/loan-close', getClosedOtherLoan);
 router.delete('/:companyId/other-loans/:loanId/loan-close/:id', deleteOtherLoanClosingDetails);
