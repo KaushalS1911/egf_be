@@ -49,7 +49,7 @@ async function addInquiryWithoutResponse(inquiryData, assignTo, branch, companyI
         // }
 
         const inquiry = await InquiryModel.create({
-            ...req.body,
+            ...inquiryData,
             company: companyId,
             branch,
             assignTo,
