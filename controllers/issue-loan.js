@@ -230,7 +230,7 @@ function calculateNextInstallmentDate(loanDetails, interestDetails) {
     // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
 
     if (interestDetails.isUpdated) {
-        return loanDetails.lastInstallmentDate
+        return reverseNextInterestPayDate(loanDetails.nextInstallmentDate);
     } else {
         return loanDetails.nextInstallmentDate
     }
@@ -756,17 +756,14 @@ function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let year = originalDate.getFullYear();
     let month = originalDate.getMonth();
-    let nextPayDate = new Date(year, month + 1, 0);
-    return nextPayDate;
+    return new Date(year, month + 1, 0);
 }
 
-function reverseNextInterestPayDate(nextPayDate) {
-    let calculatedDate = new Date(nextPayDate);
-    let year = calculatedDate.getFullYear();
-    let month = calculatedDate.getMonth();
-    let daysInMonth = new Date(year, month, 0).getDate();
-    calculatedDate.setDate(calculatedDate.getDate() - (daysInMonth - 1));
-    return calculatedDate;
+function reverseNextInterestPayDate(date) {
+    let originalDate = new Date(date);
+    let year = originalDate.getFullYear();
+    let month = originalDate.getMonth();
+    return new Date(year, month - 1, 0);
 }
 
 
