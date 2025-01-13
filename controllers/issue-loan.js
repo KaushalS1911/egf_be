@@ -763,7 +763,7 @@ function reverseNextInterestPayDate(date) {
     let originalDate = new Date(date);
     let year = originalDate.getFullYear();
     let month = originalDate.getMonth();
-    return new Date(year, month - 1, 0);
+    return new Date(year, month, 0);
 }
 
 
