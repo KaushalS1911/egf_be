@@ -13,8 +13,8 @@ async function addOtherLoan(req, res) {
         const issuedLoan = await OtherIssuedLoanModel.create({
             ...req.body,
             company: companyId,
-        });
-
+            otherLoanNumber: await generateLoanNumber(companyId)
+        })
         await issuedLoan.save({session});
         await session.commitTransaction();
         await session.endSession();
@@ -156,7 +156,7 @@ async function otherLoanClose(req,res){
 
         const loanDetails = await OtherLoanCloseModel.create({...req.body, otherLoan: loanId})
 
-        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {isActive: false}, {new: true})
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {status: "Closed"}, {new: true})
 
         return res.status(200).json({status: 200, message: "Other loan closed successfully", data: loanDetails});
 
@@ -195,5 +195,18 @@ async function deleteOtherLoanClosingDetails(req,res){
         return res.json({status: 500, message: "Internal server error"});
     }
 }
+
+const generateLoanNumber = async (companyId) => {
+    const financialYear = getCurrentFinancialYear();
+
+    const loanCount = await OtherIssuedLoanModel.countDocuments({
+        company: companyId,
+        otherNumber: {$regex: `^EGF/${financialYear}`}
+    });
+
+    const newLoanCount = loanCount + 1;
+
+    return `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
+};
 
 module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan, otherLoanInterestPayment, getAllInterestsOfOtherLoan, deleteOtherLoanInterest, otherLoanClose, getClosedOtherLoan, deleteOtherLoanClosingDetails};
