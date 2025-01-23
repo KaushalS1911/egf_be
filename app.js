@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 const logger = require('morgan');
 const cors = require("cors");
 
-const {updateOverdueLoans} = require('./controllers/common')
+const {updateOverdueLoans, updateOverdueClosedLoans} = require('./controllers/common')
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
@@ -32,11 +32,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', appRouter);
 
-cron.schedule('*/5 * * * *', () => {
-    updateOverdueLoans().then(r => {
-        console.log("Loan status updated successfully")
-    })
+cron.schedule('*/5 * * * *', async () => {
+    try {
+        await updateOverdueLoans();
+        console.log("Loan status updated successfully");
+
+        await updateOverdueClosedLoans();
+        console.log("Other Loan status updated successfully");
+    } catch (error) {
+        console.error("Error occurred during loan status update:", error);
+    }
 });
+
 
 app.listen(port, () => {
     console.log(`Server is running on PORT ${port}`)

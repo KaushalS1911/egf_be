@@ -1,6 +1,7 @@
 const moment = require('moment');
 const CustomerModel = require("../models/customer")
 const IssuedLoanModel = require("../models/issued-loan")
+const OtherIssuedLoanModel = require("../models/other-issued-loan")
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -36,6 +37,28 @@ async function sendNotification(email, subject, message) {
     console.log(`Notification sent to ${email} with subject: ${subject}`);
 }
 
+async function updateOverdueClosedLoans() {
+    const today = new Date();
+
+    try {
+        await OtherIssuedLoanModel.bulkWrite([
+            {
+                updateMany: {
+                    filter: {
+                        deleted_at: null,
+                        renewalDate: { $lt: new Date(today.setDate(today.getDate() - 5)) },
+                        status: { $eq: 'Issued' }
+                    },
+                    update: { $set: { status: 'Overdue' } }
+                }
+            },
+        ]);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+
 async function updateOverdueLoans(){
     try {
         const today = new Date();
@@ -68,4 +91,4 @@ async function updateOverdueLoans(){
     }
 }
 
-module.exports = {sendBirthdayNotification, updateOverdueLoans}
+module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans}
