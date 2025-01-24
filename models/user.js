@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
     password: String,
     other_info: Object,
     deleted_at: {type: Date, default: null},
+    attemptToDownload: {type: Array, default: []}
 }, {timestamps: true})
 
 module.exports = mongoose.model("User", userSchema)
