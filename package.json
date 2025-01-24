@@ -29,6 +29,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.15",
     "nodemon": "^3.1.4",
-    "read-excel-file": "^5.8.6"
+    "read-excel-file": "^5.8.6",
+    "twilio": "^5.4.2"
   }
 }
