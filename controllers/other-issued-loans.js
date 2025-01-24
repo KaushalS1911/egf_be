@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const OtherIssuedLoanModel = require("../models/other-issued-loan");
 const OtherLoanInterestModel = require("../models/other-loan-interest-payment");
 const OtherLoanCloseModel = require("../models/other-loan-close");
+const {getCurrentFinancialYear} = require("./issue-loan");
 
 async function addOtherLoan(req, res) {
     const session = await mongoose.startSession();
