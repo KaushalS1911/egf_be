@@ -10,6 +10,10 @@ const jwt = require("jsonwebtoken");
 const {createHash, verifyHash} = require('../helpers/hash');
 const {signLoginToken, signRefreshToken} = require("../helpers/jwt");
 const {sendMail} = require('../helpers/sendmail')
+const twilio = require("twilio"); // Or, for ESM: import twilio from "twilio";
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
 
 
 async function register(req, res) {
@@ -69,9 +73,9 @@ async function register(req, res) {
 
 async function login(req, res) {
     try {
-        const {password, email} = req.body;
+        const {otp, contact} = req.body;
 
-        const user = await UserModel.findOne({email}).lean();
+        const user = await UserModel.findOne({contact}).lean();
 
         if (user && user?.branch) {
             const userBranch = await BranchModel.findById(user?.branch)
@@ -82,7 +86,8 @@ async function login(req, res) {
             return res.status(404).json({status: 404, message: "User not found."});
         }
 
-        const isMatch = await verifyHash(password, user.password);
+        const isMatch = user?.otp === otp;
+
         if (!isMatch) {
             return res.status(400).json({status: 400, message: "Invalid credentials."});
         }
@@ -98,6 +103,25 @@ async function login(req, res) {
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
+async function sendOtp(req, res) {
+    try{
+        const {contact} = req.body
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        await createMessage(otp, tokens);
+
+        await UserModel.findOneAndUpdate({contact}, {otp}, {new: true})
+
+        return res.status(200).json({
+            status: 200,
+            message: "Otp sent successfully"
+        })
+    }catch (error){
+        console.log(error)
+        return res.status(500).json({status: 500, message: error?.message});
     }
 }
 
@@ -210,4 +234,14 @@ const setConfigs = async (companyId) => {
     await configs.save();
 }
 
-module.exports = {register, login, forgotPassword, getUser, resetPassword};
+
+async function createMessage(otp, to) {
+    await client.messages.create({
+        body: `Your OTP for login in the Easy Gold Fincorp admin panel is ${otp}. Please do not share this code with anyone. It will expire in 5 minutes.`,
+        from: "+18482929116",
+        to: `+91${to}`,
+    });
+}
+
+
+module.exports = {register, login, forgotPassword, getUser, resetPassword, sendOtp};
