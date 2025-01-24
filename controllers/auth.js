@@ -111,7 +111,7 @@ async function sendOtp(req, res) {
         const {contact} = req.body
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        await createMessage(otp, tokens);
+        await createMessage(otp, contact);
 
         await UserModel.findOneAndUpdate({contact}, {otp}, {new: true})
 
