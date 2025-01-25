@@ -88,7 +88,7 @@ const sendWhatsAppNotification = async ({
     const formData = new FormData();
     formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
     formData.append("name", `${firstName} ${lastName}`);
-    formData.append("sendTo", `91${contact}`);
+    formData.append("sendto", `91${contact}`);
     formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
     formData.append("templateName", "customer_onboard");
     formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
