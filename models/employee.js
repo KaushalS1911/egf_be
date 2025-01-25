@@ -13,6 +13,7 @@ const employeeSchema = new mongoose.Schema({
     dob: Date,
     remark: String,
     reportingTo: {type: String, ref: "User", required: true},
+    isAadharVerified: {type: Boolean, default: false},
     joiningDate: Date,
     leaveDate: {type: Date, default: null},
     permanentAddress: addressSchema,
