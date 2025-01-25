@@ -157,9 +157,9 @@ const scenarios = {
         payload.consultingCharge,
         payload.issueDate,
         new Date(payload.nextInstallmentDate).toISOString(),
-        payload.company.contact,
-        payload.company.email,
-        payload.company.name,
+        payload.companyContact,
+        payload.companyEmail,
+        payload.companyName,
     ],
     reminder: (payload) => [
         `${payload.firstName} ${payload.lastName}`,
