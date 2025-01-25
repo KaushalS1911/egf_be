@@ -662,6 +662,7 @@ async function getAllLoans(req, res) {
         if (type) query.status = type
 
         const loans = await IssuedLoanModel.find(query)
+            .populate('company')
             .populate({
                 path: "customer",
                 populate: "branch",
