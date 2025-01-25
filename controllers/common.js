@@ -104,8 +104,8 @@ async function sendWhatsAppMessage(formData) {
 
 async function sendWhatsAppNotification (req, res) {
     try {
-        const { payload, type } = req.body;
-        const customData = scenarios[type][payload];
+        const {  type } = req.body;
+        const customData = scenarios[type][req.body];
         const file = req.file;
         const formData = new FormData();
 
