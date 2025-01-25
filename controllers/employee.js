@@ -34,7 +34,8 @@ async function createEmployee(req, res) {
             permanentAddress,
             temporaryAddress,
             bankDetails,
-            status
+            status,
+            isAadharVerified
         } = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
@@ -84,7 +85,8 @@ async function createEmployee(req, res) {
             status,
             permanentAddress,
             temporaryAddress,
-            bankDetails
+            bankDetails,
+            isAadharVerified
         });
 
         await employee.save({session});
