@@ -181,7 +181,8 @@ async function updateEmployee(req, res) {
         permanentAddress,
         temporaryAddress,
         bankDetails,
-        status
+        status,
+        isAadharVerified
     } = req.body;
 
     try {
@@ -213,7 +214,8 @@ async function updateEmployee(req, res) {
                 status,
                 permanentAddress,
                 temporaryAddress,
-                bankDetails
+                bankDetails,
+                isAadharVerified
             },
             {new: true}
         );
