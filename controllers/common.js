@@ -102,4 +102,132 @@ async function sendWhatsAppMessage(formData) {
     }
 }
 
-module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans, sendWhatsAppMessage}
+const sendWhatsAppNotification = async (req, res) => {
+    try {
+        const { payload, type } = req.body;
+        const customData = scenarios[type][payload];
+        const file = req.file;
+        const formData = new FormData();
+
+        // Common fields
+        formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
+        formData.append("name", `${payload.firstName} ${payload.lastName}`);
+        formData.append("sendto", `91${payload.contact}`);
+        formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
+        formData.append("templateName", type);
+        formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
+
+        // Optional file attachment
+        if (file) {
+            formData.append("myfile", file);
+        }
+
+        // Dynamic data population
+        customData.forEach((data, index) => {
+            formData.append(`data[${index}]`, data);
+        });
+
+        // Send request to the WhatsApp API using axios
+        const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
+
+        // Send success response to the client
+        res.status(200).json({
+            success: true,
+            message: "WhatsApp notification sent successfully",
+            data: response.data,
+        });
+    } catch (error) {
+        console.error("Error sending WhatsApp notification:", error.message);
+
+        // Send error response to the client
+        res.status(500).json({
+            success: false,
+            message: "Failed to send WhatsApp notification",
+            error: error.response ? error.response.data : error.message,
+        });
+    }
+};
+
+const scenarios = {
+    issue_loan: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNo,
+        payload.loanAmount,
+        payload.interestRate,
+        payload.consultingCharge,
+        payload.issueDate,
+        new Date(payload.nextInstallmentDate).toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+    ],
+    reminder: (payload) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.loanNumber,
+        payload.loanAmount,
+        payload.interestAmount,
+        new Date(payload.nextInstallmentDate).toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+    ],
+    interest_payment: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.interestAmount,
+        new Date().toISOString(),
+        new Date(payload.nextInstallmentDate).toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+    ],
+    uchak_interest_payment: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.amountPaid,
+        new Date().toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+    ],
+    part_release: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.amountPaid,
+        payload.interestLoanAmount,
+        new Date(payload.createdAt).toISOString(),
+        new Date(payload.nextInstallmentDate).toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+        payload.company.name,
+    ],
+    part_payment: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.amountPaid,
+        new Date(payload.createdAt).toISOString(),
+        payload.interestLoanAmount,
+        new Date(payload.nextInstallmentDate).toISOString(),
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+        payload.company.name,
+    ],
+    loan_close: (payload, file) => [
+        `${payload.firstName} ${payload.lastName}`,
+        payload.loanNumber,
+        payload.loanAmount,
+        new Date(payload.date).toISOString(),
+        payload.closingCharge,
+        payload.amountPaid,
+        payload.company.contact,
+        payload.company.email,
+        payload.company.name,
+        payload.company.name,
+    ],
+};
+
+
+module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans, sendWhatsAppMessage, sendWhatsAppNotification}

@@ -18,6 +18,7 @@ const reminderRouter = require("../routes/reminder")
 const commonRouter = require("../routes/common")
 const reportRouter = require("../routes/reports")
 const verificationRouter = require("../routes/verification")
+const whatsappNotificationRouter = require("../routes/whatsapp-notification")
 
 const router = express.Router();
 const multer = require('multer')
@@ -60,6 +61,7 @@ router.use('/company', reminderRouter)
 router.use('/company', commonRouter)
 router.use('/company', reportRouter)
 router.use('/verification', verificationRouter)
+router.use('/whatsapp-notification', whatsappNotificationRouter)
 
 // loans
 router.use('/company', issueLoanRouter)
