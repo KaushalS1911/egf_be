@@ -155,7 +155,7 @@ const scenarios = {
         payload.loanAmount,
         payload.interestRate,
         payload.consultingCharge,
-        payload.issueDate,
+        new Date(payload.issueDate).toISOString(),
         new Date(payload.nextInstallmentDate).toISOString(),
         payload.companyContact,
         payload.companyEmail,
