@@ -2,6 +2,8 @@ const moment = require('moment');
 const CustomerModel = require("../models/customer")
 const IssuedLoanModel = require("../models/issued-loan")
 const OtherIssuedLoanModel = require("../models/other-issued-loan")
+const req = require("express/lib/request");
+const axios = require("axios");
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -12,7 +14,7 @@ async function sendBirthdayNotification(req, res) {
                 $exists: true,
                 $ne: null,
                 $expr: {
-                    $eq: [{ $substr: ["$dob", 5, 5] }, today]
+                    $eq: [{$substr: ["$dob", 5, 5]}, today]
                 }
             }
         });
@@ -23,13 +25,13 @@ async function sendBirthdayNotification(req, res) {
                 console.log(`Birthday notification sent to ${customer.name}`);
             });
 
-            res.status(200).json({ message: `${customers.length} birthday wishes sent!` });
+            res.status(200).json({message: `${customers.length} birthday wishes sent!`});
         } else {
-            res.status(200).json({ message: "No birthdays today!" });
+            res.status(200).json({message: "No birthdays today!"});
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error sending birthday notifications" });
+        res.status(500).json({message: "Error sending birthday notifications"});
     }
 }
 
@@ -46,10 +48,10 @@ async function updateOverdueClosedLoans() {
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        renewalDate: { $lt: new Date(today.setDate(today.getDate() - 5)) },
-                        status: { $eq: 'Issued' }
+                        renewalDate: {$lt: new Date(today.setDate(today.getDate() - 5))},
+                        status: {$eq: 'Issued'}
                     },
-                    update: { $set: { status: 'Overdue' } }
+                    update: {$set: {status: 'Overdue'}}
                 }
             },
         ]);
@@ -59,7 +61,7 @@ async function updateOverdueClosedLoans() {
 }
 
 
-async function updateOverdueLoans(){
+async function updateOverdueLoans() {
     try {
         const today = new Date();
 
@@ -68,21 +70,21 @@ async function updateOverdueLoans(){
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        nextInstallmentDate: { $lt: today },
-                        status: { $ne: 'Closed' }
+                        nextInstallmentDate: {$lt: today},
+                        status: {$ne: 'Closed'}
                     },
-                    update: { $set: { status: 'Overdue' } }
+                    update: {$set: {status: 'Overdue'}}
                 }
             },
             {
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        nextInstallmentDate: { $gte: today },
-                        lastInstallmentDate: { $ne: null },
-                        status: { $ne: 'Closed' }
+                        nextInstallmentDate: {$gte: today},
+                        lastInstallmentDate: {$ne: null},
+                        status: {$ne: 'Closed'}
                     },
-                    update: { $set: { status: 'Regular' } }
+                    update: {$set: {status: 'Regular'}}
                 }
             }
         ]);
@@ -91,4 +93,13 @@ async function updateOverdueLoans(){
     }
 }
 
-module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans}
+async function sendWhatsAppMessage(formData) {
+    try {
+        await axios.post(process.env.WHATSAPP_API_URL, formData);
+    } catch (error) {
+        console.log(error);
+        throw error
+    }
+}
+
+module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans, sendWhatsAppMessage}

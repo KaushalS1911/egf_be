@@ -1,101 +1,111 @@
 const mongoose = require("mongoose");
 const CustomerModel = require("../models/customer");
 const BranchModel = require("../models/branch");
+const CompanyModel = require("../models/company");
 const { uploadFile } = require("../helpers/avatar");
+const {sendWhatsAppMessage} = require("./common");
 
-async function createCustomer(req, res) {
+const createCustomer = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
         const { companyId } = req.params;
         const { branch } = req.query;
-
-        const {
-            firstName,
-            middleName,
-            lastName,
-            email,
-            contact,
-            dob,
-            drivingLicense,
-            referenceBy,
-            joiningDate,
-            panCard,
-            aadharCard,
-            otpContact,
-            businessType,
-            loanType,
-            permanentAddress,
-            temporaryAddress,
-            bankDetails,remark
-        } = req.body;
+        const customerData = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
         const isCustomerExist = await CustomerModel.exists({
             deleted_at: null,
             company: companyId,
-            $or: [{aadharCard}, {panCard}],
+            $or: [
+                { aadharCard: customerData.aadharCard },
+                { panCard: customerData.panCard },
+            ],
         });
 
         if (isCustomerExist) {
-            await session.abortTransaction();
-            await session.endSession();
-            return res.status(400).json({ status: 400, message: "Customer already exists." });
+            throw new Error("Customer already exists.");
         }
 
         const customerBranch = await BranchModel.findById(branch).select("branchCode").session(session);
         if (!customerBranch) {
-            await session.abortTransaction();
-            await session.endSession();
-            return res.status(404).json({ status: 404, message: "Branch not found." });
+            throw new Error("Branch not found.");
         }
         const branchCode = customerBranch.branchCode;
 
         const customerCount = await CustomerModel.countDocuments({}).session(session);
-        const nextCustomerSeq = customerCount + 1;
-        const paddedSeq = nextCustomerSeq.toString().padStart(5, '0');
-
+        const paddedSeq = (customerCount + 1).toString().padStart(5, "0");
         const customerCode = `C${branchCode}${paddedSeq}`;
 
         const customer = new CustomerModel({
+            ...customerData,
             company: companyId,
             branch,
             avatar_url: avatar,
             customerCode,
-            firstName,
-            middleName,
-            lastName,
-            email,
-            contact,
-            dob,
-            drivingLicense,
-            joiningDate,
-            referenceBy,
-            panCard,
-            aadharCard,
-            otpContact,
-            businessType,
-            loanType,
-            permanentAddress,
-            temporaryAddress,
-            bankDetails,remark
         });
-
         await customer.save({ session });
 
-        await session.commitTransaction();
-        await session.endSession();
+        const company = await CompanyModel.findById(companyId);
+        if (!company) {
+            throw new Error("Company not found.");
+        }
 
-        return res.status(201).json({ status: 201, message: "Customer created successfully", data: customer });
-    } catch (err) {
+        await sendWhatsAppNotification({
+            contact: customerData.contact,
+            firstName: customerData.firstName,
+            lastName: customerData.lastName,
+            customerCode,
+            email: customerData.email,
+            company,
+        });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(201).json({
+            status: 201,
+            message: "Customer created successfully",
+            data: customer,
+        });
+    } catch (error) {
         await session.abortTransaction();
-        await session.endSession();
-        console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        session.endSession();
+        return res.status(400).json({ status: 400, message: error.message });
     }
-}
+};
+
+const sendWhatsAppNotification = async ({
+                                            contact,
+                                            firstName,
+                                            lastName,
+                                            customerCode,
+                                            email,
+                                            company,
+                                        }) => {
+    const formData = new FormData();
+    formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
+    formData.append("name", `${firstName} ${lastName}`);
+    formData.append("sendTo", `91${contact}`);
+    formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
+    formData.append("templateName", "customer_onboard");
+    formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
+    formData.append("headerdata", company.name);
+    formData.append("data[0]", `${firstName} ${lastName}`);
+    formData.append("data[1]", company.name);
+    formData.append("data[2]", customerCode);
+    formData.append("data[3]", email);
+    formData.append("data[4]", contact);
+    formData.append("data[5]", company.contact);
+    formData.append("data[6]", company.email);
+    formData.append("data[7]", company.name);
+    formData.append("data[8]", company.name);
+
+    await sendWhatsAppMessage(formData);
+};
+
 
 async function getAllCustomers(req, res) {
     const { companyId } = req.params;
