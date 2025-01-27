@@ -1,40 +1,35 @@
 const IssuedLoanModel = require("../models/issued-loan");
-const PenaltyModel = require("../models/penalty");
 const InterestModel = require("../models/interest");
 const PartReleaseModel = require("../models/part-release");
 const PartPaymentModel = require("../models/loan-part-payment");
 const LoanCloseModel = require("../models/loan-close");
+const CompanyModel = require("../models/company");
+const CustomerModel = require("../models/customer");
+const SchemeModel = require("../models/scheme");
 const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
+const {sendMessage} = require("./common");
 
 async function issueLoan(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const {companyId} = req.params
-        const {
-            customer,
-            scheme,
-        } = req.body;
+        const { companyId } = req.params;
+        const { customer, scheme, consultingCharge, issueDate } = req.body;
 
+        const company = await CompanyModel.findById(companyId);
+        const customerDetails = await CustomerModel.findById(customer);
+        const schemeDetails = await SchemeModel.findById(scheme);
 
-        // const isLoanExist = await IssuedLoanModel.exists({
-        //     company: companyId,
-        //     customer,
-        //     scheme,
-        //     deleted_at: {$eq: null}
-        // });
-        //
-        // if (isLoanExist) {
-        //     await session.abortTransaction();
-        //     await session.endSession();
-        //     return res.status(400).json({status: 400, message: "Loan already exists."});
-        // }
+        if (!company || !customerDetails || !schemeDetails) {
+            throw new Error("Invalid company, customer, or scheme details");
+        }
 
         const property = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
-        const nextInstallmentDate = getNextInterestPayDate(req.body.issueDate)
+        const nextInstallmentDate = getNextInterestPayDate(issueDate);
+
         const issuedLoan = new IssuedLoanModel({
             ...req.body,
             nextInstallmentDate,
@@ -44,18 +39,39 @@ async function issueLoan(req, res) {
             propertyImage: property,
         });
 
-        await issuedLoan.save({session});
-        await session.commitTransaction();
-        await session.endSession();
+        await issuedLoan.save({ session });
 
-        return res.status(201).json({status: 201, message: "Loan issued successfully", data: issuedLoan});
+        await sendMessage({
+            type: "loan_issue",
+            firstName: customerDetails.firstName,
+            lastName: customerDetails.lastName,
+            contact: customerDetails.contact,
+            loanNo: issuedLoan.loanNo,
+            loanAmount: issuedLoan.loanAmount,
+            interestRate: schemeDetails.interestRate,
+            consultingCharge: consultingCharge || 0,
+            issueDate: new Date(issueDate).toISOString(),
+            nextInstallmentDate: new Date(nextInstallmentDate).toISOString(),
+            companyContact: company.contact,
+            companyName: company.name,
+            companyEmail: company.email,
+        });
+
+        await session.commitTransaction();
+        return res.status(201).json({
+            status: 201,
+            message: "Loan issued successfully",
+            data: issuedLoan,
+        });
     } catch (err) {
         await session.abortTransaction();
+        console.error("Error issuing loan:", err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
+    } finally {
         await session.endSession();
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
+
 
 async function disburseLoan(req, res) {
 
@@ -154,7 +170,7 @@ function calculateInstallmentDates(loanDetails, from, to) {
         isWithinInstallmentPeriod = (new Date(loanDetails.nextInstallmentDate) > new Date(to))
     }
 
-    if(isWithinInstallmentPeriod){
+    if (isWithinInstallmentPeriod) {
         isUpdated = false
     }
 
@@ -365,7 +381,7 @@ async function deleteUchakInterestPayment(req, res) {
 
         const interestDetail = await UchakInterestModel.findById(id)
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount - interestDetails.amountPaid })
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount - interestDetails.amountPaid})
 
         await UchakInterestModel.findByIdAndDelete(id)
 
