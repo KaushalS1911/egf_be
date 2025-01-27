@@ -107,6 +107,8 @@ async function sendWhatsAppNotification (req, res) {
         const {  type } = req.body;
         const customData = scenarios[type][req.body];
         const file = req.file;
+        console.log(file);
+        console.log(req.body);
         // const formData = new FormData();
         //
         // // Common fields
