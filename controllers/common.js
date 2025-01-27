@@ -123,6 +123,7 @@ async function sendWhatsAppNotification (req, res) {
             formData.append("myfile", file);
         }
 
+        console.log(file)
         const customData = scenarioFunction(payload, file);
         // Dynamic data population
         customData.forEach((data, index) => {
