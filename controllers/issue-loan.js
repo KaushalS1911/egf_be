@@ -16,8 +16,8 @@ async function issueLoan(req, res) {
     session.startTransaction();
 
     try {
-        const { companyId } = req.params;
-        const { customer, scheme, consultingCharge, issueDate } = req.body;
+        const {companyId} = req.params;
+        const {customer, scheme, consultingCharge, issueDate} = req.body;
 
         const company = await CompanyModel.findById(companyId);
         const customerDetails = await CustomerModel.findById(customer);
@@ -39,7 +39,7 @@ async function issueLoan(req, res) {
             propertyImage: property,
         });
 
-        await issuedLoan.save({ session });
+        await issuedLoan.save({session});
 
         await sendMessage({
             type: "loan_issue",
@@ -67,7 +67,7 @@ async function issueLoan(req, res) {
     } catch (err) {
         await session.abortTransaction();
         console.error("Error issuing loan:", err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     } finally {
         await session.endSession();
     }
@@ -401,7 +401,10 @@ async function GetPartPaymentDetail(req, res) {
         const paymentDetail = await PartPaymentModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate({path: "loan", populate: 'customer'})
+        }).populate({
+            path: "loan",
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]
+        })
 
         return res.status(200).json({status: 200, data: paymentDetail});
     } catch (err) {
@@ -418,7 +421,10 @@ async function GetPartReleaseDetail(req, res) {
         const partReleaseDetail = await PartReleaseModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]})
+        }).populate({
+            path: "loan",
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]
+        })
 
         return res.status(200).json({status: 200, data: partReleaseDetail});
     } catch (err) {
@@ -435,7 +441,7 @@ async function GetClosedLoanDetails(req, res) {
         const closedLoanDetails = await LoanCloseModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer"}]})
+        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]})
 
         return res.status(200).json({status: 200, data: closedLoanDetails});
     } catch (err) {
