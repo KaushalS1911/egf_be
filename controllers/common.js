@@ -135,17 +135,17 @@ async function sendWhatsAppNotification(req, res) {
 
         // Generate custom data and append it
         const customData = scenarioFunction(payload, file);
+        console.log(payload)
         customData.forEach((value, index) => {
             formData.append(`data[${index}]`, value);
         });
 
-        // Axios configuration
         const config = {
             method: "post",
             maxBodyLength: Infinity,
             url: "https://app.11za.in/apis/template/sendTemplate",
             headers: {
-                ...formData.getHeaders(), // Ensure FormData headers are included
+                ...formData.getHeaders(),
             },
             data: formData,
         };
