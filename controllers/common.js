@@ -120,7 +120,7 @@ async function sendWhatsAppNotification (req, res) {
 
         // Optional file attachment
         if (file) {
-            formData.append("myfile", file);
+            formData.append("myfile", file.buffer);
         }
 
         const customData = scenarioFunction(payload, file);
