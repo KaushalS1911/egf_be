@@ -101,68 +101,75 @@ async function sendWhatsAppMessage(formData) {
     }
 }
 
-async function sendWhatsAppNotification (req, res) {
+async function sendWhatsAppNotification(req, res) {
     try {
-        const {type, ...payload} = req.body
+        const { type, ...payload } = req.body;
         const scenarioFunction = scenarios[type];
 
+        if (!scenarioFunction) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid notification type",
+            });
+        }
+
         const file = req.file;
-        const data = new FormData();
+        const formData = new FormData();
 
         // Common fields
-        data.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        data.append("name", `${payload.firstName} ${payload.lastName}`);
-        data.append("sendto", `91${payload.contact}`);
-        data.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
-        data.append("templateName", type);
-        data.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
+        formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
+        formData.append("name", `${payload.firstName} ${payload.lastName}`);
+        formData.append("sendto", `91${payload.contact}`);
+        formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
+        formData.append("templateName", type);
+        formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
 
         // Optional file attachment
         if (file) {
-            data.append("myfile", file.buffer);
+            formData.append("myfile", file.buffer, {
+                filename: file.originalname,
+                contentType: file.mimetype,
+            });
         }
 
+        // Generate custom data and append it
         const customData = scenarioFunction(payload, file);
-        // Dynamic data population
-        customData.forEach((data, index) => {
-            data.append(`data[${index}]`, data);
+        customData.forEach((value, index) => {
+            formData.append(`data[${index}]`, value);
         });
 
+        // Axios configuration
         const config = {
-            method: 'post',
+            method: "post",
             maxBodyLength: Infinity,
-            url: 'https://app.11za.in/apis/template/sendTemplate',
+            url: "https://app.11za.in/apis/template/sendTemplate",
             headers: {
-                ...data.getHeaders(), // Ensure FormData headers are included
+                ...formData.getHeaders(), // Ensure FormData headers are included
             },
-            data: data,
+            data: formData,
         };
 
-        axios(config)
-            .then((response) => {
-                console.log("Response:", JSON.stringify(response.data));
-            })
-            .catch((error) => {
-                console.error("Error:", error.response ? error.response.data : error.message);
-            });
+        // Send request
+        const response = await axios(config);
 
         // Send success response to the client
-         res.status(200).json({
+        res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",
-            data: data,
+            data: response.data,
         });
     } catch (error) {
         console.error("Error sending WhatsApp notification:", error.message);
 
         // Send error response to the client
-         res.status(500).json({
+        res.status(500).json({
             success: false,
             message: "Failed to send WhatsApp notification",
             error: error.response ? error.response.data : error.message,
         });
     }
-};
+}
+
 
 const scenarios = {
     issue_loan: (payload, file) => [
