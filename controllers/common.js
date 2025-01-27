@@ -131,7 +131,7 @@ async function sendWhatsAppNotification (req, res) {
         // const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
 
         // Send success response to the client
-        console.log(req.body)
+        console.log(req.body, req.file)
          res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",

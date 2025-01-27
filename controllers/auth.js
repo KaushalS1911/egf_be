@@ -194,8 +194,8 @@ async function getUser(req, res) {
             return res.status(404).json({status: 404, message: "User not found"});
         }
 
-        if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user._id});
+        if (user?.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user?._id});
             user.employeeId = emp?._id;
         }
 
