@@ -56,6 +56,7 @@ const createCustomer = async (req, res) => {
         await sendWhatsAppNotification({
             contact: customerData.contact,
             firstName: customerData.firstName,
+            middleName: customerData.middleName,
             lastName: customerData.lastName,
             customerCode,
             email: customerData.email,
@@ -80,6 +81,7 @@ const createCustomer = async (req, res) => {
 const sendWhatsAppNotification = async ({
                                             contact,
                                             firstName,
+                                            middleName,
                                             lastName,
                                             customerCode,
                                             email,
@@ -93,7 +95,7 @@ const sendWhatsAppNotification = async ({
     formData.append("templateName", "customer_onboard");
     formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
     formData.append("headerdata", company.name);
-    formData.append("data[0]", `${firstName} ${lastName}`);
+    formData.append("data[0]", `${firstName} ${middleName} ${lastName}`);
     formData.append("data[1]", company.name);
     formData.append("data[2]", customerCode);
     formData.append("data[3]", email);

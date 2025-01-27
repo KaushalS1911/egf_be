@@ -138,7 +138,7 @@ async function sendMessage(messagePayload, file = null){
         const formData = new FormData();
 
         formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        formData.append("name", `${payload.firstName} ${payload.lastName}`);
+        formData.append("name", `${payload.firstName} ${payload.middleName} ${payload.lastName}`);
         formData.append("sendto", `91${contact}`);
         formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
         formData.append("templateName", type);
@@ -172,7 +172,7 @@ async function sendMessage(messagePayload, file = null){
 
 const scenarios = {
     loan_detail: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNo,
         payload.loanAmount,
         payload.interestRate,
@@ -185,7 +185,7 @@ const scenarios = {
         payload.companyName,
     ],
     loan_issue: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNo,
         payload.loanAmount,
         payload.interestRate,
@@ -198,7 +198,7 @@ const scenarios = {
         payload.companyName,
     ],
     reminder: (payload) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.loanNumber,
         payload.loanAmount,
@@ -209,7 +209,7 @@ const scenarios = {
         payload.companyName,
     ],
     interest_payment: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.interestAmount,
         new Date().toISOString(),
@@ -219,7 +219,7 @@ const scenarios = {
         payload.companyName,
     ],
     uchak_interest_payment: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.amountPaid,
         new Date().toISOString(),
@@ -228,7 +228,7 @@ const scenarios = {
         payload.companyName,
     ],
     part_release: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.amountPaid,
         payload.interestLoanAmount,
@@ -240,7 +240,7 @@ const scenarios = {
         payload.companyName,
     ],
     part_payment: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.amountPaid,
         new Date(payload.createdAt).toISOString(),
@@ -252,7 +252,7 @@ const scenarios = {
         payload.companyName,
     ],
     loan_close: (payload, file) => [
-        `${payload.firstName} ${payload.lastName}`,
+        `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNumber,
         payload.loanAmount,
         new Date(payload.date).toISOString(),

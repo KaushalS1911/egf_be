@@ -44,6 +44,7 @@ async function issueLoan(req, res) {
         await sendMessage({
             type: "loan_issue",
             firstName: customerDetails.firstName,
+            middleName: customerDetails.middleName,
             lastName: customerDetails.lastName,
             contact: customerDetails.contact,
             loanNo: issuedLoan.loanNo,
