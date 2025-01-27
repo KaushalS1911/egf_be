@@ -341,7 +341,7 @@ async function GetInterestPayment(req, res) {
             deleted_at: null
         }).sort({createdAt: -1}).populate({
             path: "loan",
-            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}]
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]
         });
 
         return res.status(200).json({status: 200, data: interestDetail});
