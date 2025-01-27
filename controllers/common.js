@@ -104,7 +104,7 @@ async function sendWhatsAppMessage(formData) {
 
 async function sendWhatsAppNotification(req, res) {
     try {
-        const { type, ...payload } = req.body;
+        const { type, contact, ...payload } = req.body;
         const scenarioFunction = scenarios[type];
 
         if (!scenarioFunction) {
@@ -120,7 +120,7 @@ async function sendWhatsAppNotification(req, res) {
         // Common fields
         formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
         formData.append("name", `${payload.firstName} ${payload.lastName}`);
-        formData.append("sendto", `91${payload.contact}`);
+        formData.append("sendto", `91${contact}`);
         formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
         formData.append("templateName", type);
         formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
