@@ -139,13 +139,13 @@ async function sendWhatsAppNotification (req, res) {
             data: {data: customData, file},
         });
     } catch (error) {
-        console.error("Error sending WhatsApp notification:", error.message);
+        console.error("Error sending WhatsApp notification:", error);
 
         // Send error response to the client
          res.status(500).json({
             success: false,
             message: "Failed to send WhatsApp notification",
-            error: error.response ? error.response.data : error.message,
+            error: error,
         });
     }
 };
