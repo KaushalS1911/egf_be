@@ -104,38 +104,39 @@ async function sendWhatsAppMessage(formData) {
 
 async function sendWhatsAppNotification (req, res) {
     try {
-        // const {  type } = req.body;
-        // const customData = scenarios[type][req.body];
-        // const file = req.file;
-        // const formData = new FormData();
-        //
-        // // Common fields
-        // formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        // formData.append("name", `${payload.firstName} ${payload.lastName}`);
-        // formData.append("sendto", `91${payload.contact}`);
-        // formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
-        // formData.append("templateName", type);
-        // formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
-        //
-        // // Optional file attachment
-        // if (file) {
-        //     formData.append("myfile", file);
-        // }
-        //
-        // // Dynamic data population
-        // customData.forEach((data, index) => {
-        //     formData.append(`data[${index}]`, data);
-        // });
+        const {type, ...payload} = req.body
+        const scenarioFunction = scenarios[type];
+
+        const file = req.file;
+        const formData = new FormData();
+
+        // Common fields
+        formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
+        formData.append("name", `${payload.firstName} ${payload.lastName}`);
+        formData.append("sendto", `91${payload.contact}`);
+        formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
+        formData.append("templateName", type);
+        formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
+
+        // Optional file attachment
+        if (file) {
+            formData.append("myfile", file);
+        }
+
+        const customData = scenarioFunction(payload, file);
+        // Dynamic data population
+        customData.forEach((data, index) => {
+            formData.append(`data[${index}]`, data);
+        });
 
         // Send request to the WhatsApp API using axios
-        // const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
+        const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
 
         // Send success response to the client
-        console.log(req.body, req.file)
          res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",
-            data: req.body,
+            data: response,
         });
     } catch (error) {
         console.error("Error sending WhatsApp notification:", error.message);
