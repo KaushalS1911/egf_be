@@ -184,6 +184,7 @@ const scenarios = {
         payload.companyContact,
         payload.companyEmail,
         payload.companyName,
+        payload.companyName,
     ],
     reminder: (payload) => [
         `${payload.firstName} ${payload.lastName}`,
