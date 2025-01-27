@@ -135,8 +135,8 @@ async function sendWhatsAppNotification(req, res) {
 
         // Generate custom data and append it
         const customData = scenarioFunction(payload, file);
-        console.log(payload)
         customData.forEach((value, index) => {
+            console.log(value, index);
             formData.append(`data[${index}]`, value);
         });
 
