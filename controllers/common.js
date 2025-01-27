@@ -104,11 +104,9 @@ async function sendWhatsAppMessage(formData) {
 
 async function sendWhatsAppNotification (req, res) {
     try {
-        const {  type } = req.body;
-        const customData = scenarios[type][req.body];
-        const file = req.file;
-        console.log(file);
-        console.log(req.body);
+        // const {  type } = req.body;
+        // const customData = scenarios[type][req.body];
+        // const file = req.file;
         // const formData = new FormData();
         //
         // // Common fields
@@ -128,24 +126,25 @@ async function sendWhatsAppNotification (req, res) {
         // customData.forEach((data, index) => {
         //     formData.append(`data[${index}]`, data);
         // });
-        //
-        // // Send request to the WhatsApp API using axios
+
+        // Send request to the WhatsApp API using axios
         // const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
 
         // Send success response to the client
+        console.log(req.body)
          res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",
-            data: {data: customData, file},
+            data: req.body,
         });
     } catch (error) {
-        console.error("Error sending WhatsApp notification:", error);
+        console.error("Error sending WhatsApp notification:", error.message);
 
         // Send error response to the client
          res.status(500).json({
             success: false,
             message: "Failed to send WhatsApp notification",
-            error: error,
+            error: error.response ? error.response.data : error.message,
         });
     }
 };
