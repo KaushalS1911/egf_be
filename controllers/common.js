@@ -2,8 +2,8 @@ const moment = require('moment');
 const CustomerModel = require("../models/customer")
 const IssuedLoanModel = require("../models/issued-loan")
 const OtherIssuedLoanModel = require("../models/other-issued-loan")
-const req = require("express/lib/request");
 const axios = require("axios");
+const FormData = require('form-data');
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -108,41 +108,50 @@ async function sendWhatsAppNotification (req, res) {
         const scenarioFunction = scenarios[type];
 
         const file = req.file;
-        const formData = new FormData();
+        const data = new FormData();
 
         // Common fields
-        formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        formData.append("name", `${payload.firstName} ${payload.lastName}`);
-        formData.append("sendto", `91${payload.contact}`);
-        formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
-        formData.append("templateName", type);
-        formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
+        data.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
+        data.append("name", `${payload.firstName} ${payload.lastName}`);
+        data.append("sendto", `91${payload.contact}`);
+        data.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
+        data.append("templateName", type);
+        data.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
 
         // Optional file attachment
         if (file) {
-            formData.append("myfile", file);
+            data.append("myfile", file.buffer);
         }
 
-        console.log(file)
         const customData = scenarioFunction(payload, file);
         // Dynamic data population
         customData.forEach((data, index) => {
-            formData.append(`data[${index}]`, data);
+            data.append(`data[${index}]`, data);
         });
 
-        console.log(formData);
-        // Send request to the WhatsApp API using axios
-        const response = await axios.post(process.env.WHATSAPP_API_URL,  formData, {
+        const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://app.11za.in/apis/template/sendTemplate',
             headers: {
-                ...data.getHeaders(),
-            }
-        });
+                ...data.getHeaders(), // Ensure FormData headers are included
+            },
+            data: data,
+        };
+
+        axios(config)
+            .then((response) => {
+                console.log("Response:", JSON.stringify(response.data));
+            })
+            .catch((error) => {
+                console.error("Error:", error.response ? error.response.data : error.message);
+            });
 
         // Send success response to the client
          res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",
-            data: formData,
+            data: data,
         });
     } catch (error) {
         console.error("Error sending WhatsApp notification:", error.message);
