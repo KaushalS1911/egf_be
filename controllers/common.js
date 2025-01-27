@@ -120,7 +120,7 @@ async function sendWhatsAppNotification (req, res) {
 
         // Optional file attachment
         if (file) {
-            formData.append("myfile", file.buffer);
+            formData.append("myfile", file);
         }
 
         const customData = scenarioFunction(payload, file);
@@ -129,14 +129,15 @@ async function sendWhatsAppNotification (req, res) {
             formData.append(`data[${index}]`, data);
         });
 
+        console.log(formData);
         // Send request to the WhatsApp API using axios
-        const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
+        // const response = await axios.post(process.env.WHATSAPP_API_URL, formData);
 
         // Send success response to the client
          res.status(200).json({
             success: true,
             message: "WhatsApp notification sent successfully",
-            data: response,
+            data: formData,
         });
     } catch (error) {
         console.error("Error sending WhatsApp notification:", error.message);
