@@ -73,8 +73,7 @@ async function register(req, res) {
 
 async function login(req, res) {
     try {
-        // const {otp, contact} = req.body;
-        const {contact} = req.body;
+        const {otp, contact} = req.body;
 
         const user = await UserModel.findOne({contact}).lean();
 
@@ -87,11 +86,11 @@ async function login(req, res) {
             return res.status(404).json({status: 404, message: "User not found."});
         }
 
-        // const isMatch = user?.otp === otp;
-        //
-        // if (!isMatch) {
-        //     return res.status(400).json({status: 400, message: "Invalid credentials."});
-        // }
+        const isMatch = user?.otp === otp;
+
+        if (!isMatch) {
+            return res.status(400).json({status: 400, message: "Invalid credentials."});
+        }
 
         const tokens = await setTokens(user._id);
 
