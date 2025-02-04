@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const { TokenExpiredError } = require("jsonwebtoken");
+const {TokenExpiredError} = require("jsonwebtoken");
 const appJwt = require("../helpers/jwt");
 const handleException = require("../decorators/error");
 const UserModel = require("../models/user")
@@ -26,13 +26,6 @@ const auth = handleException(async function authenticate(req, res, next) {
     try {
         const decoded = await appJwt.verifyToken(authHeaders["auth_jwt"]);
         const user = await UserModel.findById(decoded.id)
-        if (
-            !user?.other_info ||
-            !user?.other_info["jwt"] ||
-            user?.other_info["jwt"] !== authHeaders["auth_jwt"]
-        ) {
-            res.status(401).json({message: "The auth token provided is invalid", status: 401});
-        }
         req.user = user;
     } catch (err) {
         if (err instanceof TokenExpiredError) {
