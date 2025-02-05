@@ -137,7 +137,7 @@ async function getAllEmployees(req, res) {
 
         const updatedEmployees = await Promise.all(employees.map(async (emp) => {
             if (emp?.user?.branch) {
-                emp.user.branch = await BranchModel.findById(emp.user.branch);
+                emp.user.branch = await BranchModel.findById(emp?.user?.branch);
             } else {
                 emp.user.branch = null;
             }
