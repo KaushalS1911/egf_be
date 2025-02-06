@@ -6,6 +6,7 @@ const partReleaseSchema = new mongoose.Schema({
     remark: String,
     propertyImage: String,
     paymentDetail: Object,
+    adjustedAmount: {type: Number, default: 0},
     totalAmount: Number,
     amountPaid: Number,
     date: Date,
