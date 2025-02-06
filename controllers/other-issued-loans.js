@@ -171,7 +171,7 @@ async function getClosedOtherLoan(req,res){
     try{
         const {loanId} = req.params;
 
-        const loanDetails = await OtherLoanCloseModel.find({otherLoan: loanId}).populate("loan")
+        const loanDetails = await OtherLoanCloseModel.find({otherLoan: loanId}).populate("otherLoan")
 
         return res.status(200).json({status: 200, data: loanDetails});
 

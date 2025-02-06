@@ -4,7 +4,7 @@ const otherIssuedLoanSchema = new mongoose.Schema({
     company: {type: String, ref: 'Company', required: true},
     loan: {type: String, ref: "Issued Loan", required: true},
     otherNumber: {type: String},
-otherLoanNumber: String,
+    otherLoanNumber: String,
     otherName: {type: String},
     amount: {type: Number},
     percentage: {type: Number},
