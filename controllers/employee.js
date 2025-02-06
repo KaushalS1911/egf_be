@@ -134,12 +134,13 @@ async function getAllEmployees(req, res) {
             .populate("user")
             .populate("reportingTo");
 
-
         const updatedEmployees = await Promise.all(employees.map(async (emp) => {
-            if (emp?.user?.branch) {
-                emp.user.branch = await BranchModel.findById(emp?.user?.branch);
-            } else {
-                emp.user.branch = null;
+            if (emp && emp.user) {
+                if (emp.user.branch) {
+                    emp.user.branch = await BranchModel.findById(emp.user.branch);
+                } else {
+                    emp.user.branch = null;
+                }
             }
             return emp;
         }));
