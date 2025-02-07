@@ -583,7 +583,7 @@ async function partRelease(req, res) {
             ...req.body
         });
 
-        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.amountPaid);
+        const interestLoanAmount = Number(loanDetails.interestLoanAmount) - Number(req.body.adjustedAmount);
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
