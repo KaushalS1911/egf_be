@@ -1,4 +1,4 @@
-const IssuedLoanModel = require('models/issued-loan')
+const IssuedLoanModel = require('../models/issued-loan');
 
 async function generateNextLoanNumber(series,currentLoanNo, company) {
     let parts = series.split("_"); // Split by underscore
