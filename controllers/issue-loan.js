@@ -10,6 +10,7 @@ const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
 const {sendMessage} = require("./common");
+const {generateNextLoanNumber} = require("../helpers/loan");
 
 async function issueLoan(req, res) {
     const session = await mongoose.startSession();
@@ -34,7 +35,7 @@ async function issueLoan(req, res) {
             ...req.body,
             nextInstallmentDate,
             company: companyId,
-            loanNo: await generateLoanNumber(companyId),
+            loanNo: await generateNextLoanNumber(companyId),
             transactionNo: await generateTransactionNumber(companyId),
             propertyImage: property,
         });

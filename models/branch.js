@@ -6,6 +6,7 @@ const branchSchema = new mongoose.Schema({
     name: String,
     branchCode: String,
     email: {type: String, default: null},
+    series: String,
     contact: {type: String, default: null},
     isActive: {type: Boolean, default: true},
     address: addressSchema,

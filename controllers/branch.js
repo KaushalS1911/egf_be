@@ -21,13 +21,8 @@ async function addBranch(req, res) {
         const branchCode = String(branchCount + 1).padStart(3, '0');
 
         const branch = await BranchModel.create({
-            company: companyId,
-            name,
-            email,
-            contact,
-            branchCode,
-            address,
-        });
+            ...req.body, company: companyId
+            });
 
         return res.status(201).json({ status: 201, data: branch, message: "Branch created successfully" });
     } catch (err) {
