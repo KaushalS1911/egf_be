@@ -13,7 +13,7 @@ async function generateNextLoanNumber(series, company) {
     // Ensure the number is formatted as 4-digit (or 6-digit if needed)
     let formattedNumber = nextNumber.toString().padStart(4, "0");
 
-    return `${prefix}_${formattedNumber}`;
+    return `${prefix}/${formattedNumber}`;
 }
 
 

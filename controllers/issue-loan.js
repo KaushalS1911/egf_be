@@ -18,7 +18,7 @@ async function issueLoan(req, res) {
 
     try {
         const {companyId} = req.params;
-        const {customer, scheme, consultingCharge, issueDate} = req.body;
+        const {customer, scheme, consultingCharge, issueDate, series} = req.body;
 
         const company = await CompanyModel.findById(companyId);
         const customerDetails = await CustomerModel.findById(customer);
@@ -35,7 +35,7 @@ async function issueLoan(req, res) {
             ...req.body,
             nextInstallmentDate,
             company: companyId,
-            loanNo: await generateNextLoanNumber(req.body.series, companyId),
+            loanNo: await generateNextLoanNumber(series, companyId),
             transactionNo: await generateTransactionNumber(companyId),
             propertyImage: property,
         });
