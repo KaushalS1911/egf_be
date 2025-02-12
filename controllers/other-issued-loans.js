@@ -127,7 +127,7 @@ async function getAllInterestsOfOtherLoan(req,res){
     try{
         const {loanId} = req.params;
 
-        const interestDetails = await OtherLoanInterestModel.find({otherLoan: loanId}).populate("otherLoan")
+        const interestDetails = await OtherLoanInterestModel.find({otherLoan: loanId}).populate("otherLoan").sort({createdAt: -1})
 
         return res.status(200).json({status: 200, data: interestDetails});
 
