@@ -35,7 +35,7 @@ async function issueLoan(req, res) {
             ...req.body,
             nextInstallmentDate,
             company: companyId,
-            loanNo: await generateNextLoanNumber(companyId),
+            loanNo: await generateNextLoanNumber(req.body.series, companyId),
             transactionNo: await generateTransactionNumber(companyId),
             propertyImage: property,
         });
