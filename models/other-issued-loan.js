@@ -31,6 +31,6 @@ const otherIssuedLoanSchema = new mongoose.Schema({
     remarks: {type: String},
     status: {type: String, default: "Issued"},
     deleted_at: {type: Date, default: null},
-})
+}, {timestamps: true});
 
 module.exports = mongoose.model('Other Issued Loan', otherIssuedLoanSchema);
