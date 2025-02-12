@@ -6,6 +6,6 @@ const otherLoanCloseSchema = new mongoose.Schema({
     paidLoanAmount: Number,
     remark: String,
     paymentDetail: Object,
-})
+}, {timestamps: true});
 
 module.exports = mongoose.model('OtherLoanClose', otherLoanCloseSchema)
