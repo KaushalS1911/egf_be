@@ -425,7 +425,7 @@ async function GetPartReleaseDetail(req, res) {
         }).populate({
             path: "loan",
             populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]
-        })
+        }).sort({createdAt: -1})
 
         return res.status(200).json({status: 200, data: partReleaseDetail});
     } catch (err) {
