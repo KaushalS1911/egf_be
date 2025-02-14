@@ -642,7 +642,7 @@ async function deletePartReleaseDetail(req, res) {
         // Update the loan's interest loan amount
         const updatedInterestLoanAmount =
             Number(loanDetails.interestLoanAmount || 0) +
-            Number(partRelease.amountPaid || 0);
+            Number(partRelease.adjustedAmount || 0);
 
         // Update loan details in the database
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(
