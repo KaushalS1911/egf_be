@@ -36,8 +36,8 @@ const createCustomer = async (req, res) => {
         const branchCode = customerBranch.branchCode;
 
         const customerCount = await CustomerModel.countDocuments({}).session(session);
-        const paddedSeq = (customerCount + 1).toString().padStart(5, "0");
-        const customerCode = `C${branchCode}${paddedSeq}`;
+        const paddedSeq = (customerCount + 1).toString().padStart(4, "0");
+        const customerCode = `C${paddedSeq}`;
 
         const customer = new CustomerModel({
             ...customerData,
