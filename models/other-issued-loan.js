@@ -29,6 +29,8 @@ const otherIssuedLoanSchema = new mongoose.Schema({
     bankAmount: Number,
     bankDetails: Object,
     remarks: {type: String},
+    ornamentDetail: {type: String},
+    totalOrnament: Number,
     status: {type: String, default: "Issued"},
     deleted_at: {type: Date, default: null},
 }, {timestamps: true});
