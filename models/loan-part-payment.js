@@ -3,6 +3,7 @@ const mongoose = require("mongoose")
 const loanPartPaymentSchema = new mongoose.Schema({
     loan: {type: String, ref: "Issued Loan", required: true},
     amountPaid: Number,
+    interestLoanAmount: Number,
     date: Date,
     remark: String,
     paymentDetail: Object,
