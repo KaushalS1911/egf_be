@@ -21,7 +21,6 @@ async function createEmployee(req, res) {
             lastName,
             email,
             contact,
-            password,
             dob,
             role,
             drivingLicense,
@@ -54,7 +53,6 @@ async function createEmployee(req, res) {
             return res.status(400).json({status: 400, message: "Employee already exists."});
         }
 
-        const encryptedPassword = await createHash(password);
 
         const user = new UserModel({
             company: companyId,
@@ -66,7 +64,6 @@ async function createEmployee(req, res) {
             lastName,
             email,
             contact,
-            password: encryptedPassword
         });
 
         await user.save({session});
