@@ -302,7 +302,7 @@ async function uchakInterestPayment(req, res) {
         return res.status(201).json({
             status: 201,
             message: "Loan uchak interest paid successfully",
-            data: updatedLoan
+            data: {...updatedLoan,amountPaid: req.body.amountPaid}
         });
     } catch (err) {
         console.error(err);
