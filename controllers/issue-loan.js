@@ -281,7 +281,7 @@ async function loanClose(req, res) {
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
-        return res.status(201).json({status: 201, message: "Loan closed successfully", data: {...closedLoan,loan: updatedLoan}});
+        return res.status(201).json({status: 201, message: "Loan closed successfully", data: {...closedLoan.toObject(),loan: updatedLoan}});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
