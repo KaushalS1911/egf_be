@@ -502,7 +502,7 @@ async function loanPartPayment(req, res) {
             loanId,
             {interestLoanAmount: updatedInterestLoanAmount},
             {new: true}
-        );
+        ).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
         if (!updatedLoan) {
             return res.status(404).json({status: 404, message: "Failed to update loan details"});
@@ -511,7 +511,7 @@ async function loanPartPayment(req, res) {
         return res.status(201).json({
             status: 201,
             message: "Loan part payment successful",
-            data: partPaymentDetail,
+            data: {...partPaymentDetail, loan:updatedLoan},
         });
     } catch (err) {
         console.error(err);
