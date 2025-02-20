@@ -279,9 +279,9 @@ async function loanClose(req, res) {
         loanDetail.interestLoanAmount = 0
         loanDetail.closedBy = req.body.closedBy
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true})
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
-        return res.status(201).json({status: 201, message: "Loan closed successfully", data: closedLoan});
+        return res.status(201).json({status: 201, message: "Loan closed successfully", data: {closedLoan,loan: updatedLoan}});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -297,7 +297,7 @@ async function uchakInterestPayment(req, res) {
             ...req.body
         })
 
-        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);;
+        const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
         return res.status(201).json({
             status: 201,
