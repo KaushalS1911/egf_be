@@ -592,7 +592,7 @@ async function partRelease(req, res) {
                 propertyDetails: finalProperty
             },
             {new: true}
-        ).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer"}, {path: "company"}]});
+        ).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
         if (!updatedLoan) {
             return res.status(404).json({status: 404, message: "Updated loan not found"});
