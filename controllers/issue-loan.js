@@ -297,7 +297,7 @@ async function uchakInterestPayment(req, res) {
             ...req.body
         })
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true})
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
         return res.status(201).json({
             status: 201,
