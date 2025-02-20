@@ -42,23 +42,6 @@ async function issueLoan(req, res) {
 
         await issuedLoan.save({session});
 
-        await sendMessage({
-            type: "loan_issue",
-            firstName: customerDetails.firstName,
-            middleName: customerDetails.middleName,
-            lastName: customerDetails.lastName,
-            contact: customerDetails.contact,
-            loanNo: issuedLoan.loanNo,
-            loanAmount: issuedLoan.loanAmount,
-            interestRate: schemeDetails.interestRate,
-            consultingCharge: consultingCharge || 0,
-            issueDate: new Date(issueDate).toISOString(),
-            nextInstallmentDate: new Date(nextInstallmentDate).toISOString(),
-            companyContact: company.contact,
-            companyName: company.name,
-            companyEmail: company.email,
-        });
-
         await session.commitTransaction();
         return res.status(201).json({
             status: 201,
@@ -103,6 +86,22 @@ async function disburseLoan(req, res) {
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
         const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
+        await sendMessage({
+            type: "loan_issue",
+            firstName: customerDetails.firstName,
+            middleName: customerDetails.middleName,
+            lastName: customerDetails.lastName,
+            contact: customerDetails.contact,
+            loanNo: issuedLoan.loanNo,
+            loanAmount: issuedLoan.loanAmount,
+            interestRate: schemeDetails.interestRate,
+            consultingCharge: consultingCharge || 0,
+            issueDate: new Date(issueDate).toISOString(),
+            nextInstallmentDate: new Date(nextInstallmentDate).toISOString(),
+            companyContact: company.contact,
+            companyName: company.name,
+            companyEmail: company.email,
+        });
 
         return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
     } catch (err) {
@@ -593,7 +592,7 @@ async function partRelease(req, res) {
                 propertyDetails: finalProperty
             },
             {new: true}
-        );
+        ).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer"}, {path: "company"}]});
 
         if (!updatedLoan) {
             return res.status(404).json({status: 404, message: "Updated loan not found"});
