@@ -297,7 +297,7 @@ async function uchakInterestPayment(req, res) {
             ...req.body
         })
 
-        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {uchakInterestAmount: loanDetails.uchakInterestAmount + req.body.amountPaid}, {new: true}).populate([{path: "scheme"}, {path: "company"}, {path: "customer"}]);
 
         return res.status(201).json({
             status: 201,
@@ -441,7 +441,10 @@ async function GetClosedLoanDetails(req, res) {
         const closedLoanDetails = await LoanCloseModel.find({
             loan: loanId,
             deleted_at: null
-        }).populate({path: "loan", populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]})
+        }).populate({
+            path: "loan",
+            populate: [{path: "scheme"}, {path: "customer", populate: {path: "branch"}}, {path: "company"}]
+        })
 
         return res.status(200).json({status: 200, data: closedLoanDetails});
     } catch (err) {
