@@ -86,21 +86,22 @@ async function disburseLoan(req, res) {
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
         const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
+
         await sendMessage({
             type: "loan_issue",
-            firstName: customerDetails.firstName,
-            middleName: customerDetails.middleName,
-            lastName: customerDetails.lastName,
-            contact: customerDetails.contact,
-            loanNo: issuedLoan.loanNo,
-            loanAmount: issuedLoan.loanAmount,
-            interestRate: schemeDetails.interestRate,
-            consultingCharge: consultingCharge || 0,
-            issueDate: new Date(issueDate).toISOString(),
-            nextInstallmentDate: new Date(nextInstallmentDate).toISOString(),
-            companyContact: company.contact,
-            companyName: company.name,
-            companyEmail: company.email,
+            firstName: disbursedLoan.customer.firstName,
+            middleName: disbursedLoan.customer.middleName,
+            lastName: disbursedLoan.customer.lastName,
+            contact: disbursedLoan.customer.contact,
+            loanNo: disbursedLoan.loanNo,
+            loanAmount: disbursedLoan.loanAmount,
+            interestRate: disbursedLoan.scheme.interestRate,
+            consultingCharge: disbursedLoan.consultingCharge || 0,
+            issueDate: new Date(disbursedLoan.issueDate).toISOString(),
+            nextInstallmentDate: new Date(disbursedLoan.nextInstallmentDate).toISOString(),
+            companyContact: disbursedLoan.company.contact,
+            companyName: disbursedLoan.company.name,
+            companyEmail: disbursedLoan.company.email,
         });
 
         return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
