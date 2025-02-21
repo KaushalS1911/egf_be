@@ -184,6 +184,7 @@ const scenarios = {
         payload.companyName,
         payload.companyName,
     ],
+    sanction_letter_11: (payload, file) => [],
     loan_issue: (payload, file) => [
         `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNo,
