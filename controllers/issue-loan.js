@@ -85,7 +85,7 @@ async function disburseLoan(req, res) {
 
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
-        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
+        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true});
         await sendMessage({
             type: "loan_issue",
             firstName: customerDetails.firstName,
