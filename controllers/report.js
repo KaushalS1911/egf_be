@@ -227,7 +227,10 @@ const loanDetail = async (req, res) => {
             message: "Internal server error",
         });
     }
-};
+}
 
 
-module.exports = {dailyReport, loanSummary, loanDetail};
+
+
+
+module.exports = {dailyReport, loanSummary, loanDetail}

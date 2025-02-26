@@ -1,11 +1,9 @@
 const IssuedLoanModel = require("../models/issued-loan");
+const IssuedLoanInitialModel = require("../models/issued_loan_initial");
 const InterestModel = require("../models/interest");
 const PartReleaseModel = require("../models/part-release");
 const PartPaymentModel = require("../models/loan-part-payment");
 const LoanCloseModel = require("../models/loan-close");
-const CompanyModel = require("../models/company");
-const CustomerModel = require("../models/customer");
-const SchemeModel = require("../models/scheme");
 const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
@@ -17,30 +15,30 @@ async function issueLoan(req, res) {
     session.startTransaction();
 
     try {
-        const {companyId} = req.params;
-        const {customer, scheme, consultingCharge, issueDate, series} = req.body;
+        const { companyId } = req.params;
+        const { issueDate, series, ...loanData } = req.body;
 
-        const company = await CompanyModel.findById(companyId);
-        const customerDetails = await CustomerModel.findById(customer);
-        const schemeDetails = await SchemeModel.findById(scheme);
-
-        if (!company || !customerDetails || !schemeDetails) {
-            throw new Error("Invalid company, customer, or scheme details");
-        }
-
-        const property = req.file && req.file.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
+        const loanNo = await generateNextLoanNumber(series, companyId);
+        const transactionNo = await generateTransactionNumber(companyId);
 
-        const issuedLoan = new IssuedLoanModel({
-            ...req.body,
+        const loanDetails = {
+            ...loanData,
             nextInstallmentDate,
             company: companyId,
-            loanNo: await generateNextLoanNumber(series, companyId),
-            transactionNo: await generateTransactionNumber(companyId),
-            propertyImage: property,
-        });
+            loanNo,
+            transactionNo,
+            propertyImage,
+        };
 
-        await issuedLoan.save({session});
+        const issuedLoan = new IssuedLoanModel(loanDetails);
+        const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
+
+        await Promise.all([
+            issuedLoan.save({ session }),
+            issuedLoanInitial.save({ session }),
+        ]);
 
         await session.commitTransaction();
         return res.status(201).json({
@@ -51,11 +49,12 @@ async function issueLoan(req, res) {
     } catch (err) {
         await session.abortTransaction();
         console.error("Error issuing loan:", err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     } finally {
-        await session.endSession();
+        session.endSession();
     }
 }
+
 
 
 async function disburseLoan(req, res) {
