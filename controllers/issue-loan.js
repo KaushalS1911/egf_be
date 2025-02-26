@@ -356,6 +356,7 @@ async function GetInterestPayment(req, res) {
 
 async function InterestReports(req, res) {
     try {
+        const companyId = req.params.companyId
         const interestDetail = await InterestModel.aggregate([
             {
                 $match: {deleted_at: null}
@@ -385,9 +386,12 @@ async function InterestReports(req, res) {
                 $unwind: {path: "$loanDetails", preserveNullAndEmptyArrays: true}
             },
             {
+                $match: { "loanDetails.company": companyId }
+            },
+            {
                 $addFields: {
                     "loanDetails.scheme": {
-                        $convert: { input: "$loanDetails.scheme", to: "objectId", onError: null, onNull: null }
+                        $convert: {input: "$loanDetails.scheme", to: "objectId", onError: null, onNull: null}
                     }
                 }
             },
@@ -399,12 +403,12 @@ async function InterestReports(req, res) {
                     as: "loanDetails.scheme"
                 }
             },
-            { $unwind: { path: "$loanDetails.scheme", preserveNullAndEmptyArrays: true } },
+            {$unwind: {path: "$loanDetails.scheme", preserveNullAndEmptyArrays: true}},
 
             {
                 $addFields: {
                     "loanDetails.customer": {
-                        $convert: { input: "$loanDetails.customer", to: "objectId", onError: null, onNull: null }
+                        $convert: {input: "$loanDetails.customer", to: "objectId", onError: null, onNull: null}
                     }
                 }
             },
@@ -416,12 +420,12 @@ async function InterestReports(req, res) {
                     as: "loanDetails.customer"
                 }
             },
-            { $unwind: { path: "$loanDetails.customer", preserveNullAndEmptyArrays: true } },
+            {$unwind: {path: "$loanDetails.customer", preserveNullAndEmptyArrays: true}},
 
             {
                 $addFields: {
                     "loanDetails.customer.branch": {
-                        $convert: { input: "$loanDetails.customer.branch", to: "objectId", onError: null, onNull: null }
+                        $convert: {input: "$loanDetails.customer.branch", to: "objectId", onError: null, onNull: null}
                     }
                 }
             },
@@ -433,10 +437,10 @@ async function InterestReports(req, res) {
                     as: "loanDetails.customer.branch"
                 }
             },
-            { $unwind: { path: "$loanDetails.customer.branch", preserveNullAndEmptyArrays: true } },
+            {$unwind: {path: "$loanDetails.customer.branch", preserveNullAndEmptyArrays: true}},
 
             {
-                $sort: { _id: -1 }
+                $sort: {_id: -1}
             }
         ]);
 
