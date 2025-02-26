@@ -386,7 +386,7 @@ async function InterestReports(req, res) {
                 $unwind: {path: "$loanDetails", preserveNullAndEmptyArrays: true}
             },
             {
-                $match: { "loanDetails.company": companyId }
+                $match: { "loanDetails.company": companyId , deleted_at: null}
             },
             {
                 $addFields: {
