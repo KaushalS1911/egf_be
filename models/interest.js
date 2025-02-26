@@ -9,6 +9,7 @@ const interestSchema = new mongoose.Schema({
     interestAmount: Number,
     consultingCharge: Number,
     totalAmount: Number,
+    entryBy: String,
     interestLoanAmount: Number,
     uchakInterestAmount: Number,
     penalty: {type: Number, default: 0},

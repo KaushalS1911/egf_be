@@ -5,6 +5,7 @@ const loanPartPaymentSchema = new mongoose.Schema({
     amountPaid: Number,
     interestLoanAmount: Number,
     date: Date,
+    entryBy: String,
     remark: String,
     paymentDetail: Object,
     deleted_at: {type: Date, default: null}

@@ -7,6 +7,7 @@ const loanCloseSchema = new mongoose.Schema({
     netAmount: Number,
     closingCharge: Number,
     remark: String,
+    entryBy: String,
     paymentDetail: Object,
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
