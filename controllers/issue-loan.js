@@ -15,8 +15,8 @@ async function issueLoan(req, res) {
     session.startTransaction();
 
     try {
-        const { companyId } = req.params;
-        const { issueDate, series, ...loanData } = req.body;
+        const {companyId} = req.params;
+        const {issueDate, series, ...loanData} = req.body;
 
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
@@ -36,8 +36,8 @@ async function issueLoan(req, res) {
         const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
 
         await Promise.all([
-            issuedLoan.save({ session }),
-            issuedLoanInitial.save({ session }),
+            issuedLoan.save({session}),
+            issuedLoanInitial.save({session}),
         ]);
 
         await session.commitTransaction();
@@ -49,12 +49,11 @@ async function issueLoan(req, res) {
     } catch (err) {
         await session.abortTransaction();
         console.error("Error issuing loan:", err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     } finally {
         session.endSession();
     }
 }
-
 
 
 async function disburseLoan(req, res) {
@@ -382,12 +381,64 @@ async function InterestReports(req, res) {
                 }
             },
             {
-                $unwind: { path: "$loanDetails", preserveNullAndEmptyArrays: true }
+                $unwind: {path: "$loanDetails", preserveNullAndEmptyArrays: true}
             },
             {
-                $sort: {_id: -1}
+                $addFields: {
+                    "loanDetails.scheme": {
+                        $convert: { input: "$loanDetails.scheme", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "schemes",
+                    localField: "loanDetails.scheme",
+                    foreignField: "_id",
+                    as: "loanDetails.scheme"
+                }
+            },
+            { $unwind: { path: "$loanDetails.scheme", preserveNullAndEmptyArrays: true } },
+
+            {
+                $addFields: {
+                    "loanDetails.customer": {
+                        $convert: { input: "$loanDetails.customer", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "customers",
+                    localField: "loanDetails.customer",
+                    foreignField: "_id",
+                    as: "loanDetails.customer"
+                }
+            },
+            { $unwind: { path: "$loanDetails.customer", preserveNullAndEmptyArrays: true } },
+
+            {
+                $addFields: {
+                    "loanDetails.customer.branch": {
+                        $convert: { input: "$loanDetails.customer.branch", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "branches",
+                    localField: "loanDetails.customer.branch",
+                    foreignField: "_id",
+                    as: "loanDetails.customer.branch"
+                }
+            },
+            { $unwind: { path: "$loanDetails.customer.branch", preserveNullAndEmptyArrays: true } },
+
+            {
+                $sort: { _id: -1 }
             }
         ]);
+
 
         return res.status(200).json({
             status: 200,
