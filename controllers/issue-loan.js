@@ -282,7 +282,11 @@ async function loanClose(req, res) {
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
 
-        return res.status(201).json({status: 201, message: "Loan closed successfully", data: {...closedLoan.toObject(),loan: updatedLoan}});
+        return res.status(201).json({
+            status: 201,
+            message: "Loan closed successfully",
+            data: {...closedLoan.toObject(), loan: updatedLoan}
+        });
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -303,7 +307,7 @@ async function uchakInterestPayment(req, res) {
         return res.status(201).json({
             status: 201,
             message: "Loan uchak interest paid successfully",
-            data: {...interestDetail,loan: updatedLoan}
+            data: {...interestDetail, loan: updatedLoan}
         });
     } catch (err) {
         console.error(err);
@@ -351,6 +355,51 @@ async function GetInterestPayment(req, res) {
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
+
+async function InterestReports(req, res) {
+    try {
+        const interestDetail = await InterestModel.aggregate([
+            {
+                $match: {deleted_at: null}
+            },
+            {
+                $group: {
+                    _id: "$loan",
+                    totalInterestAmount: {$sum: "$interestAmount"},
+                    totalAmountPaid: {$sum: "$amountPaid"}
+                }
+            },
+            {
+                $addFields: {
+                    loanId: {$convert: {input: "$_id", to: "objectId"}}
+                }
+            },
+            {
+                $lookup: {
+                    from: "issued loans",
+                    localField: "loanId",
+                    foreignField: "_id",
+                    as: "loanDetails"
+                }
+            },
+            {
+                $unwind: { path: "$loanDetails", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $sort: {_id: -1}
+            }
+        ]);
+
+        return res.status(200).json({
+            status: 200,
+            data: interestDetail
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({status: 500, message: "Internal server error"});
+    }
+}
+
 
 async function GetUchakInterestPayment(req, res) {
 
@@ -841,6 +890,7 @@ module.exports = {
     updatePartReleaseDetail,
     loanClose,
     deleteInterestPayment,
+    InterestReports,
     deletePartReleaseDetail,
     deletePartPaymentDetail,
     uchakInterestPayment,
