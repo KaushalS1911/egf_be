@@ -36,9 +36,6 @@ cron.schedule('*/5 * * * *', async () => {
     try {
         await updateOverdueLoans();
         console.log("Loan status updated successfully");
-
-        await updateOverdueClosedLoans();
-        console.log("Other Loan status updated successfully");
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
     }
