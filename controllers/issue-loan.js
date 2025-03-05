@@ -19,7 +19,6 @@ async function issueLoan(req, res) {
         const {issueDate, series, ...loanData} = req.body;
 
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
-        const nextInstallmentDate = getNextInterestPayDate(issueDate);
         const loanNo = await generateNextLoanNumber(series, companyId);
         const transactionNo = await generateTransactionNumber(companyId);
 
@@ -83,6 +82,7 @@ async function disburseLoan(req, res) {
         loanDetail.payingCashAmount = payingCashAmount
         loanDetail.payingBankAmount = payingBankAmount
         loanDetail.issueDate = issueDate
+        loanDetail.nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
 
