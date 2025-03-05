@@ -59,6 +59,7 @@ const defaultPermissions = {
 const configSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
     goldRate: Number,
+    savant: Number,
     headersConfig: {},
     businessType: [],
     loanTypes: [],
