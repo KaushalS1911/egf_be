@@ -15,6 +15,7 @@ const interestSchema = new mongoose.Schema({
     penalty: {type: Number, default: 0},
     amountPaid: {type: Number, default: 0},
     cr_dr: {type: Number, default: 0},
+    old_cr_dr: {type: Number, default: 0},
     paymentDetail: {type: Object, default: null},
     isUpdated: {type: Boolean}
 }, {timestamps: true})
