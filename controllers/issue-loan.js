@@ -21,11 +21,13 @@ async function issueLoan(req, res) {
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const loanNo = await generateNextLoanNumber(series, companyId);
         const transactionNo = await generateTransactionNumber(companyId);
+        const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         const loanDetails = {
             ...loanData,
             issueDate,
             company: companyId,
+            nextInstallmentDate,
             loanNo,
             transactionNo,
             propertyImage,
