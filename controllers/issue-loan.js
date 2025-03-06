@@ -25,7 +25,6 @@ async function issueLoan(req, res) {
         const loanDetails = {
             ...loanData,
             issueDate,
-            nextInstallmentDate,
             company: companyId,
             loanNo,
             transactionNo,
