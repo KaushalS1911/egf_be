@@ -288,8 +288,7 @@ const customerStatement = async (req,res) => {
 const initialLoanDetail = async (req,res) => {
 
     try {
-        const {loan} = req.query;
-        const loanDetail = await IssuedLoanInitialModel.findOne({loanNo: loan});
+        const loanDetail = await IssuedLoanInitialModel.find();
         return res.status(200).json({
             status: 200,
             data: loanDetail
