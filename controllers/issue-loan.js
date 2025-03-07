@@ -34,11 +34,9 @@ async function issueLoan(req, res) {
         };
 
         const issuedLoan = new IssuedLoanModel(loanDetails);
-        const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
 
         await Promise.all([
             issuedLoan.save({session}),
-            issuedLoanInitial.save({session}),
         ]);
 
         await session.commitTransaction();
@@ -105,6 +103,10 @@ async function disburseLoan(req, res) {
             companyName: disbursedLoan.company.name,
             companyEmail: disbursedLoan.company.email,
         });
+
+        const issuedLoanInitial = new IssuedLoanInitialModel(disbursedLoan);
+        await issuedLoanInitial.save()
+
 
         return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
     } catch (err) {
