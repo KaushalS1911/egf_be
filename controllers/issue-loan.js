@@ -9,6 +9,7 @@ const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
 const {sendMessage} = require("./common");
 const {generateNextLoanNumber} = require("../helpers/loan");
+const moment = require("moment");
 
 async function issueLoan(req, res) {
     const session = await mongoose.startSession();
@@ -34,9 +35,11 @@ async function issueLoan(req, res) {
         };
 
         const issuedLoan = new IssuedLoanModel(loanDetails);
+        const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
 
         await Promise.all([
-            issuedLoan.save({session}),
+            issuedLoan.save({ session }),
+            issuedLoanInitial.save({ session }),
         ]);
 
         await session.commitTransaction();
@@ -56,7 +59,6 @@ async function issueLoan(req, res) {
 
 
 async function disburseLoan(req, res) {
-
     try {
         const {
             loan,
@@ -68,52 +70,64 @@ async function disburseLoan(req, res) {
             payingCashAmount,
             payingBankAmount,
             issueDate
-        } = req.body
+        } = req.body;
 
-        const loanDetail = await IssuedLoanModel.findById(loan)
+        // Fetch loan details
+        const loanDetail = await IssuedLoanModel.findById(loan);
+        if (!loanDetail) {
+            return res.status(404).json({ status: 404, message: "Loan not found" });
+        }
 
-        loanDetail.status = "Disbursed"
-        loanDetail.companyBankDetail = companyBankDetail
-        loanDetail.cashAmount = cashAmount
-        loanDetail.bankAmount = bankAmount
-        loanDetail.pendingCashAmount = pendingCashAmount
-        loanDetail.pendingBankAmount = pendingBankAmount
-        loanDetail.payingCashAmount = payingCashAmount
-        loanDetail.payingBankAmount = payingBankAmount
-        loanDetail.issueDate = issueDate
-        loanDetail.nextInstallmentDate = getNextInterestPayDate(issueDate);
+        // Update loan details
+        Object.assign(loanDetail, {
+            status: "Disbursed",
+            companyBankDetail: companyBankDetail || loanDetail.companyBankDetail,
+            cashAmount,
+            bankAmount,
+            pendingCashAmount,
+            pendingBankAmount,
+            payingCashAmount,
+            payingBankAmount,
+            issueDate,
+            nextInstallmentDate: getNextInterestPayDate(issueDate)
+        });
+        // Save updated loan details
+        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(
+            loan,
+            loanDetail,
+            { new: true }
+        ).populate(["scheme", "customer", "company"]);
+        console.log(disbursedLoan)
 
-        if (companyBankDetail) loanDetail.companyBankDetail = companyBankDetail
+        if (!disbursedLoan) {
+            return res.status(500).json({ status: 500, message: "Failed to update loan details" });
+        }
 
-        const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(loan, loanDetail, {new: true}).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
-
+        // Send notification
         await sendMessage({
             type: "loan_issue",
-            firstName: disbursedLoan.customer.firstName,
-            middleName: disbursedLoan.customer.middleName,
-            lastName: disbursedLoan.customer.lastName,
+            firstName: disbursedLoan?.customer?.firstName,
+            middleName: disbursedLoan?.customer?.middleName,
+            lastName: disbursedLoan?.customer?.lastName,
             contact: disbursedLoan.customer.contact,
             loanNo: disbursedLoan.loanNo,
             loanAmount: disbursedLoan.loanAmount,
             interestRate: disbursedLoan.scheme.interestRate,
             consultingCharge: disbursedLoan.consultingCharge || 0,
-            issueDate: new Date(disbursedLoan.issueDate).toLocaleString(),
-            nextInstallmentDate: new Date(disbursedLoan.nextInstallmentDate).toLocaleString(),
+            issueDate: moment(disbursedLoan.issueDate, 'DD-MM-YYYY').format(),
+            nextInstallmentDate: moment(disbursedLoan.nextInstallmentDate, 'DD-MM-YYYY').format(),
             companyContact: disbursedLoan.company.contact,
-            companyName: disbursedLoan.company.name,
-            companyEmail: disbursedLoan.company.email,
+            companyName: disbursedLoan?.company?.name,
+            companyEmail: disbursedLoan?.company?.email,
         });
 
-        const issuedLoanInitial = new IssuedLoanInitialModel(disbursedLoan);
-        await issuedLoanInitial.save()
-
-
-        return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
+        return res.status(201).json({ status: 201, message: "Loan disbursed successfully", data: disbursedLoan });
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        console.error("Error in disburseLoan:", err);
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
+
 
 async function interestPayment(req, res) {
     try {
