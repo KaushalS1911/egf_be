@@ -288,7 +288,7 @@ const customerStatement = async (req,res) => {
 const initialLoanDetail = async (req,res) => {
 
     try {
-        const loanDetail = await IssuedLoanInitialModel.find();
+        const loanDetail = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
         return res.status(200).json({
             status: 200,
             data: loanDetail
