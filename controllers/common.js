@@ -71,7 +71,7 @@ async function updateOverdueLoans() {
                     filter: {
                         deleted_at: null,
                         nextInstallmentDate: {$lt: today},
-                        status: {$ne: ["Closed", "Issued"]}
+                        status: {$nin: ["Closed", "Issued"]}
                     },
                     update: {$set: {status: 'Overdue'}}
                 }
@@ -82,7 +82,7 @@ async function updateOverdueLoans() {
                         deleted_at: null,
                         nextInstallmentDate: {$gte: today},
                         lastInstallmentDate: {$ne: null},
-                        status: {$ne: ['Closed', 'Issued']}
+                        status: {$nin: ['Closed', 'Issued']}
                     },
                     update: {$set: {status: 'Regular'}}
                 }
@@ -137,9 +137,16 @@ async function sendMessage(messagePayload, file = null){
 
         const formData = new FormData();
 
+        const safeContact = contact ? `91${contact}` : '';
+        const safeName = [
+            payload.firstName,
+            payload.middleName,
+            payload.lastName
+        ].filter(Boolean).join(' ');
+
         formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        formData.append("name", `${payload.firstName} ${payload.middleName} ${payload.lastName}`);
-        formData.append("sendto", `91${contact}`);
+        formData.append("name", safeName);
+        formData.append("sendto", safeContact);
         formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
         formData.append("templateName", type);
         formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
@@ -152,8 +159,10 @@ async function sendMessage(messagePayload, file = null){
         }
 
         const customData = scenarioFunction(payload, file);
+
         customData.forEach((value, index) => {
-            formData.append(`data[${index}]`, value);
+            const safeValue = value != null ? String(value) : '';
+            formData.append(`data[${index}]`, safeValue);
         });
 
         const config = {

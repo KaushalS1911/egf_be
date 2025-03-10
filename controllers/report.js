@@ -2,6 +2,7 @@ const moment = require("moment");
 const IssuedLoanModel = require("../models/issued-loan")
 const InterestModel = require("../models/interest")
 const UchakInterestModel = require("../models/uchak-interest-payment")
+const IssuedLoanInitialModel = require("../models/issued_loan_initial")
 const PartPaymentModel = require("../models/loan-part-payment")
 const PartReleaseModel = require("../models/part-release")
 const CloseLoanModel = require("../models/loan-close")
@@ -230,7 +231,76 @@ const loanDetail = async (req, res) => {
 }
 
 
+const customerStatement = async (req,res) => {
+    try {
+        const { customerId } = req.params;
+
+        const loanDetails = await IssuedLoanModel.find({customer: customerId}).select('_id')
+        const loanIds = loanDetails.map((loan) => loan._id);
+        const query = { loan: { $in: loanIds }, deleted_at: null }
 
 
+        const [
+            interestDetail,
+            uchakInterestDetail,
+            partPaymentDetail,
+            partReleaseDetail,
+            loanCloseDetail
+        ] = await Promise.all([
+            fetchInterestDetails(query,  null),
+            fetchUchakInterestDetails(query ,  null),
+            fetchPartPaymentDetails(query,  null),
+            fetchPartReleaseDetails(query,  null),
+            fetchLoanCloseDetails(query,  null),
+        ]);
 
-module.exports = {dailyReport, loanSummary, loanDetail}
+        const result = [...interestDetail, ...uchakInterestDetail, ...partPaymentDetail, ...partReleaseDetail, ...loanCloseDetail];
+
+        const statementData = result.map((item) => {
+            return {
+                loanNo: item.loan.loanNo,
+                customerName: `${item.loan.customer.firstName} ${item.loan.customer.lastName}`,
+                loanAmount: item.loan.loanAmount,
+                interestLoanAmount: item.loan.interestLoanAmount,
+                partLoanAmount: item.loan.loanAmount - item.loan.interestLoanAmount,
+                amount:
+                    item.paymentDetail.paymentMode === 'Cash'
+                        ? item.paymentDetail.cashAmount
+                        : item.paymentDetail.paymentMode === 'Bank'
+                            ? item.paymentDetail.bankAmount
+                            : item.paymentDetail.cashAmount + item.paymentDetail.bankAmount,
+                createdAt: item.createdAt,
+            };
+        }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        return res.status(200).json({
+            status: 200,
+            data: statementData,
+        });
+    } catch (err) {
+        console.error("Error fetching customer statement report:", err.message);
+        return res.status(500).json({
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+}
+
+const initialLoanDetail = async (req,res) => {
+
+    try {
+        const loanDetail = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
+        return res.status(200).json({
+            status: 200,
+            data: loanDetail
+        })
+    }catch (e){
+        console.error("Error fetching loan detail report:",e.message);
+        return res.status(500).json({
+            status: 500,
+            message: "Internal server error",
+        })
+    }
+}
+
+
+module.exports = {dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail}
