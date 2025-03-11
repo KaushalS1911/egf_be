@@ -10,7 +10,6 @@ const {uploadPropertyFile} = require("../helpers/avatar");
 const {sendMessage} = require("./common");
 const {generateNextLoanNumber} = require("../helpers/loan");
 const moment = require("moment");
-const LoanPartReleaseModel = require("../models/part-release");
 const PenaltyModel = require("../models/penalty");
 
 async function issueLoan(req, res) {
@@ -23,7 +22,6 @@ async function issueLoan(req, res) {
 
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
         const loanNo = await generateNextLoanNumber(series, companyId);
-        const transactionNo = await generateTransactionNumber(companyId);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         const loanDetails = {
@@ -32,7 +30,6 @@ async function issueLoan(req, res) {
             company: companyId,
             nextInstallmentDate,
             loanNo,
-            transactionNo,
             propertyImage,
         };
 
@@ -206,14 +203,6 @@ function calculateInstallmentDates(loanDetails, from, to) {
 }
 
 
-function calculateUpdatedUchakAmount(uchakInterestAmount, amountPaid) {
-    if (uchakInterestAmount && uchakInterestAmount > 0) {
-        return Math.max(uchakInterestAmount - amountPaid, 0);
-    }
-    return 0;
-}
-
-
 async function deleteInterestPayment(req, res) {
     try {
         const {loanId, id} = req.params;
@@ -265,23 +254,11 @@ async function deleteInterestPayment(req, res) {
 
 
 function calculateNextInstallmentDate(loanDetails, interestDetails) {
-    // const isSingleInterestEntry = interestEntries && interestEntries.length === 1;
-
     if (interestDetails.isUpdated) {
         return reverseNextInterestPayDate(loanDetails.nextInstallmentDate);
     } else {
         return loanDetails.nextInstallmentDate
     }
-
-    // const isWithinInstallmentPeriod =
-    //     // new Date(new Date(loanDetails.lastInstallmentDate).setDate(new Date(loanDetails.lastInstallmentDate).getDate() + 1)).toDateString() ===
-    //     // new Date(interestDetails.from).toDateString() &&
-    //     new Date(loanDetails.lastInstallmentDate) > new Date(interestDetails.to);
-    //
-    // if (isWithinInstallmentPeriod) {
-    //     return loanDetails.nextInstallmentDate;
-    // }
-    // return reverseNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() - 1)));
 }
 
 
@@ -883,22 +860,6 @@ async function deleteMultipleLoans(req, res) {
     }
 }
 
-const generateTransactionNumber = async (companyId) => {
-    const prefix = 'TRXN';
-
-    let count = 0
-
-    count = await IssuedLoanModel.countDocuments({company: companyId});
-
-    count += 1;
-
-    const numberPart = String(count).padStart(6, '0');
-
-    const transactionNumber = `${prefix}${numberPart}`;
-
-    return transactionNumber;
-};
-
 function getNextInterestPayDate(issueDate) {
     let originalDate = new Date(issueDate);
     let year = originalDate.getFullYear();
@@ -922,21 +883,6 @@ const getCurrentFinancialYear = () => {
     } else {
         return `${(currentYear - 1).toString().slice(-2)}_${currentYear.toString().slice(-2)}`;
     }
-};
-
-const generateLoanNumber = async (companyId) => {
-    const financialYear = getCurrentFinancialYear();
-
-    const loanCount = await IssuedLoanModel.countDocuments({
-        company: companyId,
-        loanNo: {$regex: `^EGF/${financialYear}`}
-    });
-
-    const newLoanCount = loanCount + 1;
-
-    const loanNumber = `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
-
-    return loanNumber;
 };
 
 module.exports = {

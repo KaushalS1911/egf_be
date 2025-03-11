@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const CustomerModel = require("../models/customer");
-const BranchModel = require("../models/branch");
 const CompanyModel = require("../models/company");
 const { uploadFile } = require("../helpers/avatar");
 const {sendWhatsAppMessage} = require("./common");
@@ -19,6 +18,7 @@ const createCustomer = async (req, res) => {
         const isCustomerExist = await CustomerModel.exists({
             deleted_at: null,
             company: companyId,
+            branch,
             $or: [
                 { aadharCard: customerData.aadharCard },
                 { panCard: customerData.panCard },
@@ -28,12 +28,6 @@ const createCustomer = async (req, res) => {
         if (isCustomerExist) {
             throw new Error("Customer already exists.");
         }
-
-        const customerBranch = await BranchModel.findById(branch).select("branchCode").session(session);
-        if (!customerBranch) {
-            throw new Error("Branch not found.");
-        }
-        const branchCode = customerBranch.branchCode;
 
         const customerCount = await CustomerModel.countDocuments({}).session(session);
         const paddedSeq = (customerCount + 1).toString().padStart(4, "0");

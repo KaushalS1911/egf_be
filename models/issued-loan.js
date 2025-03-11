@@ -5,7 +5,7 @@ const issuedLoanSchema = new mongoose.Schema({
     customer: {type: String, ref: "Customer", required: true},
     scheme: {type: String, ref: "Scheme", required: true},
     loanNo: String,
-    transactionNo: String,
+    transactionNo: {type: String, default: null},
     issueDate: Date,
     jewellerName: String,
     nextInstallmentDate: {type: Date, default: null},
