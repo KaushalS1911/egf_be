@@ -18,7 +18,7 @@ const {
     updatePartReleaseDetail,
     deletePartPaymentDetail,
     updateInterestPayment,
-    deleteMultipleLoans,
+    deleteIssuedLoan,
     disburseLoan,
     interestPayment,
     GetInterestPayment,
@@ -32,7 +32,7 @@ const upload = multer({storage});
 router.post('/:companyId/issue-loan', upload.single('property-image'), issueLoan);
 router.post('/disburse-loan', disburseLoan);
 router.get('/:companyId/loans', getAllLoans);
-router.delete('/:companyId/loans', deleteMultipleLoans);
+router.delete('/:companyId/loans/:loanId', deleteIssuedLoan);
 router.get('/:companyId/loans/interest-reports', InterestReports);
 router.get('/:companyId/loans/:loanId', getSingleLoan);
 router.put('/:companyId/loans/:loanId', upload.single('property-image'), updateLoan);

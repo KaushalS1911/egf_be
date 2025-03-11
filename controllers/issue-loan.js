@@ -361,7 +361,7 @@ async function InterestReports(req, res) {
         const loans = await IssuedLoanModel.find({
             company: companyId,
             deleted_at: null
-        }).populate("customer").populate("scheme");
+        }).populate({path: 'customer', populate: "branch"}).populate("scheme");
 
         // Process each loan concurrently
         const result = await Promise.all(loans.map(async (loan) => {
@@ -840,20 +840,19 @@ async function getSingleLoan(req, res) {
     }
 }
 
-async function deleteMultipleLoans(req, res) {
+async function deleteIssuedLoan(req, res) {
     try {
-        const {ids} = req.body;
+        const {loanId, companyId} = req.params;
 
-        if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({status: 400, message: "Invalid loan IDs."});
+        const [issuedLoans] = await IssuedLoanModel.find({company: companyId, deleted_at: null}).sort({createdAt: -1}).limit(1)
+
+        if(issuedLoans.status !== "Issued"){
+            res.status(400).json({status: 400, message: "Loan cannot be deleted because it is not latest one."});
         }
 
-        await IssuedLoanModel.updateMany(
-            {_id: {$in: ids}},
-            {$set: {deleted_at: new Date()}}
-        );
+        await IssuedLoanModel.findByIdAndUpdate(loanId, {deleted_at: new Date()}, {new: true})
 
-        return res.status(200).json({status: 200, message: "Loans deleted successfully"});
+        return res.status(200).json({status: 200, message: "Loan deleted successfully"});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -890,7 +889,7 @@ module.exports = {
     getAllLoans,
     updateLoan,
     getSingleLoan,
-    deleteMultipleLoans,
+    deleteIssuedLoan,
     disburseLoan,
     interestPayment,
     partRelease,
