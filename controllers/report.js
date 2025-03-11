@@ -127,110 +127,84 @@ const dailyReport = async (req, res) => {
 
 const loanSummary = async (req, res) => {
     try {
-        const {companyId} = req.params;
+        const { companyId } = req.params;
 
-        const query = {
-            company: companyId,
-            deleted_at: null,
-        };
-
-        const loans = await IssuedLoanModel.find(query).populate({path: "customer", populate: "branch"}).populate("issuedBy").populate('closedBy').populate("scheme");
-
+        const loans = await IssuedLoanModel.find({ company: companyId, deleted_at: null })
+            .populate({ path: "customer", populate: "branch" })
 
         const result = await Promise.all(loans.map(async (loan) => {
-
+            loan = loan.toObject(); // Convert Mongoose document to a plain object
 
             loan.closedDate = null;
-            loan.closeAmt = null;
+            loan.closeAmt = 0;
 
             if (loan.status === 'Closed') {
                 const closedLoans = await CloseLoanModel.find({ loan: loan._id, deleted_at: null })
-                    .sort({ createdAt: -1 })
+                    .sort({ createdAt: -1 });
 
                 if (closedLoans.length > 0) {
                     loan.closedDate = closedLoans[0].date;
-                    loan.closeAmt = closedLoans.reduce((acc, amount) => acc + (amount.netAmount || 0), 0);
+                    loan.closeAmt = closedLoans.reduce((sum, entry) => sum + (entry.netAmount || 0), 0);
                 }
             }
 
-            const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
+            // Fetch Interest and Part Payments
+            const [interests, partPayments, partReleases] = await Promise.all([
+                InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
+                PartPaymentModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
+                LoanPartReleaseModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
+            ]);
 
-            const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
-            let uchakInterest = 0
+            const lastInterestEntry = interests[0] || {};
+            const oldCrDr = lastInterestEntry.cr_dr ?? 0;
+            const totalPaidInterest = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
 
-            const old_cr_dr = interests[0]?.cr_dr ?? 0
+            // Determine Last Payment Date
+            const lastAmtPayDate = Math.max(
+                partPayments[0]?.createdAt || 0,
+                partReleases[0]?.createdAt || 0
+            ) || null;
 
-            const loanPartPaymentEntry = await PartPaymentModel.find({ loan: loan._id })
-                .sort({ createdAt: -1 })
-                .limit(1);
-
-            const loanPartReleaseEntry = await LoanPartReleaseModel.find({ loan: loan._id })
-                .sort({ createdAt: -1 })
-                .limit(1);
-
-            const partPaymentDate = loanPartPaymentEntry.length > 0 ? loanPartPaymentEntry[0].createdAt : null;
-            const partReleaseDate = loanPartReleaseEntry.length > 0 ? loanPartReleaseEntry[0].createdAt : null;
-
-            let lastAmtPayDate = null;
-            if (partPaymentDate && partReleaseDate) {
-                lastAmtPayDate = partPaymentDate > partReleaseDate ? partPaymentDate : partReleaseDate;
-            } else {
-                lastAmtPayDate = partPaymentDate || partReleaseDate;
-            }
-
-            if (interestDate) {
-                const uchakInterests = await UchakInterestModel.aggregate([
-                    {
-                        $match: {
-                            loan: loan._id,
-                            date: { $gte: interestDate }
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: null,
-                            totalInterest: { $sum: "amountPaid" }
-                        }
-                    }
+            // Uchak Interest Calculation
+            let uchakInterest = 0;
+            if (lastInterestEntry.createdAt) {
+                const uchakInterestData = await UchakInterestModel.aggregate([
+                    { $match: { loan: loan._id, date: { $gte: lastInterestEntry.createdAt } } },
+                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
                 ]);
-
-                uchakInterest = uchakInterests.length > 0 ? uchakInterests[0].totalInterest : 0;
+                uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
             }
 
-            const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
-
-            loan = loan.toObject();
-            loan.totalPaidInterest = totalPaidInterest;
-
+            // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = moment(loan.lastInstallmentDate);
             const daysDiff = today.diff(lastInstallmentDate, 'days');
 
             loan.day = daysDiff;
 
-            let pendingInterest = 0;
+            const interestRate = loan.scheme?.interestRate ?? 0;
+            const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
+
+            let pendingInterest = interestAmount - uchakInterest - oldCrDr;
+            let penaltyAmount = 0;
 
             if (daysDiff > 30) {
                 const penaltyDays = daysDiff - 30;
-
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
-                    afterDueDateFromDate: {$lte: penaltyDays},
-                    afterDueDateToDate: {$gte: penaltyDays},
+                    afterDueDateFromDate: { $lte: penaltyDays },
+                    afterDueDateToDate: { $gte: penaltyDays },
                 }).select('penaltyInterest');
 
-                const penaltyInterest = penaltyData?.penaltyInterest || 0;
+                const penaltyInterestRate = penaltyData?.penaltyInterest || 0;
+                penaltyAmount = ((loan.interestLoanAmount * (penaltyInterestRate / 100)) * 12 * penaltyDays) / 365;
 
-                const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * penaltyDays / 365);
-
-                const interestAmount = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
-
-                pendingInterest = (penaltyAmount + interestAmount) - uchakInterest - old_cr_dr;
-            } else {
-                pendingInterest = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365) - uchakInterest - old_cr_dr;
+                pendingInterest += penaltyAmount;
             }
 
             loan.pendingInterest = pendingInterest;
+            loan.penaltyAmount = penaltyAmount;
+            loan.totalPaidInterest = totalPaidInterest;
             loan.lastAmtPayDate = lastAmtPayDate;
 
             return loan;
@@ -240,6 +214,7 @@ const loanSummary = async (req, res) => {
             message: "Report data fetched successfully",
             data: result,
         });
+
     } catch (error) {
         console.error("Error fetching loan summary:", error);
         return res.status(500).json({
@@ -248,6 +223,7 @@ const loanSummary = async (req, res) => {
         });
     }
 };
+
 
 const loanDetail = async (req, res) => {
     try {
