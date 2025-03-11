@@ -7,6 +7,9 @@ const PartPaymentModel = require("../models/loan-part-payment")
 const PartReleaseModel = require("../models/part-release")
 const CloseLoanModel = require("../models/loan-close")
 const LoanPartReleaseModel = require("../models/part-release")
+const OtherIssuedLoanModel = require("../models/other-issued-loan")
+const OtherCloseLoanModel = require("../models/other-loan-close")
+const OtherLoanInterestModel = require("../models/other-loan-interest-payment")
 const PenaltyModel = require("../models/penalty")
 
 const fetchLoans = async (query, branch) => {
@@ -224,6 +227,52 @@ const loanSummary = async (req, res) => {
     }
 };
 
+const otherLoanSummary = async (req, res) => {
+    try {
+        const { companyId } = req.params;
+
+        const loans = await OtherIssuedLoanModel.find({ company: companyId, deleted_at: null })
+            .populate({ path: "loan", populate: "customer" })
+
+        const result = await Promise.all(loans.map(async (loan) => {
+            loan = loan.toObject();
+
+            // Fetch Interest and Part Payments
+            const [interests] = await Promise.all([
+                OtherLoanInterestModel.find({ otherLoan: loan._id }).sort({ createdAt: -1 }),
+            ]);
+
+            const lastInterestEntry = interests[0] || {};
+            const totalPaidInterest = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
+
+            // Interest & Penalty Calculation
+            const today = moment();
+            const lastInstallmentDate = moment(loan.renewalDate);
+            const daysDiff = today.diff(lastInstallmentDate, 'days');
+
+            loan.day = daysDiff;
+
+            const interestRate = loan.percentage
+
+            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;;
+
+            return loan;
+        }));
+
+        return res.status(200).json({
+            message: "Report data of other loan summary fetched successfully",
+            data: result,
+        });
+
+    } catch (error) {
+        console.error("Error fetching loan summary:", error);
+        return res.status(500).json({
+            message: "An error occurred while fetching the report data.",
+            error: error.message,
+        });
+    }
+};
+
 
 const loanDetail = async (req, res) => {
     try {
@@ -341,4 +390,4 @@ const initialLoanDetail = async (req,res) => {
 }
 
 
-module.exports = {dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail}
+module.exports = {dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail, otherLoanSummary}
