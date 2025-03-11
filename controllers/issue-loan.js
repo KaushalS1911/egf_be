@@ -10,6 +10,8 @@ const {uploadPropertyFile} = require("../helpers/avatar");
 const {sendMessage} = require("./common");
 const {generateNextLoanNumber} = require("../helpers/loan");
 const moment = require("moment");
+const LoanPartReleaseModel = require("../models/part-release");
+const PenaltyModel = require("../models/penalty");
 
 async function issueLoan(req, res) {
     const session = await mongoose.startSession();
@@ -376,99 +378,88 @@ async function GetInterestPayment(req, res) {
 
 async function InterestReports(req, res) {
     try {
-        const companyId = req.params.companyId
-        const interestDetail = await InterestModel.aggregate([
-            {
-                $match: {deleted_at: null}
-            },
-            {
-                $group: {
-                    _id: "$loan",
-                    totalInterestAmount: {$sum: "$interestAmount"},
-                    totalPenalty: {$sum: "$penalty"},
-                    totalAmountPaid: {$sum: "$amountPaid"},
-                    totalConsultingCharge: {$sum: "consultingCharge"}
-                }
-            },
-            {
-                $addFields: {
-                    loanId: {$convert: {input: "$_id", to: "objectId"}}
-                }
-            },
-            {
-                $lookup: {
-                    from: "issued loans",
-                    localField: "loanId",
-                    foreignField: "_id",
-                    as: "loanDetails"
-                }
-            },
-            {
-                $unwind: {path: "$loanDetails", preserveNullAndEmptyArrays: true}
-            },
-            {
-                $match: { "loanDetails.company": companyId , deleted_at: null}
-            },
-            {
-                $addFields: {
-                    "loanDetails.scheme": {
-                        $convert: {input: "$loanDetails.scheme", to: "objectId", onError: null, onNull: null}
-                    }
-                }
-            },
-            {
-                $lookup: {
-                    from: "schemes",
-                    localField: "loanDetails.scheme",
-                    foreignField: "_id",
-                    as: "loanDetails.scheme"
-                }
-            },
-            {$unwind: {path: "$loanDetails.scheme", preserveNullAndEmptyArrays: true}},
+        const {companyId} = req.params
 
-            {
-                $addFields: {
-                    "loanDetails.customer": {
-                        $convert: {input: "$loanDetails.customer", to: "objectId", onError: null, onNull: null}
-                    }
-                }
-            },
-            {
-                $lookup: {
-                    from: "customers",
-                    localField: "loanDetails.customer",
-                    foreignField: "_id",
-                    as: "loanDetails.customer"
-                }
-            },
-            {$unwind: {path: "$loanDetails.customer", preserveNullAndEmptyArrays: true}},
+        const loans = await IssuedLoanModel.find({company : companyId, deleted_at: null}).populate("customer").populate("scheme").populate("branch")
 
-            {
-                $addFields: {
-                    "loanDetails.customer.branch": {
-                        $convert: {input: "$loanDetails.customer.branch", to: "objectId", onError: null, onNull: null}
-                    }
-                }
-            },
-            {
-                $lookup: {
-                    from: "branches",
-                    localField: "loanDetails.customer.branch",
-                    foreignField: "_id",
-                    as: "loanDetails.customer.branch"
-                }
-            },
-            {$unwind: {path: "$loanDetails.customer.branch", preserveNullAndEmptyArrays: true}},
+        const result = await Promise.all(loans.map(async (loan) => {
 
-            {
-                $sort: {_id: -1}
+            const {loanNo, customer: {firstName, middleName, lastName}, loanAmount, interestLoanAmount, scheme: {interestRate}, lastInstallmentDate} = loan
+
+            const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
+
+            const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
+            let uchakInterest = 0
+
+            const old_cr_dr = interests[0]?.cr_dr ?? 0
+
+            if (interestDate) {
+                const uchakInterests = await UchakInterestModel.aggregate([
+                    {
+                        $match: {
+                            loan: loan._id,
+                            date: { $gte: interestDate }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalInterest: { $sum: "amountPaid" }
+                        }
+                    }
+                ]);
+
+                uchakInterest = uchakInterests.length > 0 ? uchakInterests[0].totalInterest : 0;
             }
-        ]);
 
+            const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
+
+            loan = loan.toObject();
+            loan.totalPaidInterest = totalPaidInterest;
+
+            const today = moment();
+            const lastIntDate = moment(lastInstallmentDate);
+            const daysDiff = today.diff(lastIntDate, 'days');
+
+            loan.day = daysDiff;
+
+            const intRate = interestRate <= 1.5 ? interestRate : 1.5
+            const consRate = interestRate > 1.5 ? interestRate - 1.5 : 0
+
+            const interestAmount = ((loan.interestLoanAmount * (intRate / 100)) * 12 * daysDiff / 365);
+            const consultingAmount = ((loan.interestLoanAmount * (consRate / 100)) * 12 * daysDiff / 365);
+
+            let pendingInterest = (interestAmount + consultingAmount) - uchakInterest - old_cr_dr;
+
+            loan.peneltyAmount = 0
+            if (daysDiff > 30) {
+                const penaltyDays = daysDiff - 30;
+
+                const penaltyData = await PenaltyModel.findOne({
+                    company: companyId,
+                    afterDueDateFromDate: {$lte: penaltyDays},
+                    afterDueDateToDate: {$gte: penaltyDays},
+                }).select('penaltyInterest');
+
+                const penaltyInterest = penaltyData?.penaltyInterest || 0;
+
+                const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * penaltyDays / 365);
+                loan.penaltyAmount = penaltyAmount;
+                pendingInterest = pendingInterest + penaltyAmount;
+            }
+
+            loan.pendingInterestAmt = pendingInterest;
+            loan.interstAmount = interestAmount
+            loan.consultingAmount = consultingAmount
+            loan.rate = intRate
+            loan.consultingRate = consRate
+
+            return loan;
+        }));
 
         return res.status(200).json({
             status: 200,
-            data: interestDetail
+            data: result
         });
     } catch (err) {
         console.error(err);
