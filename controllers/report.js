@@ -136,7 +136,31 @@ const loanSummary = async (req, res) => {
         const loans = await IssuedLoanModel.find(query).populate({path: "customer", populate: "branch"}).populate("issuedBy").populate('closedBy').populate("scheme");
 
         const result = await Promise.all(loans.map(async (loan) => {
-            const interests = await InterestModel.find({loan: loan._id}).select('amountPaid');
+            const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
+
+            const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
+            let uchakInterest = 0
+
+            const old_cr_dr = interests[0]?.cr_dr ?? 0
+
+            if (interestDate) {
+                const uchakInterests = await UchakInterestModel.aggregate([
+                    {
+                        $match: {
+                            loan: loan._id,
+                            date: { $gte: interestDate }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalInterest: { $sum: "amountPaid" }
+                        }
+                    }
+                ]);
+
+                uchakInterest = uchakInterests.length > 0 ? uchakInterests[0].totalInterest : 0;
+            }
 
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
 
@@ -166,9 +190,9 @@ const loanSummary = async (req, res) => {
 
                 const interestAmount = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
 
-                pendingInterest = penaltyAmount + interestAmount;
+                pendingInterest = (penaltyAmount + interestAmount) - uchakInterest - old_cr_dr;
             } else {
-                pendingInterest = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365);
+                pendingInterest = ((loan.interestLoanAmount * (loan.scheme.interestRate / 100)) * 12 * daysDiff / 365) - uchakInterest - old_cr_dr;
             }
 
             loan.pendingInterest = pendingInterest;
