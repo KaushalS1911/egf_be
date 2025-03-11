@@ -267,59 +267,60 @@ const loanDetail = async (req, res) => {
 }
 
 
-const customerStatement = async (req,res) => {
+const customerStatement = async (req, res) => {
     try {
         const { customerId } = req.params;
 
-        const loanDetails = await IssuedLoanModel.find({customer: customerId}).select('_id')
-        const loanIds = loanDetails.map((loan) => loan._id);
-        const query = { loan: { $in: loanIds }, deleted_at: null }
+        // Fetch loan details
+        const loanDetails = await IssuedLoanModel.find({ customer: customerId }).select('_id');
+        const loanIds = loanDetails.map(loan => loan._id);
+        const query = { loan: { $in: loanIds }, deleted_at: null };
 
-
-        const [
-            interestDetail,
-            uchakInterestDetail,
-            partPaymentDetail,
-            partReleaseDetail,
-            loanCloseDetail
-        ] = await Promise.all([
-            fetchInterestDetails(query,  null),
-            fetchUchakInterestDetails(query ,  null),
-            fetchPartPaymentDetails(query,  null),
-            fetchPartReleaseDetails(query,  null),
-            fetchLoanCloseDetails(query,  null),
+        // Fetch all relevant details in parallel
+        const details = await Promise.all([
+            fetchInterestDetails(query, null),
+            fetchUchakInterestDetails(query, null),
+            fetchPartPaymentDetails(query, null),
+            fetchPartReleaseDetails(query, null),
+            fetchLoanCloseDetails(query, null),
         ]);
 
-        const result = [...interestDetail, ...uchakInterestDetail, ...partPaymentDetail, ...partReleaseDetail, ...loanCloseDetail];
+        const types = [
+            "Interest payment",
+            "Uchak interest payment",
+            "Loan part payment",
+            "Loan part release",
+            "Loan close",
+        ];
 
-        const statementData = result.map((item) => {
-            return {
-                loanNo: item.loan.loanNo,
-                customerName: `${item.loan.customer.firstName} ${item.loan.customer.lastName}`,
-                loanAmount: item.loan.loanAmount,
-                interestLoanAmount: item.loan.interestLoanAmount,
-                partLoanAmount: item.loan.loanAmount - item.loan.interestLoanAmount,
-                amount:
-                    item.paymentDetail.paymentMode === 'Cash'
-                        ? item.paymentDetail.cashAmount
-                        : item.paymentDetail.paymentMode === 'Bank'
-                            ? item.paymentDetail.bankAmount
-                            : item.paymentDetail.cashAmount + item.paymentDetail.bankAmount,
-                createdAt: item.createdAt,
-            };
-        }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        return res.status(200).json({
-            status: 200,
-            data: statementData,
-        });
+        // Combine results and assign types
+        const result = details.flatMap((detail, index) =>
+            detail.map(entry => ({ ...entry, type: types[index] }))
+        );
+
+        // Format statement data
+        const statementData = result.map(({ type, loan, paymentDetail, createdAt }) => ({
+            type,
+            loanNo: loan.loanNo,
+            customerName: `${loan.customer.firstName} ${loan.customer.lastName}`,
+            loanAmount: loan.loanAmount,
+            interestLoanAmount: loan.interestLoanAmount,
+            partLoanAmount: loan.loanAmount - loan.interestLoanAmount,
+            amount: (paymentDetail.paymentMode === 'Cash')
+                ? paymentDetail.cashAmount
+                : (paymentDetail.paymentMode === 'Bank')
+                    ? paymentDetail.bankAmount
+                    : (paymentDetail.cashAmount + paymentDetail.bankAmount),
+            createdAt,
+        })).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        return res.status(200).json({ status: 200, data: statementData });
     } catch (err) {
         console.error("Error fetching customer statement report:", err.message);
-        return res.status(500).json({
-            status: 500,
-            message: "Internal server error",
-        });
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     }
-}
+};
+
 
 const initialLoanDetail = async (req,res) => {
 
