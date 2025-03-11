@@ -37,8 +37,8 @@ async function issueLoan(req, res) {
         const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
 
         await Promise.all([
-            issuedLoan.save({ session }),
-            issuedLoanInitial.save({ session }),
+            issuedLoan.save({session}),
+            issuedLoanInitial.save({session}),
         ]);
 
         await session.commitTransaction();
@@ -74,7 +74,7 @@ async function disburseLoan(req, res) {
         // Fetch loan details
         const loanDetail = await IssuedLoanModel.findById(loan);
         if (!loanDetail) {
-            return res.status(404).json({ status: 404, message: "Loan not found" });
+            return res.status(404).json({status: 404, message: "Loan not found"});
         }
 
         // Update loan details
@@ -94,12 +94,12 @@ async function disburseLoan(req, res) {
         const disbursedLoan = await IssuedLoanModel.findByIdAndUpdate(
             loan,
             loanDetail,
-            { new: true }
+            {new: true}
         ).populate(["scheme", "customer", "company"]);
         console.log(disbursedLoan)
 
         if (!disbursedLoan) {
-            return res.status(500).json({ status: 500, message: "Failed to update loan details" });
+            return res.status(500).json({status: 500, message: "Failed to update loan details"});
         }
 
         // Send notification
@@ -120,10 +120,10 @@ async function disburseLoan(req, res) {
             companyEmail: disbursedLoan?.company?.email,
         });
 
-        return res.status(201).json({ status: 201, message: "Loan disbursed successfully", data: disbursedLoan });
+        return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
     } catch (err) {
         console.error("Error in disburseLoan:", err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -357,11 +357,25 @@ async function InterestReports(req, res) {
     try {
         const {companyId} = req.params
 
-        const loans = await IssuedLoanModel.find({company : companyId, deleted_at: null}).populate("customer").populate("scheme")
+        const loans = await IssuedLoanModel.find({
+            company: companyId,
+            deleted_at: null
+        }).populate("customer").populate("scheme")
 
         const result = await Promise.all(loans.map(async (loan) => {
 
-            const {loanNo, customer: {firstName, middleName, lastName}, loanAmount, interestLoanAmount, scheme: {interestRate}, lastInstallmentDate} = loan
+            loan.closedDate = null
+            if(loan.status === 'Closed'){
+                const closedLoans = await LoanCloseModel.find({loan: loan._id, deleted_at: null}).sort({createdAt: -1})
+                loan.closedDate = closedLoans[0].date
+                loan.closeAmt = closedLoan.reduce((acc, amount) => acc + (amount.netAmount || 0), 0);
+            }
+
+            const {
+                scheme: {interestRate},
+                lastInstallmentDate,
+                consultingCharge
+            } = loan
 
             const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
 
@@ -375,13 +389,13 @@ async function InterestReports(req, res) {
                     {
                         $match: {
                             loan: loan._id,
-                            date: { $gte: interestDate }
+                            date: {$gte: interestDate}
                         }
                     },
                     {
                         $group: {
                             _id: null,
-                            totalInterest: { $sum: "amountPaid" }
+                            totalInterest: {$sum: "amountPaid"}
                         }
                     }
                 ]);
@@ -401,12 +415,11 @@ async function InterestReports(req, res) {
             loan.day = daysDiff;
 
             const intRate = interestRate <= 1.5 ? interestRate : 1.5
-            const consRate = interestRate > 1.5 ? interestRate - 1.5 : 0
 
             const interestAmount = ((loan.interestLoanAmount * (intRate / 100)) * 12 * daysDiff / 365);
-            const consultingAmount = ((loan.interestLoanAmount * (consRate / 100)) * 12 * daysDiff / 365);
+            const consultingAmount = ((loan.interestLoanAmount * (consultingCharge / 100)) * 12 * daysDiff / 365);
 
-            let pendingInterest = (interestAmount + consultingAmount) - uchakInterest - old_cr_dr;
+            loan.pendingInterest = (interestAmount + consultingAmount) - uchakInterest - old_cr_dr;
 
             loan.peneltyAmount = 0
             if (daysDiff > 30) {
@@ -422,14 +435,13 @@ async function InterestReports(req, res) {
 
                 const penaltyAmount = ((loan.interestLoanAmount * (penaltyInterest / 100)) * 12 * penaltyDays / 365);
                 loan.penaltyAmount = penaltyAmount;
-                pendingInterest = pendingInterest + penaltyAmount;
+                loan.pendingInterest = pendingInterest + penaltyAmount;
             }
 
-            loan.pendingInterestAmt = pendingInterest;
             loan.interstAmount = interestAmount
             loan.consultingAmount = consultingAmount
-            loan.rate = intRate
-            loan.consultingRate = consRate
+            loan.cr_dr = old_cr_dr
+
 
             return loan;
         }));
