@@ -386,7 +386,8 @@ async function InterestReports(req, res) {
                     _id: "$loan",
                     totalInterestAmount: {$sum: "$interestAmount"},
                     totalPenalty: {$sum: "$penalty"},
-                    totalAmountPaid: {$sum: "$amountPaid"}
+                    totalAmountPaid: {$sum: "$amountPaid"},
+                    totalConsultingCharge: {$sum: "consultingCharge"}
                 }
             },
             {
