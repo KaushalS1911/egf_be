@@ -6,6 +6,7 @@ const IssuedLoanInitialModel = require("../models/issued_loan_initial")
 const PartPaymentModel = require("../models/loan-part-payment")
 const PartReleaseModel = require("../models/part-release")
 const CloseLoanModel = require("../models/loan-close")
+const LoanPartReleaseModel = require("../models/part-release")
 const PenaltyModel = require("../models/penalty")
 
 const fetchLoans = async (query, branch) => {
@@ -143,6 +144,24 @@ const loanSummary = async (req, res) => {
 
             const old_cr_dr = interests[0]?.cr_dr ?? 0
 
+            const loanPartPaymentEntry = await PartPaymentModel.find({ loan: loan._id })
+                .sort({ createdAt: -1 })
+                .limit(1);
+
+            const loanPartReleaseEntry = await LoanPartReleaseModel.find({ loan: loan._id })
+                .sort({ createdAt: -1 })
+                .limit(1);
+
+            const partPaymentDate = loanPartPaymentEntry.length > 0 ? loanPartPaymentEntry[0].createdAt : null;
+            const partReleaseDate = loanPartReleaseEntry.length > 0 ? loanPartReleaseEntry[0].createdAt : null;
+
+            let lastAmtPayDate = null;
+            if (partPaymentDate && partReleaseDate) {
+                lastAmtPayDate = partPaymentDate > partReleaseDate ? partPaymentDate : partReleaseDate;
+            } else {
+                lastAmtPayDate = partPaymentDate || partReleaseDate;
+            }
+
             if (interestDate) {
                 const uchakInterests = await UchakInterestModel.aggregate([
                     {
@@ -196,6 +215,7 @@ const loanSummary = async (req, res) => {
             }
 
             loan.pendingInterest = pendingInterest;
+            loan.lastAmtPayDate = lastAmtPayDate;
 
             return loan;
         }));
