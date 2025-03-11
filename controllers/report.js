@@ -136,7 +136,23 @@ const loanSummary = async (req, res) => {
 
         const loans = await IssuedLoanModel.find(query).populate({path: "customer", populate: "branch"}).populate("issuedBy").populate('closedBy').populate("scheme");
 
+
         const result = await Promise.all(loans.map(async (loan) => {
+
+
+            loan.closedDate = null;
+            loan.closeAmt = null;
+
+            if (loan.status === 'Closed') {
+                const closedLoans = await LoanCloseModel.find({ loan: loan._id, deleted_at: null })
+                    .sort({ createdAt: -1 })
+
+                if (closedLoans.length > 0) {
+                    loan.closedDate = closedLoans[0].date;
+                    loan.closeAmt = closedLoans.reduce((acc, amount) => acc + (amount.netAmount || 0), 0);
+                }
+            }
+
             const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
 
             const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
