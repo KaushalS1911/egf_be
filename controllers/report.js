@@ -144,7 +144,7 @@ const loanSummary = async (req, res) => {
             loan.closeAmt = null;
 
             if (loan.status === 'Closed') {
-                const closedLoans = await LoanCloseModel.find({ loan: loan._id, deleted_at: null })
+                const closedLoans = await CloseLoanModel.find({ loan: loan._id, deleted_at: null })
                     .sort({ createdAt: -1 })
 
                 if (closedLoans.length > 0) {
