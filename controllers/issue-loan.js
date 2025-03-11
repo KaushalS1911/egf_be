@@ -357,7 +357,7 @@ async function InterestReports(req, res) {
     try {
         const {companyId} = req.params
 
-        const loans = await IssuedLoanModel.find({company : companyId, deleted_at: null}).populate("customer").populate("scheme").populate("branch")
+        const loans = await IssuedLoanModel.find({company : companyId, deleted_at: null}).populate("customer").populate("scheme")
 
         const result = await Promise.all(loans.map(async (loan) => {
 
