@@ -130,7 +130,7 @@ const loanSummary = async (req, res) => {
         const { companyId } = req.params;
 
         const loans = await IssuedLoanModel.find({ company: companyId, deleted_at: null })
-            .populate({ path: "customer", populate: "branch" })
+            .populate({ path: "customer", populate: "branch" }).populate("issuedBy")
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject(); // Convert Mongoose document to a plain object
@@ -272,7 +272,7 @@ const customerStatement = async (req, res) => {
         const { customerId } = req.params;
 
         // Fetch loan details
-        const loanDetails = await IssuedLoanModel.find({ customer: customerId }).select('_id');
+        const loanDetails = await IssuedLoanModel.find({ customer: customerId }).select('_id').lean();
         const loanIds = loanDetails.map(loan => loan._id);
         const query = { loan: { $in: loanIds }, deleted_at: null };
 
@@ -298,6 +298,7 @@ const customerStatement = async (req, res) => {
             detail.map(entry => ({ ...entry, type: types[index] }))
         );
 
+        console.log(result.toObject())
         // Format statement data
         const statementData = result.map(({ type, loan, paymentDetail, createdAt }) => ({
             type,
