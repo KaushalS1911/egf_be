@@ -243,7 +243,7 @@ const otherLoanSummary = async (req, res) => {
                 OtherLoanInterestModel.find({ otherLoan: loan._id }).sort({ createdAt: -1 }),
             ]);
 
-            const lastInterestEntry = interests[0] || {};
+
             loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
             // Interest & Penalty Calculation
             const today = moment();
