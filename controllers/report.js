@@ -232,7 +232,7 @@ const otherLoanSummary = async (req, res) => {
         const { companyId } = req.params;
 
         const loans = await OtherIssuedLoanModel.find({ company: companyId, deleted_at: null })
-            .populate({ path: "loan", populate: "customer" })
+            .populate({ path: "loan", populate: [{path: "customer", select: "firstName middleName lastName"},{path:"scheme"}] })
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject();
