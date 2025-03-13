@@ -22,7 +22,8 @@ const fetchLoans = async (query, branch) => {
         .populate("scheme")
         .populate("closedBy")
         .populate("issuedBy")
-        .sort({createdAt: -1});
+        .sort({createdAt: -1})
+        .lean();
 };
 
 const fetchInterestDetails = async (query, branch) => {
@@ -32,7 +33,7 @@ const fetchInterestDetails = async (query, branch) => {
             {path: "scheme"},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
-    });
+    }).lean();
 };
 
 const fetchUchakInterestDetails = async (query, branch) => {
@@ -42,7 +43,7 @@ const fetchUchakInterestDetails = async (query, branch) => {
             {path: "scheme"},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
-    });
+    }).lean();
 };
 
 const fetchPartPaymentDetails = async (query, branch) => {
@@ -51,7 +52,7 @@ const fetchPartPaymentDetails = async (query, branch) => {
         populate: [
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
-    });
+    }).lean();
 };
 
 const fetchPartReleaseDetails = async (query, branch) => {
@@ -60,7 +61,7 @@ const fetchPartReleaseDetails = async (query, branch) => {
         populate: [
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
-    });
+    }).lean();
 };
 
 const fetchLoanCloseDetails = async (query, branch) => {
@@ -69,7 +70,7 @@ const fetchLoanCloseDetails = async (query, branch) => {
         populate: [
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
-    });
+    }).lean();
 };
 
 const dailyReport = async (req, res) => {
@@ -347,8 +348,6 @@ const customerStatement = async (req, res) => {
             detail.map(entry => ({ ...entry, type: types[index] }))
         );
 
-        console.log(result.toObject())
-        // Format statement data
         const statementData = result.map(({ type, loan, paymentDetail, createdAt }) => ({
             type,
             loanNo: loan.loanNo,
