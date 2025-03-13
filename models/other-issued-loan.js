@@ -18,6 +18,7 @@ const otherIssuedLoanSchema = new mongoose.Schema({
     closeDate: {type: Date},
     otherCharge: {type: Number},
     closingAmount: {type: Number},
+    closingCharge: {type: Number},
     interestAmount: {type: Number},
     amountPaid: {type: Number, default: 0},
     paymentMode: String,
