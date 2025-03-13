@@ -244,8 +244,7 @@ const otherLoanSummary = async (req, res) => {
             ]);
 
             const lastInterestEntry = interests[0] || {};
-            const totalPaidInterest = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
-
+            loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = moment(loan.renewalDate);
