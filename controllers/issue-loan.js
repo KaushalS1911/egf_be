@@ -13,17 +13,24 @@ const moment = require("moment");
 const PenaltyModel = require("../models/penalty");
 
 async function issueLoan(req, res) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    let session = null;
 
     try {
-        const {companyId} = req.params;
-        const {issueDate, series, ...loanData} = req.body;
+        // Ensure MongoDB is connected with proper replica set configuration
+        session = await mongoose.startSession();
+        session.startTransaction();
 
+        const { companyId } = req.params;
+        const { issueDate, series, ...loanData } = req.body;
+
+        // Process property image if available
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+
+        // Generate loan number and next installment date
         const loanNo = await generateNextLoanNumber(series, companyId);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
+        // Prepare loan details
         const loanDetails = {
             ...loanData,
             issueDate,
@@ -33,26 +40,43 @@ async function issueLoan(req, res) {
             propertyImage,
         };
 
+        // Create model instances
         const issuedLoan = new IssuedLoanModel(loanDetails);
         const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
 
-        await Promise.all([
-            issuedLoan.save({session}),
-            issuedLoanInitial.save({session}),
-        ]);
+        // Save both documents with session
+        await issuedLoan.save({ session });
+        await issuedLoanInitial.save({ session });
 
+        // Commit the transaction
         await session.commitTransaction();
+
         return res.status(201).json({
             status: 201,
             message: "Loan issued successfully",
             data: issuedLoan,
         });
     } catch (err) {
-        await session.abortTransaction();
+        // Abort transaction on error
+        if (session) {
+            try {
+                await session.abortTransaction();
+            } catch (abortError) {
+                console.error("Error aborting transaction:", abortError);
+            }
+        }
+
         console.error("Error issuing loan:", err);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        return res.status(500).json({ status: 500, message: "Internal server error" });
     } finally {
-        session.endSession();
+        // End session if it exists
+        if (session) {
+            try {
+                session.endSession();
+            } catch (endError) {
+                console.error("Error ending session:", endError);
+            }
+        }
     }
 }
 
