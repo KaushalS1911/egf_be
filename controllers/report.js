@@ -105,7 +105,7 @@ const dailyReport = async (req, res) => {
         ] = await Promise.all([
             fetchInterestDetails({createdAt}, branch || null),
             fetchLoans(query, branch || null),
-            fetchUchakInterestDetails({createdAt }, branch || null),
+            fetchUchakInterestDetails({createdAt}, branch || null),
             fetchPartPaymentDetails({createdAt}, branch || null),
             fetchPartReleaseDetails({createdAt}, branch || null),
         ]);
@@ -131,10 +131,10 @@ const dailyReport = async (req, res) => {
 
 const loanSummary = async (req, res) => {
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
 
-        const loans = await IssuedLoanModel.find({ company: companyId, deleted_at: null })
-            .populate({ path: "customer", populate: "branch" }).populate("issuedBy")
+        const loans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
+            .populate({path: "customer", populate: "branch"}).populate("issuedBy")
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject(); // Convert Mongoose document to a plain object
@@ -143,8 +143,8 @@ const loanSummary = async (req, res) => {
             loan.closeAmt = 0;
 
             if (loan.status === 'Closed') {
-                const closedLoans = await CloseLoanModel.find({ loan: loan._id, deleted_at: null })
-                    .sort({ createdAt: -1 });
+                const closedLoans = await CloseLoanModel.find({loan: loan._id, deleted_at: null})
+                    .sort({createdAt: -1});
 
                 if (closedLoans.length > 0) {
                     loan.closedDate = closedLoans[0].date;
@@ -154,9 +154,9 @@ const loanSummary = async (req, res) => {
 
             // Fetch Interest and Part Payments
             const [interests, partPayments, partReleases] = await Promise.all([
-                InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
-                PartPaymentModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
-                LoanPartReleaseModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
+                InterestModel.find({loan: loan._id}).sort({createdAt: -1}),
+                PartPaymentModel.find({loan: loan._id}).sort({createdAt: -1}).limit(1),
+                LoanPartReleaseModel.find({loan: loan._id}).sort({createdAt: -1}).limit(1),
             ]);
 
             const lastInterestEntry = interests[0] || {};
@@ -173,8 +173,8 @@ const loanSummary = async (req, res) => {
             let uchakInterest = 0;
             if (lastInterestEntry.createdAt) {
                 const uchakInterestData = await UchakInterestModel.aggregate([
-                    { $match: { loan: loan._id, date: { $gte: lastInterestEntry.createdAt } } },
-                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
+                    {$match: {loan: loan._id, date: {$gte: lastInterestEntry.createdAt}}},
+                    {$group: {_id: null, totalInterest: {$sum: "$amountPaid"}}}
                 ]);
                 uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
             }
@@ -196,8 +196,8 @@ const loanSummary = async (req, res) => {
                 const penaltyDays = daysDiff - 30;
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
-                    afterDueDateFromDate: { $lte: penaltyDays },
-                    afterDueDateToDate: { $gte: penaltyDays },
+                    afterDueDateFromDate: {$lte: penaltyDays},
+                    afterDueDateToDate: {$gte: penaltyDays},
                 }).select('penaltyInterest');
 
                 const penaltyInterestRate = penaltyData?.penaltyInterest || 0;
@@ -230,21 +230,24 @@ const loanSummary = async (req, res) => {
 
 const otherLoanSummary = async (req, res) => {
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
 
-        const loans = await OtherIssuedLoanModel.find({ company: companyId, deleted_at: null })
-            .populate({ path: "loan", populate: [{path: "customer", select: "firstName middleName lastName"},{path:"scheme"}] })
+        const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
+            .populate({
+                path: "loan",
+                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
+            })
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject();
 
             // Fetch Interest and Part Payments
             const [interests] = await Promise.all([
-                OtherLoanInterestModel.find({ otherLoan: loan._id }).sort({ createdAt: -1 }),
+                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
             ]);
 
 
-            loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
+            loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = moment(loan.renewalDate);
@@ -254,7 +257,8 @@ const otherLoanSummary = async (req, res) => {
 
             const interestRate = loan.percentage
 
-            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;;
+            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+            ;
 
             return loan;
         }));
@@ -276,7 +280,7 @@ const otherLoanSummary = async (req, res) => {
 
 const loanDetail = async (req, res) => {
     try {
-        const { loanId} = req.params;
+        const {loanId} = req.params;
 
         const query = {
             loan: loanId,
@@ -289,11 +293,11 @@ const loanDetail = async (req, res) => {
             partReleaseDetail,
             loanCloseDetail
         ] = await Promise.all([
-            fetchInterestDetails(query,  null),
-            fetchUchakInterestDetails(query ,  null),
-            fetchPartPaymentDetails(query,  null),
-            fetchPartReleaseDetails(query,  null),
-            fetchLoanCloseDetails(query,  null),
+            fetchInterestDetails(query, null),
+            fetchUchakInterestDetails(query, null),
+            fetchPartPaymentDetails(query, null),
+            fetchPartReleaseDetails(query, null),
+            fetchLoanCloseDetails(query, null),
         ]);
 
         return res.status(200).json({
@@ -318,12 +322,12 @@ const loanDetail = async (req, res) => {
 
 const customerStatement = async (req, res) => {
     try {
-        const { customerId } = req.params;
+        const {customerId} = req.params;
 
         // Fetch loan details
-        const loanDetails = await IssuedLoanModel.find({ customer: customerId }).select('_id').lean();
+        const loanDetails = await IssuedLoanModel.find({customer: customerId}).select('_id').lean();
         const loanIds = loanDetails.map(loan => loan._id);
-        const query = { loan: { $in: loanIds }, deleted_at: null };
+        const query = {loan: {$in: loanIds}, deleted_at: null};
 
         // Fetch all relevant details in parallel
         const details = await Promise.all([
@@ -344,10 +348,10 @@ const customerStatement = async (req, res) => {
 
         // Combine results and assign types
         const result = details.flatMap((detail, index) =>
-            detail.map(entry => ({ ...entry, type: types[index] }))
+            detail.map(entry => ({...entry, type: types[index]}))
         );
 
-        const statementData = result.map(({ type, loan, paymentDetail, createdAt, interestLoanAmount }) => {
+        const statementData = result.map(({type, loan, paymentDetail, createdAt, interestLoanAmount}) => {
             const amount = (paymentDetail.paymentMode === 'Cash')
                 ? Number(paymentDetail.cashAmount) || 0
                 : (paymentDetail.paymentMode === 'Bank')
@@ -367,15 +371,15 @@ const customerStatement = async (req, res) => {
         }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
 
-        return res.status(200).json({ status: 200, data: statementData });
+        return res.status(200).json({status: 200, data: statementData});
     } catch (err) {
         console.error("Error fetching customer statement report:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 };
 
 
-const initialLoanDetail = async (req,res) => {
+const initialLoanDetail = async (req, res) => {
 
     try {
         const loanDetail = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
@@ -383,8 +387,8 @@ const initialLoanDetail = async (req,res) => {
             status: 200,
             data: loanDetail
         })
-    }catch (e){
-        console.error("Error fetching loan detail report:",e.message);
+    } catch (e) {
+        console.error("Error fetching loan detail report:", e.message);
         return res.status(500).json({
             status: 500,
             message: "Internal server error",
@@ -392,5 +396,63 @@ const initialLoanDetail = async (req,res) => {
     }
 }
 
+const allInOutReport = async (req, res) => {
+    try {
+        const {companyId} = req.params;
 
-module.exports = {dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail, otherLoanSummary}
+        const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
+            .populate({
+                path: "loan",
+                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
+            })
+
+        const result = await Promise.all(loans.map(async (loan) => {
+            loan = loan.toObject();
+
+            // Fetch Interest and Part Payments
+            const [customerLoanInterests, interests] = await Promise.all([
+                InterestModel.find({loan: loan.loan._id, deleted_at: null}),
+                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
+            ]);
+
+            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
+            loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
+
+            // Interest & Penalty Calculation
+            const today = moment();
+            const lastInstallmentDate = moment(loan.renewalDate);
+            const daysDiff = today.diff(lastInstallmentDate, 'days');
+
+            loan.day = daysDiff;
+
+            const interestRate = loan.percentage
+
+            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+
+            return loan;
+        }));
+
+        return res.status(200).json({
+            message: "Report data of other loan summary fetched successfully",
+            data: result,
+        });
+
+    } catch (error) {
+        console.error("Error fetching loan summary:", error);
+        return res.status(500).json({
+            message: "An error occurred while fetching the report data.",
+            error: error.message,
+        });
+    }
+}
+
+
+module.exports = {
+    dailyReport,
+    loanSummary,
+    loanDetail,
+    customerStatement,
+    initialLoanDetail,
+    otherLoanSummary,
+    allInOutReport
+}
