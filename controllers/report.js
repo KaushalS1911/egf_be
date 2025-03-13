@@ -348,20 +348,25 @@ const customerStatement = async (req, res) => {
             detail.map(entry => ({ ...entry, type: types[index] }))
         );
 
-        const statementData = result.map(({ type, loan, paymentDetail, createdAt }) => ({
-            type,
-            loanNo: loan.loanNo,
-            customerName: `${loan.customer.firstName} ${loan.customer.lastName}`,
-            loanAmount: loan.loanAmount,
-            interestLoanAmount: loan.interestLoanAmount,
-            partLoanAmount: loan.loanAmount - loan.interestLoanAmount,
-            amount: (paymentDetail.paymentMode === 'Cash')
-                ? paymentDetail.cashAmount
+        const statementData = result.map(({ type, loan, paymentDetail, createdAt, interestLoanAmount }) => {
+            const amount = (paymentDetail.paymentMode === 'Cash')
+                ? Number(paymentDetail.cashAmount) || 0
                 : (paymentDetail.paymentMode === 'Bank')
-                    ? paymentDetail.bankAmount
-                    : (paymentDetail.cashAmount + paymentDetail.bankAmount),
-            createdAt,
-        })).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    ? Number(paymentDetail.bankAmount) || 0
+                    : Number(paymentDetail.cashAmount) + Number(paymentDetail.bankAmount) || 0;
+
+            return {
+                type,
+                loanNo: loan.loanNo,
+                customerName: `${loan.customer.firstName} ${loan.customer.lastName}`,
+                loanAmount: loan.loanAmount,
+                amount,
+                interestLoanAmount: type === 'Interest payment' ? interestLoanAmount : interestLoanAmount - amount,
+                partLoanAmount: loan.loanAmount - interestLoanAmount + amount,
+                createdAt,
+            };
+        }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
 
         return res.status(200).json({ status: 200, data: statementData });
     } catch (err) {
