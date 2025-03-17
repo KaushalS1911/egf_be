@@ -27,7 +27,7 @@ async function issueLoan(req, res) {
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
         // Generate loan number and next installment date
-        const loanNo = await generateNextLoanNumber(series, companyId);
+        const loanNo = await generateNextLoanNumber(series, companyId, req.body.branch);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         // Prepare loan details
@@ -798,29 +798,60 @@ async function deletePartReleaseDetail(req, res) {
 
 async function getAllLoans(req, res) {
     try {
-        const {companyId} = req.params
-        const {type, branch} = req.query
+        const { companyId } = req.params;
+        const { type, branch } = req.query;
 
-        let query = {
+        // Build the query object with default filters
+        const query = {
             company: companyId,
             deleted_at: null
+        };
+
+        // Add optional status filter if provided
+        if (type) {
+            query.status = type;
         }
 
-        if (type) query.status = type
+        // Create the base query
+        let loansQuery = IssuedLoanModel.find(query);
 
-        const loans = await IssuedLoanModel.find(query)
+        // Add regular population without branch filtering
+        loansQuery = loansQuery
             .populate('company')
-            .populate({
-                path: "customer",
-                populate: "branch",
-                match: branch ? {"branch._id": branch} : {},
-            })
-            .populate("scheme").populate("closedBy").populate("issuedBy").sort({createdAt: -1});
+            .populate('scheme')
+            .populate('closedBy')
+            .populate('issuedBy')
+            .sort({ createdAt: -1 });
 
-        return res.status(200).json({status: 200, data: loans});
-    } catch (err) {
-        console.error("Error fetching loans:", err.message);
-        return res.status(500).json({status: 500, message: "Internal server error"});
+        // Populate customer with branch filtering
+        loansQuery = loansQuery.populate({
+            path: 'customer',
+            populate: { path: 'branch' }
+        });
+
+        // Execute the query
+        let loans = await loansQuery;
+
+        // If branch filter is specified, filter the results after population
+        if (branch) {
+            loans = loans.filter(loan =>
+                loan.customer &&
+                loan.customer.branch &&
+                loan.customer.branch._id.toString() === branch
+            );
+        }
+
+        return res.status(200).json({
+            status: 200,
+            data: loans
+        });
+
+    } catch (error) {
+        console.error(`Error fetching loans: ${error.message}`);
+        return res.status(500).json({
+            status: 500,
+            message: "Failed to retrieve loans"
+        });
     }
 }
 
