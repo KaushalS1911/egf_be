@@ -77,6 +77,16 @@ async function login(req, res) {
 
         const user = await UserModel.findOne({contact}).lean();
 
+        if (user.role !== 'Admin') {
+            const emp = await EmployeeModel.findOne({user: user._id, deleted_at: null});
+
+            if(emp.status !== "Active") {
+                return res.json({status: 400, message: "Employee status is inactive or blocked."});
+            }
+
+            user.employeeId = emp?._id;
+        }
+
         if (user && user?.branch) {
             const userBranch = await BranchModel.findById(user?.branch)
             user.branch = userBranch
@@ -93,11 +103,6 @@ async function login(req, res) {
         }
 
         const tokens = await setTokens(user._id);
-
-        if (user.role !== 'Admin') {
-            const emp = await EmployeeModel.findOne({user: user._id});
-            user.employeeId = emp?._id;
-        }
 
         return res.status(200).json({data: {...user, tokens}, message: "Logged in successfully."});
     } catch (err) {

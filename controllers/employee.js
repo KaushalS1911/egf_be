@@ -142,15 +142,9 @@ async function getAllEmployees(req, res) {
             return emp;
         }));
 
-
         const filteredEmployees = branch
             ? updatedEmployees.filter(employee => employee.user && employee.user.branch?._id?.toString() === branch)
             : updatedEmployees;
-
-
-        // if (!employees || employees.length === 0) {
-        //     return res.status(404).json({ status: 404, message: "No employees found" });
-        // }
 
         return res.status(200).json({status: 200, data: filteredEmployees});
     } catch (err) {
