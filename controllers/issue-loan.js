@@ -201,7 +201,7 @@ async function interestPayment(req, res) {
 
 function calculateInstallmentDates(loanDetails, from, to) {
     let isUpdated = true
-    const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(loanDetails.nextInstallmentDate).setDate(new Date(loanDetails.nextInstallmentDate).getDate() + 1)));
+    const nextInstallmentDate = getNextInterestPayDate(new Date(new Date(to).setDate(new Date(to).getDate() + 1)));
     const lastInstallmentDate = new Date(to);
 
 
@@ -940,6 +940,13 @@ const getCurrentFinancialYear = () => {
         return `${(currentYear - 1).toString().slice(-2)}_${currentYear.toString().slice(-2)}`;
     }
 };
+
+function isLastDayOfMonth(date) {
+    const currentMonth = date.getMonth();
+    const nextDay = new Date(date);
+    nextDay.setDate(date.getDate() + 1);
+    return nextDay.getMonth() !== currentMonth;
+}
 
 module.exports = {
     issueLoan,
