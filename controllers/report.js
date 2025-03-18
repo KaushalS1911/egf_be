@@ -257,7 +257,7 @@ const otherLoanSummary = async (req, res) => {
             const lastInstallmentDate = moment(loan.date);
             const daysDiff = today.diff(lastInstallmentDate, 'days');
 
-            loan.day = daysDiff;
+            loan.day = interests.reduce((sum, entry) => sum + (entry.days || 0), 0);;
             const interestRate = loan.percentage
 
             loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
