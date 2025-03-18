@@ -141,12 +141,14 @@ const loanSummary = async (req, res) => {
 
             loan.closedDate = null;
             loan.closeAmt = 0;
+            loan.closeCharge = 0
 
             if (loan.status === 'Closed') {
                 const closedLoans = await CloseLoanModel.find({loan: loan._id, deleted_at: null})
                     .sort({createdAt: -1});
 
                 if (closedLoans.length > 0) {
+                    loan.closeCharge = closedLoans[0].closingCharge
                     loan.closedDate = closedLoans[0].date;
                     loan.closeAmt = closedLoans.reduce((sum, entry) => sum + (entry.netAmount || 0), 0);
                 }
