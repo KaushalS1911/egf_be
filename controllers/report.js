@@ -134,7 +134,7 @@ const loanSummary = async (req, res) => {
         const {companyId} = req.params;
 
         const loans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
-            .populate({path: "customer", populate: "branch"}).populate("issuedBy").populate("scheme")
+            .populate({path: "customer", populate: "branch"}).populate("issuedBy").populate("scheme").populate("closedBy")
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject(); // Convert Mongoose document to a plain object
