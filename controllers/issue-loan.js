@@ -442,7 +442,7 @@ async function InterestReports(req, res) {
 
             // Calculate penalty if overdue
             if (daysDiff > 30) {
-                const penaltyDays = daysDiff - 30;
+                const penaltyDays = daysDiff
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
                     afterDueDateFromDate: { $lte: penaltyDays },
