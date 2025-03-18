@@ -17,7 +17,8 @@ const interestSchema = new mongoose.Schema({
     cr_dr: {type: Number, default: 0},
     old_cr_dr: {type: Number, default: 0},
     paymentDetail: {type: Object, default: null},
-    isUpdated: {type: Boolean}
+    isUpdated: {type: Boolean},
+    nextInstallmentDate: Date
 }, {timestamps: true})
 
 module.exports = mongoose.model('Interest', interestSchema)
