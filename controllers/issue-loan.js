@@ -450,13 +450,13 @@ async function InterestReports(req, res) {
                 }).select("penaltyInterest");
 
                 const penaltyInterest = penaltyData?.penaltyInterest || 0;
-                pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;;
+                pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;
             }
 
             // Assign final values
-            loan.interestAmount = interests.reduce((acc, interest) => acc + interest.interestAmount || 0);
-            loan.consultingAmount = interests.reduce((acc, interest) => acc + interest.consultingCharge || 0);
-            loan.penaltyAmount = interests.reduce((acc, interest) => acc + interest.penalty || 0);
+            loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
+            loan.consultingAmount = interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
+            loan.penaltyAmount = interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
             loan.pendingInterest = pendingInterest;
             loan.totalPaidInterest = totalPaidInterest;
             loan.cr_dr = old_cr_dr;
