@@ -436,6 +436,8 @@ async function InterestReports(req, res) {
             const interestAmount = (loan.interestLoanAmount * (intRate / 100) * 12 * daysDiff) / 365;
             const consultingAmount = (loan.interestLoanAmount * (consultingCharge / 100) * 12 * daysDiff) / 365;
 
+
+
             let pendingInterest = interestAmount + consultingAmount - uchakInterest - old_cr_dr;
 
             // Calculate penalty if overdue
@@ -448,13 +450,13 @@ async function InterestReports(req, res) {
                 }).select("penaltyInterest");
 
                 const penaltyInterest = penaltyData?.penaltyInterest || 0;
-                loan.penaltyAmount = (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;
-                pendingInterest += loan.penaltyAmount;
+                pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;;
             }
 
             // Assign final values
-            loan.interestAmount = interestAmount;
-            loan.consultingAmount = consultingAmount;
+            loan.interestAmount = interests.reduce((acc, interest) => acc + interest.interestAmount || 0);
+            loan.consultingAmount = interests.reduce((acc, interest) => acc + interest.consultingCharge || 0);
+            loan.penaltyAmount = interests.reduce((acc, interest) => acc + interest.penalty || 0);
             loan.pendingInterest = pendingInterest;
             loan.totalPaidInterest = totalPaidInterest;
             loan.cr_dr = old_cr_dr;
