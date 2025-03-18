@@ -254,8 +254,8 @@ const otherLoanSummary = async (req, res) => {
             loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
             // Interest & Penalty Calculation
             const today = moment();
-            const lastInstallmentDate = moment(loan.renewalDate);
-            const daysDiff = lastInstallmentDate.diff(today, 'days');
+            const lastInstallmentDate = moment(loan.date);
+            const daysDiff = today.diff(lastInstallmentDate, 'days');
 
             loan.day = daysDiff;
             const interestRate = loan.percentage
