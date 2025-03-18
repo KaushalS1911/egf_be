@@ -901,7 +901,7 @@ async function deleteIssuedLoan(req, res) {
 
         const [issuedLoans] = await IssuedLoanModel.find({company: companyId, deleted_at: null}).sort({createdAt: -1}).limit(1)
 
-        if(issuedLoans._id !== loanId){
+        if(issuedLoans._id.toString() !== loanId){
            return res.status(400).json({status: 400, message: "Loan cannot be deleted because it is not latest one."});
         }
 
