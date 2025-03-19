@@ -2,7 +2,7 @@ const IssuedLoanModel = require('../models/issued-loan');
 
 async function generateNextLoanNumber(series, company, branch) {
     try {
-        const [prefix] = series.split("_").slice(0, 3).join("_"); // Extract prefix (EGF_YGL/24_25)
+        const prefix = series.split("_").slice(0, 3).join("_"); // Extract prefix (EGF_YGL/24_25)
 
         // Fetch loans associated with the company
         const loans = await IssuedLoanModel.find({ deleted_at: null, company }).select("customer").populate({
