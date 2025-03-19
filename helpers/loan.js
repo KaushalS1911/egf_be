@@ -7,15 +7,15 @@ async function generateNextLoanNumber(series, company, branch) {
         // Fetch loans associated with the company
         const loans = await IssuedLoanModel.find({ deleted_at: null, company }).select("customer").populate({
             path: "customer",
-            populate: { path: "branch" }
         });
 
         console.log("---------------------------loans", loans)
+
         // Filter loans by branch
-        const filteredLoans = loans.filter(loan => loan.customer?.branch?._id?.toString() === branch);
-        console.log("filteredLoans.length", filteredLoans.length)
+        const filteredLoans = loans && loans.length !== 0 && loans.filter(loan => loan.customer?.branch === branch);
+        console.log("filteredLoans.length", filteredLoans?.length)
         // Determine the next loan number
-        const nextNumber = (filteredLoans.length + 1).toString().padStart(4, "0");
+        const nextNumber = (filteredLoans?.length + 1).toString().padStart(4, "0");
 
         console.log("prefix", prefix)
         return `${prefix}/${nextNumber}`;
