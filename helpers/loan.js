@@ -16,6 +16,7 @@ async function generateNextLoanNumber(series, company, branch) {
         // Determine the next loan number
         const nextNumber = (filteredLoans.length + 1).toString().padStart(4, "0");
 
+        console.log(prefix)
         return `${prefix}/${nextNumber}`;
     } catch (error) {
         console.error("Error generating loan number:", error);
