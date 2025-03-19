@@ -384,10 +384,21 @@ const customerStatement = async (req, res) => {
 const initialLoanDetail = async (req, res) => {
 
     try {
-        const loanDetail = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
+        const loans = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
+
+        const result = await Promise.all(loans.map(async (loan) => {
+            loan = loan.toObject();
+
+            const [interests] = await Promise.all([
+                InterestModel.find({loan: loan._id}).sort({createdAt: -1}),
+            ]);
+
+            return {...loan, interests};
+        }));
+
         return res.status(200).json({
             status: 200,
-            data: loanDetail
+            data: result
         })
     } catch (e) {
         console.error("Error fetching loan detail report:", e.message);
