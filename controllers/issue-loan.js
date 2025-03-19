@@ -27,7 +27,7 @@ async function issueLoan(req, res) {
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
         // Generate loan number and next installment date
-        const loanNo = await generateNextLoanNumber(series, companyId, req.body.branch);
+        const loanNo = await generateNextLoanNumber(series, companyId, loanData.branch);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         // Prepare loan details
