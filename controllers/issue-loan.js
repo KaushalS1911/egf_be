@@ -21,13 +21,13 @@ async function issueLoan(req, res) {
         session.startTransaction();
 
         const { companyId } = req.params;
-        const { issueDate, series, ...loanData } = req.body;
+        const { issueDate, series, branch, ...loanData } = req.body;
 
         // Process property image if available
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
 
         // Generate loan number and next installment date
-        const loanNo = await generateNextLoanNumber(series, companyId, loanData.branch);
+        const loanNo = await generateNextLoanNumber(series, companyId, branch);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
 
         // Prepare loan details
