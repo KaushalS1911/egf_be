@@ -26,6 +26,24 @@ const fetchLoans = async (query, branch) => {
         .lean();
 };
 
+// const fetchOtherLoans = async (query, branch) => {
+//     return OtherIssuedLoanModel.find(query)
+//         .populate({
+//             path: "loan",
+//             populate: {
+//                 path: "customer",
+//                 populate: "branch",
+//                 match: branch ? {"branch._id": branch} : {},
+//
+//             }
+//         })
+//         .populate("scheme")
+//         .populate("closedBy")
+//         .populate("issuedBy")
+//         .sort({createdAt: -1})
+//         .lean();
+// };
+
 const fetchInterestDetails = async (query, branch) => {
     return InterestModel.find(query).populate({
         path: "loan",
@@ -129,12 +147,71 @@ const dailyReport = async (req, res) => {
     }
 };
 
+const dailyReport = async (req, res) => {
+    try {
+        const {companyId} = req.params;
+        const {branch, date} = req.query;
+
+        if (!date || isNaN(new Date(date))) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid or missing 'date' parameter",
+            });
+        }
+
+        const query = {
+            company: companyId,
+            deleted_at: null,
+            createdAt: {
+                $gte: new Date(date),
+                $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+            },
+        };
+
+        const {createdAt} = query
+
+        const [
+            interestDetail,
+            loans,
+            uchakInterestDetail,
+            partPaymentDetail,
+            partReleaseDetail,
+        ] = await Promise.all([
+            fetchInterestDetails({createdAt}, branch || null),
+            fetchLoans(query, branch || null),
+            fetchUchakInterestDetails({createdAt}, branch || null),
+            fetchPartPaymentDetails({createdAt}, branch || null),
+            fetchPartReleaseDetails({createdAt}, branch || null),
+        ]);
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                interestDetail,
+                loans,
+                uchakInterestDetail,
+                partPaymentDetail,
+                partReleaseDetail,
+            },
+        });
+    } catch (err) {
+        console.error("Error fetching daily report:", err.message);
+        return res.status(500).json({
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+};
+
 const loanSummary = async (req, res) => {
     try {
         const {companyId} = req.params;
 
         const loans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
-            .populate({path: "customer", populate: "branch"}).populate("issuedBy").populate("scheme").populate("closedBy")
+            .populate({
+                path: "customer",
+                populate: "branch"
+            }).populate("issuedBy").populate("scheme").populate("closedBy")
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject(); // Convert Mongoose document to a plain object
@@ -184,7 +261,7 @@ const loanSummary = async (req, res) => {
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
-            const daysDiff = today.diff(lastInstallmentDate, 'days');
+            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
             loan.day = daysDiff;
 
@@ -432,7 +509,7 @@ const allInOutReport = async (req, res) => {
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = moment(loan.renewalDate);
-            const daysDiff = today.diff(lastInstallmentDate, 'days');
+            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
             loan.day = daysDiff;
 
