@@ -157,7 +157,7 @@ async function otherLoanClose(req,res){
 
         const loanDetails = await OtherLoanCloseModel.create({...req.body, otherLoan: loanId})
 
-        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {status: "Closed", interestAmount: 0, closingAmount: req.body.paidLoanAmount, closeDate: req.body.payDate, closingCharge: req.body.closingCharge}, {new: true})
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {status: "Closed", interestAmount: 0, closingAmount: req.body.paidLoanAmount, closeDate: req.body.payDate, closingCharge: req.body.closingCharge, amount: 0}, {new: true})
 
         return res.status(200).json({status: 200, message: "Other loan closed successfully", data: loanDetails});
 

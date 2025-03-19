@@ -208,8 +208,6 @@ const loanSummary = async (req, res) => {
                 pendingInterest += penaltyAmount;
             }
 
-
-
             loan.pendingInterest = pendingInterest;
             loan.penaltyAmount = penaltyAmount;
             loan.totalPaidInterest = totalPaidInterest;
