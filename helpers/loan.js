@@ -13,7 +13,7 @@ async function generateNextLoanNumber(series, company, branch) {
         loan.customer.branch = await BranchModel.findById(loan.customer.branch);
     }))
 
-    const filteredLoans = updatedLoans.filter(employee => employee.user && employee.user.branch?._id?.toString() === branch)
+    const filteredLoans = updatedLoans.filter(loan => loan.customer && loan.customer.branch?._id?.toString() === branch)
 
     const loanCount = filteredLoans.length
 
