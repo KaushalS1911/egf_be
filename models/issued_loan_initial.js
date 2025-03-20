@@ -1,6 +1,7 @@
 const mongoose = require("mongoose")
 
 const issuedLoanInitialSchema = new mongoose.Schema({
+    loan: {type: String, ref: "Issued Loan" ,required: true},
     company: {type: String, ref: "Company", required: true},
     customer: {type: String, ref: "Customer", required: true},
     scheme: {type: String, ref: "Scheme", required: true},

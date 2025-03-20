@@ -40,12 +40,10 @@ async function issueLoan(req, res) {
             propertyImage,
         };
 
-        // Create model instances
         const issuedLoan = new IssuedLoanModel(loanDetails);
-        const issuedLoanInitial = new IssuedLoanInitialModel(loanDetails);
-
-        // Save both documents with session
         await issuedLoan.save({ session });
+
+        const issuedLoanInitial = new IssuedLoanInitialModel({...loanDetails, loan: issuedLoan._id});
         await issuedLoanInitial.save({ session });
 
         // Commit the transaction

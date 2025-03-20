@@ -409,7 +409,7 @@ const initialLoanDetail = async (req, res) => {
             loan = loan.toObject();
 
             const [interests] = await Promise.all([
-                InterestModel.find({loan: loan._id}).sort({createdAt: -1}),
+                InterestModel.find({loan: loan.loan}).sort({createdAt: -1}),
             ]);
 
             return {...loan, interests};
