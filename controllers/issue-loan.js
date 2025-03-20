@@ -20,8 +20,8 @@ async function issueLoan(req, res) {
         session = await mongoose.startSession();
         session.startTransaction();
 
-        const { companyId } = req.params;
-        const { issueDate, series, branch, ...loanData } = req.body;
+        const {companyId} = req.params;
+        const {issueDate, series, branch, ...loanData} = req.body;
 
         // Process property image if available
         const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
@@ -41,10 +41,10 @@ async function issueLoan(req, res) {
         };
 
         const issuedLoan = new IssuedLoanModel(loanDetails);
-        await issuedLoan.save({ session });
+        await issuedLoan.save({session});
 
         const issuedLoanInitial = new IssuedLoanInitialModel({...loanDetails, loan: issuedLoan._id});
-        await issuedLoanInitial.save({ session });
+        await issuedLoanInitial.save({session});
 
         // Commit the transaction
         await session.commitTransaction();
@@ -65,7 +65,7 @@ async function issueLoan(req, res) {
         }
 
         console.error("Error issuing loan:", err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     } finally {
         // End session if it exists
         if (session) {
@@ -377,7 +377,7 @@ async function GetInterestPayment(req, res) {
 
 async function InterestReports(req, res) {
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
 
         // Fetch all loans along with their customer and scheme details
         const loans = await IssuedLoanModel.find({
@@ -387,7 +387,7 @@ async function InterestReports(req, res) {
 
         // Process each loan concurrently
         const result = await Promise.all(loans.map(async (loan) => {
-            let { scheme: { interestRate }, lastInstallmentDate, consultingCharge } = loan;
+            let {scheme: {interestRate}, lastInstallmentDate, consultingCharge} = loan;
             loan = loan.toObject();
 
             // Default values
@@ -398,8 +398,8 @@ async function InterestReports(req, res) {
 
             // If loan is closed, fetch the latest close date & total closed amount
             if (loan.status === 'Closed') {
-                const closedLoans = await LoanCloseModel.find({ loan: loan._id, deleted_at: null })
-                    .sort({ createdAt: -1 })
+                const closedLoans = await LoanCloseModel.find({loan: loan._id, deleted_at: null})
+                    .sort({createdAt: -1})
 
                 if (closedLoans.length > 0) {
                     loan.closedDate = closedLoans[0].date;
@@ -408,7 +408,7 @@ async function InterestReports(req, res) {
             }
 
             // Fetch interests & calculate total paid interest
-            const interests = await InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 });
+            const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
             const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
             const old_cr_dr = interests[0]?.cr_dr ?? 0;
@@ -416,8 +416,8 @@ async function InterestReports(req, res) {
             let uchakInterest = 0;
             if (interestDate) {
                 const uchakInterests = await UchakInterestModel.aggregate([
-                    { $match: { loan: loan._id, date: { $gte: interestDate } } },
-                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
+                    {$match: {loan: loan._id, date: {$gte: interestDate}}},
+                    {$group: {_id: null, totalInterest: {$sum: "$amountPaid"}}}
                 ]);
 
                 uchakInterest = uchakInterests.length > 0 ? uchakInterests[0].totalInterest : 0;
@@ -427,28 +427,34 @@ async function InterestReports(req, res) {
             const today = moment();
             const lastIntDate = interests?.length !== 0 ? moment(lastInstallmentDate) : moment(loan.issueDate);
             const daysDiff = today.diff(lastIntDate, 'days') + 1;
+
+            let penaltyDayDiff = today.diff(
+                moment(interests && interests.length ? lastInstallmentDate : loan.nextInstallmentDate),
+                'days'
+            );
+
             loan.day = daysDiff;
 
             // Calculate pending interest
-            const intRate = Math.min(interestRate, 1.5); // Max interest rate cap at 1.5
-            const interestAmount = (loan.interestLoanAmount * (intRate / 100) * 12 * daysDiff) / 365;
-            const consultingAmount = (loan.interestLoanAmount * (consultingCharge / 100) * 12 * daysDiff) / 365;
+            const intRate = Math.min(interestRate, 1.5); // Max interest rate capped at 1.5%
+            const interestFactor = (intRate / 100) * 12 / 365;
+            const consultingFactor = (consultingCharge / 100) * 12 / 365;
 
+            const interestAmount = loan.interestLoanAmount * interestFactor * daysDiff;
+            const consultingAmount = loan.interestLoanAmount * consultingFactor * daysDiff;
 
             let pendingInterest = interestAmount + consultingAmount - uchakInterest - old_cr_dr;
 
             // Calculate penalty if overdue
-            if (daysDiff > 30) {
-                const penaltyDays = daysDiff
-                const penaltyData = await PenaltyModel.findOne({
-                    company: companyId,
-                    afterDueDateFromDate: { $lte: penaltyDays },
-                    afterDueDateToDate: { $gte: penaltyDays }
-                }).select("penaltyInterest");
+            const penaltyData = await PenaltyModel.findOne({
+                company: companyId,
+                afterDueDateFromDate: { $lte: penaltyDayDiff },
+                afterDueDateToDate: { $gte: penaltyDayDiff }
+            }).select("penaltyInterest");
 
-                const penaltyInterest = penaltyData?.penaltyInterest || 0;
-                pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;
-            }
+
+            const penaltyInterest = penaltyData?.penaltyInterest || 0;
+            pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;
 
             // Assign final values
             loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
@@ -461,10 +467,10 @@ async function InterestReports(req, res) {
             return loan;
         }));
 
-        return res.status(200).json({ status: 200, data: result });
+        return res.status(200).json({status: 200, data: result});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -797,8 +803,8 @@ async function deletePartReleaseDetail(req, res) {
 
 async function getAllLoans(req, res) {
     try {
-        const { companyId } = req.params;
-        const { type, branch } = req.query;
+        const {companyId} = req.params;
+        const {type, branch} = req.query;
 
         // Build the query object with default filters
         const query = {
@@ -820,12 +826,12 @@ async function getAllLoans(req, res) {
             .populate('scheme')
             .populate('closedBy')
             .populate('issuedBy')
-            .sort({ createdAt: -1 });
+            .sort({createdAt: -1});
 
         // Populate customer with branch filtering
         loansQuery = loansQuery.populate({
             path: 'customer',
-            populate: { path: 'branch' }
+            populate: {path: 'branch'}
         });
 
         // Execute the query
@@ -898,10 +904,13 @@ async function deleteIssuedLoan(req, res) {
     try {
         const {loanId, companyId} = req.params;
 
-        const [issuedLoans] = await IssuedLoanModel.find({company: companyId, deleted_at: null}).sort({createdAt: -1}).limit(1)
+        const [issuedLoans] = await IssuedLoanModel.find({
+            company: companyId,
+            deleted_at: null
+        }).sort({createdAt: -1}).limit(1)
 
-        if(issuedLoans._id.toString() !== loanId){
-           return res.status(400).json({status: 400, message: "Loan cannot be deleted because it is not latest one."});
+        if (issuedLoans._id.toString() !== loanId) {
+            return res.status(400).json({status: 400, message: "Loan cannot be deleted because it is not latest one."});
         }
 
         await IssuedLoanModel.findByIdAndUpdate(loanId, {deleted_at: new Date()}, {new: true})
