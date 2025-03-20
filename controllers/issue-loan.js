@@ -425,7 +425,7 @@ async function InterestReports(req, res) {
 
             // Calculate interest days
             const today = moment();
-            const lastIntDate = moment(lastInstallmentDate);
+            const lastIntDate = interests?.length !== 0 ? moment(lastInstallmentDate) : moment(loan.issueDate);
             const daysDiff = today.diff(lastIntDate, 'days');
             loan.day = daysDiff;
 
@@ -433,7 +433,6 @@ async function InterestReports(req, res) {
             const intRate = Math.min(interestRate, 1.5); // Max interest rate cap at 1.5
             const interestAmount = (loan.interestLoanAmount * (intRate / 100) * 12 * daysDiff) / 365;
             const consultingAmount = (loan.interestLoanAmount * (consultingCharge / 100) * 12 * daysDiff) / 365;
-
 
 
             let pendingInterest = interestAmount + consultingAmount - uchakInterest - old_cr_dr;

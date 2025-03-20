@@ -225,7 +225,6 @@ const loanSummary = async (req, res) => {
 
                 const penaltyInterestRate = penaltyData?.penaltyInterest || 0;
                 penaltyAmount = ((loan.interestLoanAmount * (penaltyInterestRate / 100)) * 12 * penaltyDays) / 365;
-                console.log(penaltyAmount)
                 pendingInterest += penaltyAmount;
             }
 
