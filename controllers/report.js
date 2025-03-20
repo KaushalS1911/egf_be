@@ -207,6 +207,11 @@ const loanSummary = async (req, res) => {
             const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
+            let penaltyDayDiff = today.diff(
+                moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate),
+                'days'
+            );
+
             loan.day = daysDiff;
 
             const interestRate = loan.scheme?.interestRate ?? 0;
@@ -215,8 +220,7 @@ const loanSummary = async (req, res) => {
             let pendingInterest = interestAmount - uchakInterest - oldCrDr;
             let penaltyAmount = 0;
 
-            if (daysDiff > 30) {
-                const penaltyDays = daysDiff
+                const penaltyDays = penaltyDayDiff
                 const penaltyData = await PenaltyModel.findOne({
                     company: companyId,
                     afterDueDateFromDate: {$lte: penaltyDays},
@@ -224,9 +228,8 @@ const loanSummary = async (req, res) => {
                 }).select('penaltyInterest');
 
                 const penaltyInterestRate = penaltyData?.penaltyInterest || 0;
-                penaltyAmount = ((loan.interestLoanAmount * (penaltyInterestRate / 100)) * 12 * penaltyDays) / 365;
+                penaltyAmount = ((loan.interestLoanAmount * (penaltyInterestRate / 100)) * 12 * daysDiff) / 365;
                 pendingInterest += penaltyAmount;
-            }
 
             loan.pendingInterest = pendingInterest;
             loan.penaltyAmount = penaltyAmount;
