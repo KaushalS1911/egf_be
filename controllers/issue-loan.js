@@ -452,9 +452,8 @@ async function InterestReports(req, res) {
                 afterDueDateToDate: { $gte: penaltyDayDiff }
             }).select("penaltyInterest");
 
-
             const penaltyInterest = penaltyData?.penaltyInterest || 0;
-            pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * penaltyDays) / 365;
+            pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * daysDiff) / 365;
 
             // Assign final values
             loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
