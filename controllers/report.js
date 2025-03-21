@@ -274,20 +274,16 @@ const loanSummary = async (req, res) => {
             }
 
             // Interest & Penalty Calculation
-            const today = moment().startOf('day'); // Remove time part
-            const lastInstallmentDate = interests?.length !== 0
-                ? moment(loan.lastInstallmentDate).startOf('day')
-                : moment(loan.issueDate).startOf('day');
-
-            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1; // +1 to include both dates
+            const today = moment();
+            const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
+            const daysDiff = interests?.length !== 0 ? today.diff(lastInstallmentDate, 'days') : today.diff(lastInstallmentDate, 'days') + 1 ;
 
             let penaltyDayDiff = today.diff(
-                moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate).startOf('day'),
+                moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate),
                 'days'
             );
 
             loan.day = daysDiff;
-
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
