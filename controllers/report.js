@@ -537,21 +537,30 @@ const allInOutReport = async (req, res) => {
             return loan;
         }));
 
-        const groupedByLoanData = result.reduce((grouped, loan) => {
-            // Determine which ID to use as the grouping key
-            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+        // const groupedByLoanData = result.reduce((grouped, loan) => {
+        //     // Determine which ID to use as the grouping key
+        //     const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+        //
+        //     if (!grouped[loanId]) {
+        //         grouped[loanId] = [];
+        //     }
+        //
+        //     grouped[loanId].push(loan);
+        //     return grouped;
+        // }, {});
 
-            if (!grouped[loanId]) {
-                grouped[loanId] = [];
-            }
-
-            grouped[loanId].push(loan);
-            return grouped;
-        }, {});
+        // const finalData = Object.values(groupedByLoanData).map((item) => {
+        //     return {
+        //
+        //     }
+        // })
+        //
+        //
+        // console.log(finalData)
 
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
-            data: groupedByLoanData,
+            data: result,
         });
 
     } catch (error) {
