@@ -282,14 +282,9 @@ const loanSummary = async (req, res) => {
             }
 
             // Interest & Penalty Calculation
-            const today = new Date();
-            const lastInstallmentDate = interests?.length !== 0 ? new Date(loan.lastInstallmentDate) : new Date(loan.issueDate);
-
-            const timeDiff = today.getTime() - lastInstallmentDate.getTime(); // Difference in milliseconds
-            const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1; // Convert to days and add 1
-
-            console.log(daysDiff);
-
+            const today = moment();
+            const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
+            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1 ;
 
             let penaltyDayDiff = today.diff(
                 moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate),
