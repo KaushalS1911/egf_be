@@ -26,46 +26,44 @@ const fetchLoans = async (query, branch) => {
         .lean();
 };
 
-// const fetchOtherLoans = async (query, branch) => {
-//     return OtherIssuedLoanModel.find(query)
-//         .populate({
-//             path: "loan",
-//             populate: [{
-//                 path: "customer",
-//                 populate: "branch",
-//                 match: branch ? {"branch._id": branch} : {},
-//
-//             }, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
-//         })
-//         .sort({createdAt: -1})
-//         .lean();
-// };
-//
-// const fetchOtherInterestDetails = async (query, company) => {
-//     return OtherLoanInterestModel.find(query).populate({
-//         path: "otherLoan",
-//         populate: {
-//             path: "loan",
-//             populate: [{
-//                 path: "company",
-//                 match: company ? {"company._id": company} : {}
-//             }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
-//         }
-//     }).lean();
-// };
-//
-// const fetchOtherLoanCloseDetails = async (query, company) => {
-//     return OtherCloseLoanModel.find(query).populate({
-//         path: "otherLoan",
-//         populate: {
-//             path: "loan",
-//             populate: [{
-//                 path: "company",
-//                 match: company ? {"company._id": company} : {}
-//             }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
-//         }
-//     }).lean();
-// };
+const fetchOtherLoans = async (query) => {
+    return OtherIssuedLoanModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [{
+                path: "customer",
+                populate: "branch",
+            }, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+        })
+        .sort({createdAt: -1})
+        .lean();
+};
+
+const fetchOtherInterestDetails = async (query, company) => {
+    return OtherLoanInterestModel.find(query).populate({
+        path: "otherLoan",
+        populate: {
+            path: "loan",
+            populate: [{
+                path: "company",
+                match: company ? {"company._id": company} : {}
+            }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+        }
+    }).lean();
+};
+
+const fetchOtherLoanCloseDetails = async (query, company) => {
+    return OtherCloseLoanModel.find(query).populate({
+        path: "otherLoan",
+        populate: {
+            path: "loan",
+            populate: [{
+                path: "company",
+                match: company ? {"company._id": company} : {}
+            }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+        }
+    }).lean();
+};
 
 const fetchInterestDetails = async (query, branch) => {
     return InterestModel.find(query).populate({
@@ -170,61 +168,55 @@ const dailyReport = async (req, res) => {
     }
 };
 
-// const dailyOtherLoanReport = async (req, res) => {
-//     try {
-//         const {companyId} = req.params;
-//         const {branch, date} = req.query;
-//
-//         if (!date || isNaN(new Date(date))) {
-//             return res.status(400).json({
-//                 status: 400,
-//                 message: "Invalid or missing 'date' parameter",
-//             });
-//         }
-//
-//         const query = {
-//             company: companyId,
-//             deleted_at: null,
-//             createdAt: {
-//                 $gte: new Date(date),
-//                 $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
-//             },
-//         };
-//
-//         const {createdAt} = query
-//
-//         const [
-//             interestDetail,
-//             loans,
-//             uchakInterestDetail,
-//             partPaymentDetail,
-//             partReleaseDetail,
-//         ] = await Promise.all([
-//             fetchInterestDetails({createdAt}, branch || null),
-//             fetchLoans(query, branch || null),
-//             fetchUchakInterestDetails({createdAt}, branch || null),
-//             fetchPartPaymentDetails({createdAt}, branch || null),
-//             fetchPartReleaseDetails({createdAt}, branch || null),
-//         ]);
-//
-//         return res.status(200).json({
-//             status: 200,
-//             data: {
-//                 interestDetail,
-//                 loans,
-//                 uchakInterestDetail,
-//                 partPaymentDetail,
-//                 partReleaseDetail,
-//             },
-//         });
-//     } catch (err) {
-//         console.error("Error fetching daily report:", err.message);
-//         return res.status(500).json({
-//             status: 500,
-//             message: "Internal server error",
-//         });
-//     }
-// };
+const dailyOtherLoanReport = async (req, res) => {
+    try {
+        const {companyId} = req.params;
+        const {date} = req.query;
+
+        if (!date || isNaN(new Date(date))) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid or missing 'date' parameter",
+            });
+        }
+
+        const query = {
+            company: companyId,
+            deleted_at: null,
+            createdAt: {
+                $gte: new Date(date),
+                $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+            },
+        };
+
+        const {createdAt} = query
+
+        const [
+            interestDetail,
+            loans,
+            closedLoanDetails,
+        ] = await Promise.all([
+            fetchOtherInterestDetails({createdAt}, companyId),
+            fetchOtherLoans(query),
+            fetchOtherLoanCloseDetails({createdAt}, companyId),
+        ]);
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                interestDetail,
+                loans,
+                closedLoanDetails,
+            },
+        });
+    } catch (err) {
+        console.error("Error fetching daily report:", err.message);
+        return res.status(500).json({
+            status: 500,
+            message: "Internal server error",
+        });
+    }
+};
 
 const loanSummary = async (req, res) => {
     try {
@@ -571,5 +563,6 @@ module.exports = {
     customerStatement,
     initialLoanDetail,
     otherLoanSummary,
-    allInOutReport
+    allInOutReport,
+    dailyOtherLoanReport
 }

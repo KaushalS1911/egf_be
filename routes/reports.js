@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail, otherLoanSummary, allInOutReport} = require('../controllers/report')
+const { dailyReport, loanSummary, loanDetail, customerStatement, initialLoanDetail, otherLoanSummary, allInOutReport,dailyOtherLoanReport} = require('../controllers/report')
 
 router.get('/:companyId/daily-report', dailyReport);
+router.get('/:companyId/other-loan/daily-report', dailyOtherLoanReport);
 router.get('/:companyId/loan-summary', loanSummary);
 router.get('/:companyId/other-loan-summary', otherLoanSummary);
 router.get('/:companyId/loan-detail/:loanId', loanDetail);
