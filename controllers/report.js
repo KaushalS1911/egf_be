@@ -115,7 +115,7 @@ const fetchLoanCloseDetails = async (query, branch) => {
 const dailyReport = async (req, res) => {
     try {
         const {companyId} = req.params;
-        const {date} = req.query;
+        const {branch, date} = req.query;
 
         if (!date || isNaN(new Date(date))) {
             return res.status(400).json({
