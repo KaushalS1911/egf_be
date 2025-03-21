@@ -284,7 +284,7 @@ const loanSummary = async (req, res) => {
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
-            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1 ;
+            const daysDiff = today.diff(lastInstallmentDate, 'days') + 2 ;
 
             let penaltyDayDiff = today.diff(
                 moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate),
