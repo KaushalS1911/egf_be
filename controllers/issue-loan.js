@@ -426,7 +426,7 @@ async function InterestReports(req, res) {
             // Calculate interest days
             const today = moment();
             const lastIntDate = interests?.length !== 0 ? moment(lastInstallmentDate) : moment(loan.issueDate);
-            const daysDiff = interests?.length !== 0 ? today.diff(lastInstallmentDate, 'days') : today.diff(lastInstallmentDate, 'days') + 1 ;
+            const daysDiff = interests?.length !== 0 ? today.diff(lastIntDate, 'days') : today.diff(lastIntDate, 'days') + 1 ;
 
             let penaltyDayDiff = today.diff(
                 moment(interests && interests.length ? lastInstallmentDate : loan.nextInstallmentDate),
