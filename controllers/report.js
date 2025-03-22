@@ -276,7 +276,7 @@ const loanSummary = async (req, res) => {
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate) : moment(loan.issueDate);
-            const daysDiff = interests?.length !== 0 ? today.diff(lastInstallmentDate, 'days') : today.diff(lastInstallmentDate, 'days') + 1 ;
+            const daysDiff = interests?.length !== 0 ? today.diff(lastInstallmentDate, 'days') : today.diff(lastInstallmentDate, 'days') + 1;
 
             let penaltyDayDiff = today.diff(
                 moment(interests && interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate),
@@ -335,6 +335,7 @@ const otherLoanSummary = async (req, res) => {
             })
 
         const result = await Promise.all(loans.map(async (loan) => {
+
             loan = loan.toObject();
 
             // Fetch Interest and Part Payments
@@ -346,15 +347,17 @@ const otherLoanSummary = async (req, res) => {
             loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
             // Interest & Penalty Calculation
             const today = moment();
-            const lastInstallmentDate = moment(loan.date);
+            const lastInstallmentDate = interests.length !== 0 ? moment(interests[0].to) : moment(loan.date);
             const daysDiff = today.diff(lastInstallmentDate, 'days');
 
             loan.day = interests.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
+            loan.pendingDay = loan.status === 'Closed' ? 0 : daysDiff
             const interestRate = loan.percentage
 
-            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+            loan.pendingInterest = loan.status === 'Closed' ? 0 :((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
             return loan;
+
         }));
 
         return res.status(200).json({
@@ -501,76 +504,87 @@ const initialLoanDetail = async (req, res) => {
     }
 }
 
-const allInOutReport = async (req, res) => {
-    try {
-        const {companyId} = req.params;
-
-        const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
-            .populate({
-                path: "loan",
-                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
-            })
-
-        const result = await Promise.all(loans.map(async (loan) => {
-            loan = loan.toObject();
-
-            // Fetch Interest and Part Payments
-            const [customerLoanInterests, interests] = await Promise.all([
-                InterestModel.find({loan: loan.loan._id, deleted_at: null}),
-                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
-            ]);
-
-            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
-            loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
-
-            // Interest & Penalty Calculation
-            const today = moment();
-            const lastInstallmentDate = moment(loan.renewalDate);
-            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
-
-            loan.day = daysDiff;
-
-            const interestRate = loan.percentage
-
-            loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
-
-            return loan;
-        }));
-
-        // const groupedByLoanData = result.reduce((grouped, loan) => {
-        //     // Determine which ID to use as the grouping key
-        //     const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
-        //
-        //     if (!grouped[loanId]) {
-        //         grouped[loanId] = [];
-        //     }
-        //
-        //     grouped[loanId].push(loan);
-        //     return grouped;
-        // }, {});
-
-        // const finalData = Object.values(groupedByLoanData).map((item) => {
-        //     return {
-        //
-        //     }
-        // })
-        //
-        //
-        // console.log(finalData)
-
-        return res.status(200).json({
-            message: "Report data of other loan summary fetched successfully",
-            data: result,
-        });
-
-    } catch (error) {
-        console.error("Error fetching loan summary:", error);
-        return res.status(500).json({
-            message: "An error occurred while fetching the report data.",
-            error: error.message,
-        });
-    }
-}
+// const allInOutReport = async (req, res) => {
+//     try {
+//         const {companyId} = req.params;
+//
+//         const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
+//             .populate({
+//                 path: "loan",
+//                 populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
+//             })
+//
+//         const result = await Promise.all(loans.map(async (loan) => {
+//             loan = loan.toObject();
+//
+//             // Fetch Interest and Part Payments
+//             const [customerLoanInterests, interests] = await Promise.all([
+//                 InterestModel.find({loan: loan.loan._id, deleted_at: null}),
+//                 OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
+//             ]);
+//
+//             loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
+//             loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
+//
+//             // Interest & Penalty Calculation
+//             const today = moment();
+//             const lastInstallmentDate = moment(loan.renewalDate);
+//             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
+//
+//             loan.day = daysDiff;
+//
+//             const interestRate = loan.percentage
+//
+//             loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+//
+//             return loan;
+//         }));
+//
+//         const groupedByLoanData = result.reduce((grouped, loan) => {
+//             // Determine which ID to use as the grouping key
+//             const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+//
+//             if (!grouped[loanId]) {
+//                 grouped[loanId] = [];
+//             }
+//
+//             grouped[loanId].push(loan);
+//             return grouped;
+//         }, {});
+//
+//         const finalData = Object.values(groupedByLoanData).map((item) => {
+//             return {
+//                 loanNo: [item].loan.loanNo,
+//                 issueDate: [item].loan.issueDate,
+//                 customerName: `${[item].loan.customer.firstName} ${[item].loan.customer.middleName} ${[item].loan.customer.lastName}`,
+//                 totalLoanAmount: [item].loan.loanAmount,
+//                 partLoanAmount: [item].loan.loanAmount - [item].loan.interestLoanAmount,
+//                 interestLoanAmount: [item].loan.interestLoanAmount,
+//                 totalWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.totalWeight , 0),
+//                 netWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.netWeight , 0),
+//                 intRate: [item].loan.scheme.interestRate,
+//                 totalInterestAmount: [item].totalInterestAmount,
+//                 otherNo: item.map((e) => ` ${e.otherNo} `),
+//                 // date:
+//             }
+//         })
+//
+//
+//         console.log(finalData)
+//
+//         return res.status(200).json({
+//             message: "Report data of other loan summary fetched successfully",
+//             data: result,
+//         });
+//
+//     } catch (error) {
+//         console.error("Error fetching loan summary:", error);
+//         return res.status(500).json({
+//             message: "An error occurred while fetching the report data.",
+//             error: error.message,
+//         });
+//     }
+// }
 
 
 module.exports = {
