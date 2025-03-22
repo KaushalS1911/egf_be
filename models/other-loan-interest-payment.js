@@ -5,6 +5,7 @@ const otherLoanInterestPaymentSchema = new mongoose.Schema({
     to: Date,
     from: Date,
     days: String,
+    payDate: Date,
     amountPaid: Number,
     payAfterAdjust: Number,
     remark: String,
