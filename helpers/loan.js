@@ -10,7 +10,7 @@ async function generateNextLoanNumber(series, company, branch) {
         });
 
         // Filter loans by branch
-        const filteredLoans = loans && loans.length !== 0 && loans.filter(loan => loan.customer?.branch === branch);
+        const filteredLoans = loans && loans.length !== 0 ? loans.filter(loan => loan.customer?.branch === branch) : [];
 
         // Determine the next loan number
         const nextNumber = (filteredLoans?.length + 1).toString().padStart(4, "0");
