@@ -594,6 +594,5 @@ module.exports = {
     customerStatement,
     initialLoanDetail,
     otherLoanSummary,
-    allInOutReport,
     dailyOtherLoanReport
 }
