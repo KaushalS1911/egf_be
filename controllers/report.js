@@ -222,7 +222,7 @@ const loanSummary = async (req, res) => {
     try {
         const {companyId} = req.params;
 
-        const loans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
+        const loans = await IssuedLoanModel.find({company: companyId, deleted_at: null}).sort({loanNo: 1})
             .populate({
                 path: "customer",
                 populate: "branch"
