@@ -348,7 +348,7 @@ const otherLoanSummary = async (req, res) => {
             // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = interests.length !== 0 ? moment(interests[0].to) : moment(loan.date);
-            const daysDiff = today.diff(lastInstallmentDate, 'days');
+            const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
             loan.day = interests.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
             loan.pendingDay = loan.status === 'Closed' ? 0 : daysDiff
