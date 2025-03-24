@@ -380,14 +380,16 @@ async function InterestReports(req, res) {
         const {companyId} = req.params;
 
         // Fetch all loans along with their customer and scheme details
-        const loans = await IssuedLoanModel.find({
+        const loanDetails = await IssuedLoanModel.find({
             company: companyId,
             deleted_at: null
-        }).populate({path: 'customer', populate: "branch"}).populate("scheme").sort((a, b) => {
+        }).populate({path: 'customer', populate: "branch"}).populate("scheme");
+
+        const loans = loanDetails.sort((a, b) => {
             const numA = parseInt(a.loanNo.split('/').pop(), 10);
             const numB = parseInt(b.loanNo.split('/').pop(), 10);
             return numA - numB;
-        });
+        })
 
         // Process each loan concurrently
         const result = await Promise.all(loans.map(async (loan) => {
