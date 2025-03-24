@@ -383,7 +383,7 @@ async function InterestReports(req, res) {
         const loans = await IssuedLoanModel.find({
             company: companyId,
             deleted_at: null
-        }).populate({path: 'customer', populate: "branch"}).populate("scheme");
+        }).sort({loanNo: 1}).populate({path: 'customer', populate: "branch"}).populate("scheme");
 
         // Process each loan concurrently
         const result = await Promise.all(loans.map(async (loan) => {
