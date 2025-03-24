@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 const logger = require('morgan');
 const cors = require("cors");
 
-const {updateOverdueLoans, updateOverdueClosedLoans} = require('./controllers/common')
+const {updateOverdueLoans, updateOverdueOtherLoans} = require('./controllers/common')
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
