@@ -433,7 +433,8 @@ async function InterestReports(req, res) {
                 'days'
             );
 
-            loan.day = daysDiff;
+            loan.penaltyAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
+            loan.day = loan.status === 'Closed' ? 0 : daysDiff;
 
             // Calculate pending interest
             const intRate = Math.min(interestRate, 1.5); // Max interest rate capped at 1.5%
@@ -456,12 +457,12 @@ async function InterestReports(req, res) {
             pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * daysDiff) / 365;
 
             // Assign final values
-            loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
-            loan.consultingAmount = interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
-            loan.penaltyAmount = interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
-            loan.pendingInterest = pendingInterest;
+            loan.interestAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
+            loan.consultingAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
+            loan.penaltyAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
+            loan.pendingInterest = loan.status === 'Closed' ? 0 :pendingInterest;
             loan.totalPaidInterest = totalPaidInterest;
-            loan.cr_dr = old_cr_dr;
+            loan.cr_dr = loan.status === 'Closed' ? 0 : old_cr_dr;
 
             return loan;
         }));
