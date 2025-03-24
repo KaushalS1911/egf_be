@@ -288,4 +288,4 @@ const scenarios = {
 };
 
 
-module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueClosedLoans, sendWhatsAppMessage, sendWhatsAppNotification, sendMessage}
+module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueOtherLoans, sendWhatsAppMessage, sendWhatsAppNotification, sendMessage}
