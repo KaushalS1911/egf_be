@@ -35,6 +35,7 @@ app.use('/api', appRouter);
 cron.schedule('*/5 * * * *', async () => {
     try {
         await updateOverdueLoans();
+        await updateOverdueOtherLoans()
         console.log("Loan status updated successfully");
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
