@@ -68,7 +68,8 @@ const configSchema = new mongoose.Schema({
     remarks: [],
     exportPolicyConfig: [],
     months: [],
-    otherNames: []
+    otherNames: [],
+    whatsappConfig: {},
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)
