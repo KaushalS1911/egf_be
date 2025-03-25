@@ -51,7 +51,7 @@ async function updateOverdueOtherLoans() {
                         renewalDate: {$gt: today},
                         status: {$nin: ["Closed"]}
                     },
-                    update: {$set: {status: 'Overdue'}}
+                    update: {$set: {status: 'Regular'}}
                 }
             },
             {
@@ -61,7 +61,7 @@ async function updateOverdueOtherLoans() {
                         renewalDate: {$lt: today},
                         status: {$nin: ['Closed']}
                     },
-                    update: {$set: {status: 'Regular'}}
+                    update: {$set: {status: 'Overdue'}}
                 }
             }
         ]);
