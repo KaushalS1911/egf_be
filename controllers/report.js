@@ -89,7 +89,7 @@ const fetchPartPaymentDetails = async (query, branch) => {
     return PartPaymentModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
+            {path: "scheme"},{path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
 };
@@ -98,7 +98,7 @@ const fetchPartReleaseDetails = async (query, branch) => {
     return PartReleaseModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
+            {path: "scheme"},{path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
 };
