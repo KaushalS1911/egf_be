@@ -49,7 +49,7 @@ async function updateOverdueOtherLoans() {
                     filter: {
                         deleted_at: null,
                         renewalDate: {$gt: today},
-                        status: {$nin: ["Closed", "Issued"]}
+                        status: {$nin: ["Closed"]}
                     },
                     update: {$set: {status: 'Overdue'}}
                 }
@@ -59,7 +59,7 @@ async function updateOverdueOtherLoans() {
                     filter: {
                         deleted_at: null,
                         renewalDate: {$lt: today},
-                        status: {$nin: ['Closed', 'Issued']}
+                        status: {$nin: ['Closed']}
                     },
                     update: {$set: {status: 'Regular'}}
                 }
