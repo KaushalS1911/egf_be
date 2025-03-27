@@ -25,7 +25,7 @@ const customerSchema = new mongoose.Schema({
     avatar_url: {type: String, default: null},
     permanentAddress: {type: addressSchema},
     temporaryAddress: {type: addressSchema},
-    bankDetails: Object,
+    bankDetails: [],
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
 
