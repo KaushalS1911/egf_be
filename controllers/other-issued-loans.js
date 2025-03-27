@@ -95,20 +95,13 @@ async function getSingleOtherLoan(req, res) {
     }
 }
 
-async function deleteMultipleOtherLoans(req, res) {
+async function deleteOtherLoan(req, res) {
     try {
-        const {ids} = req.body;
+        const {loanId} = req.params;
 
-        if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({status: 400, message: "Invalid loan IDs."});
-        }
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {deleted_at: null}, {new: true})
 
-        await OtherIssuedLoanModel.updateMany(
-            {_id: {$in: ids}},
-            {$set: {deleted_at: new Date()}}
-        );
-
-        return res.status(200).json({status: 200, message: "Other Loans deleted successfully"});
+        return res.status(200).json({status: 200, message: "Other Loan deleted successfully"});
     } catch (err) {
         console.error(err);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -216,4 +209,4 @@ const generateLoanNumber = async (companyId) => {
     return `EGF/${financialYear}_${String(newLoanCount).padStart(6, '0')}`;
 };
 
-module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteMultipleOtherLoans, updateOtherLoan, otherLoanInterestPayment, getAllInterestsOfOtherLoan, deleteOtherLoanInterest, otherLoanClose, getClosedOtherLoan, deleteOtherLoanClosingDetails};
+module.exports = {addOtherLoan, getAllOtherLoans, getSingleOtherLoan, deleteOtherLoan, updateOtherLoan, otherLoanInterestPayment, getAllInterestsOfOtherLoan, deleteOtherLoanInterest, otherLoanClose, getClosedOtherLoan, deleteOtherLoanClosingDetails};
