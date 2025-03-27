@@ -256,7 +256,6 @@ const loanSummary = async (req, res) => {
             const lastInterestEntry = interests[0] || {};
             const oldCrDr = lastInterestEntry.cr_dr ?? 0;
             const totalPaidInterest = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
-            loan.totalDays = interests.reduce((sum, ele) => sum + (ele.days || 0), 0)
             // Determine Last Payment Date
             const lastAmtPayDate = Math.max(
                 partPayments[0]?.createdAt || 0,
@@ -283,7 +282,7 @@ const loanSummary = async (req, res) => {
                 'days'
             );
 
-            loan.day = daysDiff;
+            loan.day = loan.status === 'Closed' ? interests.reduce((sum, ele) => sum + (ele.days || 0), 0) : daysDiff;
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
