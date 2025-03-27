@@ -803,52 +803,34 @@ async function deletePartReleaseDetail(req, res) {
 
 async function getAllLoans(req, res) {
     try {
-        const {companyId} = req.params;
-        const {type, branch} = req.query;
+        const { companyId } = req.params;
+        const { type, branch } = req.query;
 
-        // Build the query object with default filters
-        const query = {
-            company: companyId,
-            deleted_at: null
-        };
+        const query = { company: companyId, deleted_at: null };
+        if (type) query.status = type;
 
-        // Add optional status filter if provided
-        if (type) {
-            query.status = type;
-        }
+        let loans = await IssuedLoanModel.find(query)
+            .populate('company scheme closedBy issuedBy')
+            .populate({ path: 'customer', populate: { path: 'branch' } })
+            .sort({ createdAt: -1 });
 
-        // Create the base query
-        let loansQuery = IssuedLoanModel.find(query);
-
-        // Add regular population without branch filtering
-        loansQuery = loansQuery
-            .populate('company')
-            .populate('scheme')
-            .populate('closedBy')
-            .populate('issuedBy')
-            .sort({createdAt: -1});
-
-        // Populate customer with branch filtering
-        loansQuery = loansQuery.populate({
-            path: 'customer',
-            populate: {path: 'branch'}
-        });
-
-        // Execute the query
-        let loans = await loansQuery;
-
-        // If branch filter is specified, filter the results after population
         if (branch) {
             loans = loans.filter(loan =>
-                loan.customer &&
-                loan.customer.branch &&
-                loan.customer.branch._id.toString() === branch
+                loan.customer?.branch?._id.toString() === branch
             );
         }
 
+        const loanDetails = await Promise.all(loans.map(async (loan) => {
+            if (loan.status === "Closed") {
+                const closedLoan = await LoanCloseModel.findOne({ loan: loan._id });
+                return { ...loan.toObject(), closingDate: closedLoan?.date };
+            }
+            return loan.toObject();
+        }));
+
         return res.status(200).json({
             status: 200,
-            data: loans
+            data: loanDetails
         });
 
     } catch (error) {
@@ -859,6 +841,7 @@ async function getAllLoans(req, res) {
         });
     }
 }
+
 
 async function updateLoan(req, res) {
     try {
