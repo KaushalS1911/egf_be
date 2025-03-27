@@ -99,7 +99,7 @@ async function deleteOtherLoan(req, res) {
     try {
         const {loanId} = req.params;
 
-        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {deleted_at: null}, {new: true})
+        await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {deleted_at: new Date()}, {new: true})
 
         return res.status(200).json({status: 200, message: "Other Loan deleted successfully"});
     } catch (err) {
