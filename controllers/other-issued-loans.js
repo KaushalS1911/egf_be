@@ -41,13 +41,12 @@ async function getAllOtherLoans(req, res) {
         }
 
         let loans = await OtherIssuedLoanModel.find(query)
-            .populate('company scheme closedBy issuedBy')
-            .populate({ path: 'customer', populate: { path: 'branch' } })
+            .populate({path: 'loan', populate: [{path: 'company'},{path: 'scheme'},{path: 'closedBy'},{path: 'issuedBy'},{path: 'customer', populate: {path: 'branch'}}]})
             .sort({ createdAt: -1 });
 
         if (branch) {
             loans = loans.filter(loan =>
-                loan.customer?.branch?._id.toString() === branch
+                loan.loan.customer?.branch?._id.toString() === branch
             );
         }
 
