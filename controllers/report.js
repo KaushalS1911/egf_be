@@ -282,7 +282,7 @@ const loanSummary = async (req, res) => {
                 'days'
             );
 
-            loan.day = loan.status === 'Closed' ? interests.reduce((sum, ele) => sum + (ele.days || 0), 0) : daysDiff;
+            loan.day = loan.status === 'Closed' ? interests.reduce((sum, ele) => sum + (Number(ele.days) || 0), 0) : daysDiff;
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
