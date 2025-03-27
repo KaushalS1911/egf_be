@@ -3,6 +3,7 @@ const OtherIssuedLoanModel = require("../models/other-issued-loan");
 const OtherLoanInterestModel = require("../models/other-loan-interest-payment");
 const OtherLoanCloseModel = require("../models/other-loan-close");
 const {getCurrentFinancialYear} = require("./issue-loan");
+const IssuedLoanModel = require("../models/issued-loan");
 
 async function addOtherLoan(req, res) {
     const session = await mongoose.startSession();
@@ -32,17 +33,23 @@ async function addOtherLoan(req, res) {
 async function getAllOtherLoans(req, res) {
     try {
         const {companyId} = req.params
+        const {branch} = req.query
 
         let query = {
             company: companyId,
             deleted_at: null
         }
 
-        const loans = await OtherIssuedLoanModel.find(query)
-            .populate({
-                path: "loan",
-                populate: [{path: "customer"},{path: "scheme"}],
-            })
+        let loans = await IssuedLoanModel.find(query)
+            .populate('company scheme closedBy issuedBy')
+            .populate({ path: 'customer', populate: { path: 'branch' } })
+            .sort({ createdAt: -1 });
+
+        if (branch) {
+            loans = loans.filter(loan =>
+                loan.customer?.branch?._id.toString() === branch
+            );
+        }
 
         return res.status(200).json({status: 200, data: loans});
     } catch (err) {
