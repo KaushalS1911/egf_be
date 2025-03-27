@@ -40,7 +40,7 @@ async function getAllOtherLoans(req, res) {
             deleted_at: null
         }
 
-        let loans = await IssuedLoanModel.find(query)
+        let loans = await OtherIssuedLoanModel.find(query)
             .populate('company scheme closedBy issuedBy')
             .populate({ path: 'customer', populate: { path: 'branch' } })
             .sort({ createdAt: -1 });
