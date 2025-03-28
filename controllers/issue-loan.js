@@ -823,7 +823,7 @@ async function getAllLoans(req, res) {
         const loanDetails = await Promise.all(loans.map(async (loan) => {
             if (loan.status === "Closed") {
                 const closedLoan = await LoanCloseModel.findOne({ loan: loan._id });
-                return { ...loan.toObject(), closingDate: closedLoan?.date };
+                return { ...loan.toObject(), closingDate: closedLoan?.date, closingCharge: closedLoan?.closingCharge };
             }
             return loan.toObject();
         }));
