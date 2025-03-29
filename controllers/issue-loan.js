@@ -434,8 +434,8 @@ async function InterestReports(req, res) {
             );
 
             loan.penaltyAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
-            loan.day = loan.status === 'Closed' ? 0 : daysDiff;
-
+            loan.pendingDays = loan.status === 'Closed' ? 0 : daysDiff;
+            loan.day = interests.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
             // Calculate pending interest
             const intRate = Math.min(interestRate, 1.5); // Max interest rate capped at 1.5%
             const interestFactor = (intRate / 100) * 12 / 365;
