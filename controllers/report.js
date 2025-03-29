@@ -295,7 +295,7 @@ const loanSummary = async (req, res) => {
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
-            let pendingInterest = loan.status === 'Closed' ? 0 : interestAmount - uchakInterest - oldCrDr;
+            let pendingInterest = loan.status === 'Closed' ? 0 : interestAmount - uchakInterest + oldCrDr;
             let penaltyAmount = 0;
 
             const penaltyDays = penaltyDayDiff
