@@ -548,9 +548,32 @@ const allInOutReport = async (req, res) => {
             return loan;
         }));
 
-        const groupedByLoanData = result.reduce((grouped, loan) => {
+
+        const totalLoans = [];
+        const resultMap = new Map();
+
+        result.forEach(i => {
+            const loanId = i?.loan?._id?.toString();
+            if (loanId) {
+                if (!resultMap.has(loanId)) {
+                    resultMap.set(loanId, []);
+                }
+                resultMap.get(loanId).push(i);
+            }
+        });
+
+        customerLoans.forEach(item => {
+            const foundLoans = resultMap.get(item._id.toString());
+            if (foundLoans) {
+                totalLoans.push(...foundLoans); // Spread all matched loans
+            } else {
+                totalLoans.push({ loan: item });
+            }
+        });
+
+        const groupedByLoanData = totalLoans.reduce((grouped, loan) => {
             // Determine which ID to use as the grouping key
-            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+            const loanId =  loan.loan._id.toString();
 
             if (!grouped[loanId]) {
                 grouped[loanId] = [];
@@ -559,26 +582,6 @@ const allInOutReport = async (req, res) => {
             grouped[loanId].push(loan);
             return grouped;
         }, {});
-
-        // const finalData = Object.values(groupedByLoanData).map((item) => {
-        //     return {
-        //         loanNo: [item].loan.loanNo,
-        //         issueDate: [item].loan.issueDate,
-        //         customerName: `${[item].loan.customer.firstName} ${[item].loan.customer.middleName} ${[item].loan.customer.lastName}`,
-        //         totalLoanAmount: [item].loan.loanAmount,
-        //         partLoanAmount: [item].loan.loanAmount - [item].loan.interestLoanAmount,
-        //         interestLoanAmount: [item].loan.interestLoanAmount,
-        //         totalWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.totalWeight , 0),
-        //         netWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.netWeight , 0),
-        //         intRate: [item].loan.scheme.interestRate,
-        //         totalInterestAmount: [item].totalInterestAmount,
-        //         otherNo: item.map((e) => ` ${e.otherNo} `),
-        //         // date:
-        //     }
-        // })
-
-
-        console.log(groupedByLoanData)
 
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
