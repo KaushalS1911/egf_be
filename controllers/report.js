@@ -526,8 +526,8 @@ const allInOutReport = async (req, res) => {
                 ]
             });
 
-        // Convert customerLoans into a Map for fast lookup
-        const loanMap = new Map(customerLoans.map(loan => [loan._id.toString(), { ...loan.toObject(), otherLoans: [] }]));
+        // Map customerLoans by _id for easy lookup
+        const customerLoanMap = new Map(customerLoans.map(loan => [loan._id.toString(), loan.toObject()]));
 
         // Process and merge Other Loans
         const result = await Promise.all(otherLoans.map(async (loan) => {
@@ -551,19 +551,23 @@ const allInOutReport = async (req, res) => {
             const interestRate = loan.percentage;
             loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
-            // Merge with customer loans if it exists
-            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
-            if (loanMap.has(loanId)) {
-                loanMap.get(loanId).otherLoans.push(loan);
-            }
-
             return loan;
         }));
 
-        // Convert the Map values back to an array
-        const mergedLoans = Array.from(loanMap.values());
+        // Merge Other Loans into Customer Loans
+        result.forEach(otherLoan => {
+            const loanId = otherLoan.loan && otherLoan.loan._id ? otherLoan.loan._id.toString() : otherLoan._id.toString();
+            if (customerLoanMap.has(loanId)) {
+                const customerLoan = customerLoanMap.get(loanId);
+                customerLoan.otherLoans = customerLoan.otherLoans || [];
+                customerLoan.otherLoans.push(otherLoan);
+            }
+        });
 
-        // Group data
+        // Convert Map back to an array
+        const mergedLoans = Array.from(customerLoanMap.values());
+
+        // **Keep the existing response structure** by grouping the loans
         const groupedByLoanData = mergedLoans.reduce((grouped, loan) => {
             const loanId = loan._id.toString();
             if (!grouped[loanId]) {
@@ -575,7 +579,7 @@ const allInOutReport = async (req, res) => {
 
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
-            data: groupedByLoanData,
+            data: groupedByLoanData, // ✅ Response structure remains unchanged
         });
 
     } catch (error) {
