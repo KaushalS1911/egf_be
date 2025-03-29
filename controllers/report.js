@@ -296,7 +296,7 @@ const loanSummary = async (req, res) => {
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
-            let pendingInterest = loan.status === 'Closed' ? 0 : interestAmount - uchakInterest - oldCrDr;
+            let pendingInterest = loan.status === 'Closed' ? 0 : interestAmount - uchakInterest + oldCrDr;
             let penaltyAmount = 0;
 
             const penaltyDays = penaltyDayDiff
@@ -516,7 +516,7 @@ const allInOutReport = async (req, res) => {
     try {
         const {companyId} = req.params;
 
-        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
+        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null}).populate([{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}])
         const otherLoans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
@@ -591,7 +591,7 @@ const allInOutReport = async (req, res) => {
 
         const finalLoans = totalLoans.flat();
 
-        const groupedByLoanData = totalLoans.reduce((grouped, loan) => {
+        const groupedByLoanData = finalLoans.reduce((grouped, loan) => {
             // Determine which ID to use as the grouping key
             const loanId = loan?.loan?._id.toString();
 
