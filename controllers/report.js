@@ -515,7 +515,7 @@ const allInOutReport = async (req, res) => {
     try {
         const {companyId} = req.params;
 
-        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
+        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null}).populate([{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}])
         const otherLoans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
