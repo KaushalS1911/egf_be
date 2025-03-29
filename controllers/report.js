@@ -573,7 +573,7 @@ const allInOutReport = async (req, res) => {
         //         intRate: [item].loan.scheme.interestRate,
         //         totalInterestAmount: [item].totalInterestAmount,
         //         otherNo: item.map((e) => ` ${e.otherNo} `),
-        //         // date: 
+        //         // date:
         //     }
         // })
 
