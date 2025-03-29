@@ -549,7 +549,6 @@ const allInOutReport = async (req, res) => {
         }));
 
 
-        const totalLoans = [];
         const resultMap = new Map();
 
         result.forEach(i => {
@@ -562,18 +561,38 @@ const allInOutReport = async (req, res) => {
             }
         });
 
-        customerLoans.forEach(item => {
+        const totalLoans = await Promise.all(customerLoans.map(async (item) => {
             const foundLoans = resultMap.get(item._id.toString());
+
             if (foundLoans) {
-                totalLoans.push(...foundLoans); // Spread all matched loans
+                return foundLoans; // Return array of matched loans
             } else {
-                totalLoans.push({ loan: item });
+                const interests = await InterestModel.find({ loan: item._id, deleted_at: null });
+
+                return {
+                    loan: item,
+                    otherNumber: '',
+                    otherName: '',
+                    otherLoanAmount: 0,
+                    amount: 0,
+                    percentage: 0,
+                    rate: 0,
+                    totalInterestAmount: interests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0),
+                    date: null,
+                    grossWt: 0,
+                    netWt: 0,
+                    totalOtherInterestAmount: 0,
+                    status: ''
+                };
             }
-        });
+        }));
+
+// Flatten the array (since `foundLoans` returns arrays)
+        const finalLoans = totalLoans.flat();
 
         const groupedByLoanData = totalLoans.reduce((grouped, loan) => {
             // Determine which ID to use as the grouping key
-            const loanId =  loan.loan._id.toString();
+            const loanId = loan.loan._id.toString();
 
             if (!grouped[loanId]) {
                 grouped[loanId] = [];
