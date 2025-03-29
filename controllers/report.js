@@ -89,7 +89,11 @@ const fetchPartPaymentDetails = async (query, branch) => {
     return PartPaymentModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "scheme"},{path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
+            {path: "scheme"}, {
+                path: "customer",
+                populate: {path: "branch"},
+                match: branch ? {'branch._id': branch} : {}
+            },
         ],
     }).lean();
 };
@@ -98,7 +102,11 @@ const fetchPartReleaseDetails = async (query, branch) => {
     return PartReleaseModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "scheme"},{path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
+            {path: "scheme"}, {
+                path: "customer",
+                populate: {path: "branch"},
+                match: branch ? {'branch._id': branch} : {}
+            },
         ],
     }).lean();
 };
@@ -353,7 +361,7 @@ const otherLoanSummary = async (req, res) => {
             loan.pendingDay = loan.status === 'Closed' ? 0 : daysDiff
             const interestRate = loan.percentage
 
-            loan.pendingInterest = loan.status === 'Closed' ? 0 :((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+            loan.pendingInterest = loan.status === 'Closed' ? 0 : ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
             return loan;
 
@@ -505,24 +513,33 @@ const initialLoanDetail = async (req, res) => {
 
 const allInOutReport = async (req, res) => {
     try {
-        const {companyId} = req.params;
+        const { companyId } = req.params;
 
-        const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
+        // Fetch Customer Loans and Other Loans
+        const customerLoans = await IssuedLoanModel.find({ company: companyId, deleted_at: null });
+        const otherLoans = await OtherIssuedLoanModel.find({ company: companyId, deleted_at: null })
             .populate({
                 path: "loan",
-                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
-            })
+                populate: [
+                    { path: "customer", select: "firstName middleName lastName" },
+                    { path: "scheme" }
+                ]
+            });
 
-        const result = await Promise.all(loans.map(async (loan) => {
+        // Convert customerLoans into a Map for fast lookup
+        const loanMap = new Map(customerLoans.map(loan => [loan._id.toString(), { ...loan.toObject(), otherLoans: [] }]));
+
+        // Process and merge Other Loans
+        const result = await Promise.all(otherLoans.map(async (loan) => {
             loan = loan.toObject();
 
             // Fetch Interest and Part Payments
             const [customerLoanInterests, interests] = await Promise.all([
-                InterestModel.find({loan: loan.loan._id, deleted_at: null}),
-                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
+                InterestModel.find({ loan: loan.loan._id, deleted_at: null }),
+                OtherLoanInterestModel.find({ otherLoan: loan._id }).sort({ createdAt: -1 }),
             ]);
 
-            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
+            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0);
             loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
 
             // Interest & Penalty Calculation
@@ -531,45 +548,30 @@ const allInOutReport = async (req, res) => {
             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
             loan.day = daysDiff;
-
-            const interestRate = loan.percentage
-
+            const interestRate = loan.percentage;
             loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+
+            // Merge with customer loans if it exists
+            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+            if (loanMap.has(loanId)) {
+                loanMap.get(loanId).otherLoans.push(loan);
+            }
 
             return loan;
         }));
 
-        const groupedByLoanData = result.reduce((grouped, loan) => {
-            // Determine which ID to use as the grouping key
-            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
+        // Convert the Map values back to an array
+        const mergedLoans = Array.from(loanMap.values());
 
+        // Group data
+        const groupedByLoanData = mergedLoans.reduce((grouped, loan) => {
+            const loanId = loan._id.toString();
             if (!grouped[loanId]) {
                 grouped[loanId] = [];
             }
-
             grouped[loanId].push(loan);
             return grouped;
         }, {});
-
-        // const finalData = Object.values(groupedByLoanData).map((item) => {
-        //     return {
-        //         loanNo: [item].loan.loanNo,
-        //         issueDate: [item].loan.issueDate,
-        //         customerName: `${[item].loan.customer.firstName} ${[item].loan.customer.middleName} ${[item].loan.customer.lastName}`,
-        //         totalLoanAmount: [item].loan.loanAmount,
-        //         partLoanAmount: [item].loan.loanAmount - [item].loan.interestLoanAmount,
-        //         interestLoanAmount: [item].loan.interestLoanAmount,
-        //         totalWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.totalWeight , 0),
-        //         netWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.netWeight , 0),
-        //         intRate: [item].loan.scheme.interestRate,
-        //         totalInterestAmount: [item].totalInterestAmount,
-        //         otherNo: item.map((e) => ` ${e.otherNo} `),
-        //         // date:
-        //     }
-        // })
-
-
-        console.log(groupedByLoanData)
 
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
@@ -583,7 +585,8 @@ const allInOutReport = async (req, res) => {
             error: error.message,
         });
     }
-}
+};
+
 
 
 module.exports = {
