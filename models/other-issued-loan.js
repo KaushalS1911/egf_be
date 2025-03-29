@@ -6,6 +6,7 @@ const otherIssuedLoanSchema = new mongoose.Schema({
     otherNumber: {type: String},
     otherLoanNumber: String,
     otherName: {type: String},
+    otherLoanAmount: {type: Number},
     amount: {type: Number},
     percentage: {type: Number},
     rate: {type: Number},
