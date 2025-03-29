@@ -444,7 +444,7 @@ async function InterestReports(req, res) {
             const interestAmount = loan.interestLoanAmount * interestFactor * daysDiff;
             const consultingAmount = loan.interestLoanAmount * consultingFactor * daysDiff;
 
-            let pendingInterest = interestAmount + consultingAmount - uchakInterest - old_cr_dr;
+            let pendingInterest = interestAmount + consultingAmount - uchakInterest + old_cr_dr;
 
             // Calculate penalty if overdue
             const penaltyData = await PenaltyModel.findOne({
