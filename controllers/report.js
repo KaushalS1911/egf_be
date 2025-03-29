@@ -587,7 +587,7 @@ const allInOutReport = async (req, res) => {
             }
         }));
 
-// Flatten the array (since `foundLoans` returns arrays)
+
         const finalLoans = totalLoans.flat();
 
         const groupedByLoanData = totalLoans.reduce((grouped, loan) => {
