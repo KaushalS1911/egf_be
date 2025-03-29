@@ -513,33 +513,25 @@ const initialLoanDetail = async (req, res) => {
 
 const allInOutReport = async (req, res) => {
     try {
-        const { companyId } = req.params;
+        const {companyId} = req.params;
 
-        // Fetch Customer Loans and Other Loans
-        const customerLoans = await IssuedLoanModel.find({ company: companyId, deleted_at: null });
-        const otherLoans = await OtherIssuedLoanModel.find({ company: companyId, deleted_at: null })
+        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null})
+        const otherLoans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
-                populate: [
-                    { path: "customer", select: "firstName middleName lastName" },
-                    { path: "scheme" }
-                ]
-            });
+                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
+            })
 
-        // Map customerLoans by _id for easy lookup
-        const customerLoanMap = new Map(customerLoans.map(loan => [loan._id.toString(), loan.toObject()]));
-
-        // Process and merge Other Loans
         const result = await Promise.all(otherLoans.map(async (loan) => {
             loan = loan.toObject();
 
             // Fetch Interest and Part Payments
             const [customerLoanInterests, interests] = await Promise.all([
-                InterestModel.find({ loan: loan.loan._id, deleted_at: null }),
-                OtherLoanInterestModel.find({ otherLoan: loan._id }).sort({ createdAt: -1 }),
+                InterestModel.find({loan: loan.loan._id, deleted_at: null}),
+                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
             ]);
 
-            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0);
+            loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
             loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
 
             // Interest & Penalty Calculation
@@ -548,38 +540,49 @@ const allInOutReport = async (req, res) => {
             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
             loan.day = daysDiff;
-            const interestRate = loan.percentage;
+
+            const interestRate = loan.percentage
+
             loan.pendingInterest = ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
             return loan;
         }));
 
-        // Merge Other Loans into Customer Loans
-        result.forEach(otherLoan => {
-            const loanId = otherLoan.loan && otherLoan.loan._id ? otherLoan.loan._id.toString() : otherLoan._id.toString();
-            if (customerLoanMap.has(loanId)) {
-                const customerLoan = customerLoanMap.get(loanId);
-                customerLoan.otherLoans = customerLoan.otherLoans || [];
-                customerLoan.otherLoans.push(otherLoan);
-            }
-        });
+        const groupedByLoanData = result.reduce((grouped, loan) => {
+            // Determine which ID to use as the grouping key
+            const loanId = loan.loan && loan.loan._id ? loan.loan._id.toString() : loan._id.toString();
 
-        // Convert Map back to an array
-        const mergedLoans = Array.from(customerLoanMap.values());
-
-        // **Keep the existing response structure** by grouping the loans
-        const groupedByLoanData = mergedLoans.reduce((grouped, loan) => {
-            const loanId = loan._id.toString();
             if (!grouped[loanId]) {
                 grouped[loanId] = [];
             }
+
             grouped[loanId].push(loan);
             return grouped;
         }, {});
 
+        // const finalData = Object.values(groupedByLoanData).map((item) => {
+        //     return {
+        //         loanNo: [item].loan.loanNo,
+        //         issueDate: [item].loan.issueDate,
+        //         customerName: `${[item].loan.customer.firstName} ${[item].loan.customer.middleName} ${[item].loan.customer.lastName}`,
+        //         totalLoanAmount: [item].loan.loanAmount,
+        //         partLoanAmount: [item].loan.loanAmount - [item].loan.interestLoanAmount,
+        //         interestLoanAmount: [item].loan.interestLoanAmount,
+        //         totalWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.totalWeight , 0),
+        //         netWt: [item].loan.propertyDetail.reduce((acc, prop) => acc + prop.netWeight , 0),
+        //         intRate: [item].loan.scheme.interestRate,
+        //         totalInterestAmount: [item].totalInterestAmount,
+        //         otherNo: item.map((e) => ` ${e.otherNo} `),
+        //         // date: 
+        //     }
+        // })
+
+
+        console.log(groupedByLoanData)
+
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
-            data: groupedByLoanData, // ✅ Response structure remains unchanged
+            data: groupedByLoanData,
         });
 
     } catch (error) {
@@ -589,8 +592,7 @@ const allInOutReport = async (req, res) => {
             error: error.message,
         });
     }
-};
-
+}
 
 
 module.exports = {
