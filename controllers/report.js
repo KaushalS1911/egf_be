@@ -562,12 +562,12 @@ const allInOutReport = async (req, res) => {
         });
 
         const totalLoans = await Promise.all(customerLoans.map(async (item) => {
-            const foundLoans = resultMap.get(item._id.toString());
+            const foundLoans = resultMap.get(item?._id.toString());
 
             if (foundLoans) {
                 return foundLoans; // Return array of matched loans
             } else {
-                const interests = await InterestModel.find({ loan: item._id, deleted_at: null });
+                const interests = await InterestModel.find({ loan: item?._id, deleted_at: null });
 
                 return {
                     loan: item,
@@ -592,7 +592,7 @@ const allInOutReport = async (req, res) => {
 
         const groupedByLoanData = totalLoans.reduce((grouped, loan) => {
             // Determine which ID to use as the grouping key
-            const loanId = loan.loan._id.toString();
+            const loanId = loan?.loan?._id.toString();
 
             if (!grouped[loanId]) {
                 grouped[loanId] = [];
