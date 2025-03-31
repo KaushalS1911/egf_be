@@ -192,7 +192,7 @@ async function sendMessage(messagePayload, file = null){
 }
 
 const scenarios = {
-    loan_detail: (payload, file) => [
+    loan_details: (payload, file) => [
         `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
         payload.loanNo,
         payload.loanAmount,
@@ -200,6 +200,7 @@ const scenarios = {
         payload.consultingCharge,
         moment(payload.issueDate).format("DD/MM/YYYY"),
         moment(payload.nextInstallmentDate).format("DD/MM/YYYY"),
+        payload.branchContact,
         payload.companyContact,
         payload.companyEmail,
         payload.companyName,
