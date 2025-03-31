@@ -90,7 +90,8 @@ async function disburseLoan(req, res) {
             pendingCashAmount,
             payingCashAmount,
             payingBankAmount,
-            issueDate
+            issueDate,
+            approvalCharge
         } = req.body;
 
         // Fetch loan details
@@ -110,6 +111,7 @@ async function disburseLoan(req, res) {
             payingCashAmount,
             payingBankAmount,
             issueDate,
+            approvalCharge,
             nextInstallmentDate: getNextInterestPayDate(issueDate)
         });
         // Save updated loan details
