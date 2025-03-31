@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const CustomerModel = require("../models/customer");
 const CompanyModel = require("../models/company");
-const { uploadFile } = require("../helpers/avatar");
+const BranchModel = require("../models/branch");
+const {uploadFile} = require("../helpers/avatar");
 const {sendWhatsAppMessage} = require("./common");
 
 const createCustomer = async (req, res) => {
@@ -9,8 +10,8 @@ const createCustomer = async (req, res) => {
     session.startTransaction();
 
     try {
-        const { companyId } = req.params;
-        const { branch } = req.query;
+        const {companyId} = req.params;
+        const {branch} = req.query;
         const customerData = req.body;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
@@ -20,8 +21,8 @@ const createCustomer = async (req, res) => {
             company: companyId,
             branch,
             $or: [
-                { aadharCard: customerData.aadharCard },
-                { panCard: customerData.panCard },
+                {aadharCard: customerData.aadharCard},
+                {panCard: customerData.panCard},
             ],
         });
 
@@ -40,12 +41,14 @@ const createCustomer = async (req, res) => {
             avatar_url: avatar,
             customerCode,
         });
-        await customer.save({ session });
+        await customer.save({session});
 
         const company = await CompanyModel.findById(companyId);
         if (!company) {
             throw new Error("Company not found.");
         }
+
+        const branchDetail = await BranchModel.findById(branch)
 
         await sendWhatsAppNotification({
             contact: customerData.contact,
@@ -55,6 +58,7 @@ const createCustomer = async (req, res) => {
             customerCode,
             email: customerData.email,
             company,
+            branchContact: branchDetail.contact
         });
 
         await session.commitTransaction();
@@ -68,7 +72,7 @@ const createCustomer = async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).json({ status: 400, message: error.message });
+        return res.status(400).json({status: 400, message: error.message});
     }
 };
 
@@ -80,6 +84,7 @@ const sendWhatsAppNotification = async ({
                                             customerCode,
                                             email,
                                             company,
+                                            branchContact,
                                         }) => {
     const formData = new FormData();
     formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
@@ -95,17 +100,18 @@ const sendWhatsAppNotification = async ({
     formData.append("data[3]", email);
     formData.append("data[4]", contact);
     formData.append("data[5]", company.contact);
-    formData.append("data[6]", company.email);
-    formData.append("data[7]", company.name);
+    formData.append("data[6]", branchContact);
+    formData.append("data[7]", company.email);
     formData.append("data[8]", company.name);
+    formData.append("data[9]", company.name);
 
     await sendWhatsAppMessage(formData);
 };
 
 
 async function getAllCustomers(req, res) {
-    const { companyId } = req.params;
-    const { branch } = req.query;
+    const {companyId} = req.params;
+    const {branch} = req.query;
 
     try {
         const query = {
@@ -122,54 +128,58 @@ async function getAllCustomers(req, res) {
             .populate("branch")
 
 
-        return res.status(200).json({ status: 200, data: customers });
+        return res.status(200).json({status: 200, data: customers});
     } catch (err) {
         console.error("Error fetching customers:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function updateCustomerProfile(req, res) {
     try {
-        const { customerId } = req.params;
+        const {customerId} = req.params;
 
         const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, { avatar_url: avatar }, { new: true });
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, {avatar_url: avatar}, {new: true});
 
         if (!updatedCustomer) {
-            return res.status(404).json({ status: 404, message: "Customer not found." });
+            return res.status(404).json({status: 404, message: "Customer not found."});
         }
 
-        return res.status(200).json({ status: 200, data: updatedCustomer, message: "Profile picture updated successfully" });
+        return res.status(200).json({
+            status: 200,
+            data: updatedCustomer,
+            message: "Profile picture updated successfully"
+        });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function updateCustomer(req, res) {
     try {
-        const { customerId } = req.params;
+        const {customerId} = req.params;
 
         const payload = req.body
-        if(req.query.branch) payload.branch = req.query.branch
+        if (req.query.branch) payload.branch = req.query.branch
 
-        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, payload, { new: true });
+        const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, payload, {new: true});
 
         if (!updatedCustomer) {
-            return res.status(404).json({ status: 404, message: "Customer not found." });
+            return res.status(404).json({status: 404, message: "Customer not found."});
         }
 
-        return res.status(200).json({ status: 200, data: updatedCustomer, message: "Customer updated successfully" });
+        return res.status(200).json({status: 200, data: updatedCustomer, message: "Customer updated successfully"});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function getSingleCustomer(req, res) {
-    const { customerId } = req.params;
+    const {customerId} = req.params;
 
     try {
         const customer = await CustomerModel.findById(customerId)
@@ -177,34 +187,41 @@ async function getSingleCustomer(req, res) {
             .populate("branch");
 
         if (!customer) {
-            return res.status(404).json({ status: 404, message: "Customer not found" });
+            return res.status(404).json({status: 404, message: "Customer not found"});
         }
 
-        return res.status(200).json({ status: 200, data: customer });
+        return res.status(200).json({status: 200, data: customer});
     } catch (err) {
         console.error("Error fetching customer:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
 async function deleteMultipleCustomers(req, res) {
     try {
-        const { ids } = req.body;
+        const {ids} = req.body;
 
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ status: 400, message: "Invalid customer IDs." });
+            return res.status(400).json({status: 400, message: "Invalid customer IDs."});
         }
 
         await CustomerModel.updateMany(
-            { _id: { $in: ids } },
-            { $set: { deleted_at: new Date() } }
+            {_id: {$in: ids}},
+            {$set: {deleted_at: new Date()}}
         );
 
-        return res.status(200).json({ status: 200, message: "Customers deleted successfully" });
+        return res.status(200).json({status: 200, message: "Customers deleted successfully"});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
-module.exports = { createCustomer, getAllCustomers, updateCustomerProfile, updateCustomer, getSingleCustomer, deleteMultipleCustomers };
+module.exports = {
+    createCustomer,
+    getAllCustomers,
+    updateCustomerProfile,
+    updateCustomer,
+    getSingleCustomer,
+    deleteMultipleCustomers
+};
