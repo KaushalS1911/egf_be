@@ -10,13 +10,13 @@ async function addOtherLoan(req, res) {
     session.startTransaction();
 
     try {
-        const {companyId, amount} = req.params
+        const {companyId} = req.params
 
         const issuedLoan = await OtherIssuedLoanModel.create({
             ...req.body,
             company: companyId,
             otherLoanNumber: await generateLoanNumber(companyId),
-            otherLoanAmount: amount
+            otherLoanAmount: req.body.amount
         })
         await issuedLoan.save({session});
         await session.commitTransaction();
