@@ -134,7 +134,7 @@ async function disburseLoan(req, res) {
             contact: disbursedLoan.customer.contact,
             loanNo: disbursedLoan.loanNo,
             loanAmount: disbursedLoan.loanAmount,
-            interestRate: disbursedLoan.scheme.interestRate,
+            interestRate: Math.max(disbursedLoan.scheme.interestRate,1.5),
             consultingCharge: disbursedLoan.consultingCharge || 0,
             issueDate: moment(disbursedLoan.issueDate, 'DD-MM-YYYY').format(),
             nextInstallmentDate: moment(disbursedLoan.nextInstallmentDate, 'DD-MM-YYYY').format(),
