@@ -215,6 +215,7 @@ const scenarios = {
         moment(payload.issueDate).format("DD/MM/YYYY"),
         moment(payload.nextInstallmentDate).format("DD/MM/YYYY"),
         payload.companyContact,
+        payload.branchContact,
         payload.companyEmail,
         payload.companyName,
         payload.companyName,

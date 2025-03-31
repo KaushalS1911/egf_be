@@ -117,8 +117,7 @@ async function disburseLoan(req, res) {
             loan,
             loanDetail,
             {new: true}
-        ).populate(["scheme", "customer", "company"]);
-        console.log(disbursedLoan)
+        ).populate(["scheme", {path: "customer", populate: "branch"}, "company"]);
 
         if (!disbursedLoan) {
             return res.status(500).json({status: 500, message: "Failed to update loan details"});
@@ -137,6 +136,7 @@ async function disburseLoan(req, res) {
             consultingCharge: disbursedLoan.consultingCharge || 0,
             issueDate: moment(disbursedLoan.issueDate, 'DD-MM-YYYY').format(),
             nextInstallmentDate: moment(disbursedLoan.nextInstallmentDate, 'DD-MM-YYYY').format(),
+            branchContact: disbursedLoan.customer.branch.contact,
             companyContact: disbursedLoan.company.contact,
             companyName: disbursedLoan?.company?.name,
             companyEmail: disbursedLoan?.company?.email,
