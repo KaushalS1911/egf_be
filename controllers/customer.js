@@ -50,16 +50,20 @@ const createCustomer = async (req, res) => {
 
         const branchDetail = await BranchModel.findById(branch)
 
-        await sendWhatsAppNotification({
-            contact: customerData.contact,
-            firstName: customerData.firstName,
-            middleName: customerData.middleName,
-            lastName: customerData.lastName,
-            customerCode,
-            email: customerData.email,
-            company,
-            branchContact: branchDetail.contact
-        });
+        try{
+            await sendWhatsAppNotification({
+                contact: customerData.contact,
+                firstName: customerData.firstName,
+                middleName: customerData.middleName,
+                lastName: customerData.lastName,
+                customerCode,
+                email: customerData.email,
+                company,
+                branchContact: branchDetail.contact
+            });
+        }catch(err){
+            console.log("Error failed to send whatsapp message", err)
+        }
 
         await session.commitTransaction();
         session.endSession();
