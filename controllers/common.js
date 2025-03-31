@@ -2,9 +2,14 @@ const moment = require('moment');
 const CustomerModel = require("../models/customer")
 const IssuedLoanModel = require("../models/issued-loan")
 const OtherIssuedLoanModel = require("../models/other-issued-loan")
+const InterestModel = require("../models/interest")
+const UchakInterestModel = require("../models/uchak-interest-payment")
 const ConfigModel = require("../models/config");
 const axios = require("axios");
 const FormData = require("form-data");
+const PartPaymentModel = require("../models/loan-part-payment");
+const LoanPartReleaseModel = require("../models/part-release");
+const PenaltyModel = require("../models/penalty");
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -106,6 +111,90 @@ async function updateOverdueLoans() {
     }
 }
 
+
+async function interestReminders() {
+    try {
+        const today = moment().startOf('day');
+        const nextTwoDays = moment().add(2, 'days').startOf('day');
+
+        const loans = await IssuedLoanModel.find({
+            nextInstallmentDate: { $gte: today.toDate(), $lt: nextTwoDays.toDate() },
+            status: { $nin: ["Closed"] },
+            deleted_at: null,
+        }).populate([
+            { path: "customer", populate: "branch" },
+            { path: "company" },
+            { path: "scheme" }
+        ]);
+
+        const reminders = loans.map(async (loan) => {
+            const [interests, uchakInterests] = await Promise.all([
+                InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
+                UchakInterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
+            ]);
+
+            let uchakInterest = 0;
+            if (interests.length > 0) {
+                const lastInterest = interests[0];
+                const uchakInterestData = await UchakInterestModel.aggregate([
+                    { $match: { loan: loan._id, date: { $gte: lastInterest.createdAt } } },
+                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
+                ]);
+                uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
+            }
+
+            const lastInstallmentDate = loan.lastInstallmentDate ? moment(loan.lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
+            const daysDiff = today.diff(lastInstallmentDate, 'days');
+            const penaltyDayDiff = today.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
+
+            const interestRate = loan.scheme?.interestRate ?? 0;
+            const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
+            const oldCrDr = interests.length ? interests[0].cr_dr ?? 0 : 0;
+
+            let pendingInterest = interestAmount - uchakInterest + oldCrDr;
+            let penaltyAmount = 0;
+
+            const penaltyData = await PenaltyModel.findOne({
+                company: loan.company._id,
+                afterDueDateFromDate: { $lte: penaltyDayDiff },
+                afterDueDateToDate: { $gte: penaltyDayDiff },
+            }).select('penaltyInterest');
+
+            if (penaltyData) {
+                const penaltyInterestRate = penaltyData.penaltyInterest;
+                penaltyAmount = ((loan.interestLoanAmount * (penaltyInterestRate / 100)) * 12 * daysDiff) / 365;
+            }
+
+            pendingInterest += penaltyAmount;
+
+            const payload = {
+                type: 'reminder',
+                firstName: loan.customer.firstName,
+                middleName: loan.customer.middleName,
+                lastName: loan.customer.lastName,
+                contact: loan.customer.contact,
+                loanNumber: loan.loanNo,
+                loanAmount: loan.loanAmount,
+                interestAmount: pendingInterest,
+                nextInstallmentDate: moment(loan.nextInstallmentDate).format("DD/MM/YYYY"),
+                companyContact: loan.company.contact,
+                companyEmail: loan.company.email,
+                companyName: loan.company.name,
+            };
+
+            await sendMessage(payload);
+        });
+
+        await Promise.all(reminders);
+        console.log("Reminders sent successfully.");
+
+    } catch (error) {
+        console.error("Error sending interest reminders:", error);
+    }
+}
+
+
+
 async function sendWhatsAppMessage(formData) {
     try {
         await axios.post(process.env.WHATSAPP_API_URL, formData);
@@ -137,7 +226,7 @@ async function sendWhatsAppNotification(req, res) {
 }
 
 async function sendMessage(messagePayload, file = null) {
-    const { type, contact, company, ...payload } = messagePayload;
+    const {type, contact, company, ...payload} = messagePayload;
     const scenarioFunction = scenarios[type];
 
     if (!scenarioFunction) {
@@ -147,7 +236,7 @@ async function sendMessage(messagePayload, file = null) {
         });
     }
 
-    const config = await ConfigModel.findOne({ company }).select('whatsappConfig');
+    const config = await ConfigModel.findOne({company}).select('whatsappConfig');
     const contacts = [contact, config?.whatsappConfig?.contact1, config?.whatsappConfig?.contact2].filter(Boolean);
 
     const sendRequest = async (contact) => {
@@ -174,14 +263,13 @@ async function sendMessage(messagePayload, file = null) {
             method: "post",
             maxBodyLength: Infinity,
             url: "https://app.11za.in/apis/template/sendTemplate",
-            headers: { ...formData.getHeaders() },
+            headers: {...formData.getHeaders()},
             data: formData,
         });
     };
 
     await Promise.all(contacts.map(sendRequest));
 }
-
 
 
 const scenarios = {
@@ -294,5 +382,6 @@ module.exports = {
     updateOverdueOtherLoans,
     sendWhatsAppMessage,
     sendWhatsAppNotification,
-    sendMessage
+    sendMessage,
+    interestReminders
 }

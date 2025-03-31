@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser')
 const logger = require('morgan');
 const cors = require("cors");
 
-const {updateOverdueLoans, updateOverdueOtherLoans} = require('./controllers/common')
+const {updateOverdueLoans, updateOverdueOtherLoans, interestReminders} = require('./controllers/common')
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
@@ -42,6 +42,14 @@ cron.schedule('*/5 * * * *', async () => {
     }
 });
 
+cron.schedule('0 0 * * *', async () => {
+    try {
+        await interestReminders();
+        console.log("Reminders sended successfully");
+    } catch (error) {
+        console.error("Error occurred during loan status update:", error);
+    }
+});
 
 app.listen(port, () => {
     console.log(`Server is running on PORT ${port}`)
