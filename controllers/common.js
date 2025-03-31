@@ -2,6 +2,7 @@ const moment = require('moment');
 const CustomerModel = require("../models/customer")
 const IssuedLoanModel = require("../models/issued-loan")
 const OtherIssuedLoanModel = require("../models/other-issued-loan")
+const ConfigModel = require("../models/config");
 const axios = require("axios");
 const FormData = require("form-data");
 
@@ -135,30 +136,25 @@ async function sendWhatsAppNotification(req, res) {
     }
 }
 
-async function sendMessage(messagePayload, file = null){
-    {
-        const { type, contact, ...payload } = messagePayload;
-        const scenarioFunction = scenarios[type];
+async function sendMessage(messagePayload, file = null) {
+    const { type, contact, company, ...payload } = messagePayload;
+    const scenarioFunction = scenarios[type];
 
-        if (!scenarioFunction) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid notification type",
-            });
-        }
+    if (!scenarioFunction) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid notification type",
+        });
+    }
 
+    const config = await ConfigModel.findOne({ company }).select('whatsappConfig');
+    const contacts = [contact, config?.whatsappConfig?.contact1, config?.whatsappConfig?.contact2].filter(Boolean);
+
+    const sendRequest = async (contact) => {
         const formData = new FormData();
-
-        const safeContact = contact ? `91${contact}` : '';
-        const safeName = [
-            payload.firstName,
-            payload.middleName,
-            payload.lastName
-        ].filter(Boolean).join(' ');
-
         formData.append("authToken", process.env.WHATSAPP_API_AUTH_TOKEN);
-        formData.append("name", safeName);
-        formData.append("sendto", safeContact);
+        formData.append("name", [payload.firstName, payload.middleName, payload.lastName].filter(Boolean).join(' '));
+        formData.append("sendto", `91${contact}`);
         formData.append("originWebsite", process.env.WHATSAPP_API_ORIGIN_WEBSITE);
         formData.append("templateName", type);
         formData.append("language", process.env.WHATSAPP_API_TEMPLATE_LANGUAGE);
@@ -170,26 +166,23 @@ async function sendMessage(messagePayload, file = null){
             });
         }
 
-        const customData = scenarioFunction(payload, file);
-
-        customData.forEach((value, index) => {
-            const safeValue = value != null ? String(value) : '';
-            formData.append(`data[${index}]`, safeValue);
+        scenarioFunction(payload, file).forEach((value, index) => {
+            formData.append(`data[${index}]`, value != null ? String(value) : '');
         });
 
-        const config = {
+        return axios({
             method: "post",
             maxBodyLength: Infinity,
             url: "https://app.11za.in/apis/template/sendTemplate",
-            headers: {
-                ...formData.getHeaders(),
-            },
+            headers: { ...formData.getHeaders() },
             data: formData,
-        };
+        });
+    };
 
-        await axios(config);
-    }
+    await Promise.all(contacts.map(sendRequest));
 }
+
+
 
 const scenarios = {
     loan_details: (payload, file) => [
@@ -295,4 +288,11 @@ const scenarios = {
 };
 
 
-module.exports = {sendBirthdayNotification, updateOverdueLoans, updateOverdueOtherLoans, sendWhatsAppMessage, sendWhatsAppNotification, sendMessage}
+module.exports = {
+    sendBirthdayNotification,
+    updateOverdueLoans,
+    updateOverdueOtherLoans,
+    sendWhatsAppMessage,
+    sendWhatsAppNotification,
+    sendMessage
+}

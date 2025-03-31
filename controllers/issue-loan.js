@@ -7,7 +7,6 @@ const LoanCloseModel = require("../models/loan-close");
 const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
 const {uploadPropertyFile} = require("../helpers/avatar");
-const {sendMessage} = require("./common");
 const {generateNextLoanNumber} = require("../helpers/loan");
 const moment = require("moment");
 const PenaltyModel = require("../models/penalty");
