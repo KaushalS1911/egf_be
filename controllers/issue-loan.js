@@ -125,24 +125,24 @@ async function disburseLoan(req, res) {
             return res.status(500).json({status: 500, message: "Failed to update loan details"});
         }
 
-        // Send notification
-        await sendMessage({
-            type: "loan_issue",
-            firstName: disbursedLoan?.customer?.firstName,
-            middleName: disbursedLoan?.customer?.middleName,
-            lastName: disbursedLoan?.customer?.lastName,
-            contact: disbursedLoan.customer.contact,
-            loanNo: disbursedLoan.loanNo,
-            loanAmount: disbursedLoan.loanAmount,
-            interestRate: Math.max(disbursedLoan.scheme.interestRate,1.5),
-            consultingCharge: disbursedLoan.consultingCharge || 0,
-            issueDate: moment(disbursedLoan.issueDate, 'DD-MM-YYYY').format(),
-            nextInstallmentDate: moment(disbursedLoan.nextInstallmentDate, 'DD-MM-YYYY').format(),
-            branchContact: disbursedLoan.customer.branch.contact,
-            companyContact: disbursedLoan.company.contact,
-            companyName: disbursedLoan?.company?.name,
-            companyEmail: disbursedLoan?.company?.email,
-        });
+        // // Send notification
+        // await sendMessage({
+        //     type: "loan_issue",
+        //     firstName: disbursedLoan?.customer?.firstName,
+        //     middleName: disbursedLoan?.customer?.middleName,
+        //     lastName: disbursedLoan?.customer?.lastName,
+        //     contact: disbursedLoan.customer.contact,
+        //     loanNo: disbursedLoan.loanNo,
+        //     loanAmount: disbursedLoan.loanAmount,
+        //     interestRate: Math.max(disbursedLoan.scheme.interestRate,1.5),
+        //     consultingCharge: disbursedLoan.consultingCharge || 0,
+        //     issueDate: moment(disbursedLoan.issueDate, 'DD-MM-YYYY').format(),
+        //     nextInstallmentDate: moment(disbursedLoan.nextInstallmentDate, 'DD-MM-YYYY').format(),
+        //     branchContact: disbursedLoan.customer.branch.contact,
+        //     companyContact: disbursedLoan.company.contact,
+        //     companyName: disbursedLoan?.company?.name,
+        //     companyEmail: disbursedLoan?.company?.email,
+        // });
 
         return res.status(201).json({status: 201, message: "Loan disbursed successfully", data: disbursedLoan});
     } catch (err) {
