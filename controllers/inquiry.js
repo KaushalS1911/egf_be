@@ -8,16 +8,16 @@ async function addInquiry(req, res) {
     const {branch, assignTo} = req.query;
     const {email, contact} = req.body
     try {
-        const isInquiryExist = await InquiryModel.exists({
-            company: companyId,
-            branch,
-            $or: [{email}, {contact}],
-            deleted_at: null
-        });
-
-        if (isInquiryExist) {
-            return res.status(400).json({status: 400, message: "Inquiry already exists"});
-        }
+        // const isInquiryExist = await InquiryModel.exists({
+        //     company: companyId,
+        //     branch,
+        //     $or: [{email}, {contact}],
+        //     deleted_at: null
+        // });
+        //
+        // if (isInquiryExist) {
+        //     return res.status(400).json({status: 400, message: "Inquiry already exists"});
+        // }
 
         const inquiry = await InquiryModel.create({
             ...req.body,
