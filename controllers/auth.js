@@ -234,6 +234,11 @@ const setConfigs = async (companyId) => {
         goldRate: 6600,
         loanTypes: [],
         businessType: [],
+        remarks: [],
+        exportPolicyConfig: [],
+        months: [],
+        otherNames: [],
+        whatsappConfig: {},
     });
 
     await configs.save();
