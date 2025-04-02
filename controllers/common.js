@@ -372,6 +372,7 @@ const scenarios = {
         payload.companyContact,
         payload.companyEmail,
         payload.companyName,
+        payload.companyName,
     ],
     part_release: (payload, file) => [
         `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
