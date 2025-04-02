@@ -115,10 +115,11 @@ const fetchPartReleaseDetails = async (query, company, branch) => {
     }).lean();
 };
 
-const fetchLoanCloseDetails = async (query, branch) => {
+const fetchLoanCloseDetails = async (query, company, branch) => {
     return CloseLoanModel.find(query).populate({
         path: "loan",
         populate: [
+            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
@@ -154,11 +155,11 @@ const dailyReport = async (req, res) => {
             partPaymentDetail,
             partReleaseDetail,
         ] = await Promise.all([
-            fetchInterestDetails({createdAt}, company, branch || null),
+            fetchInterestDetails({createdAt}, companyId, branch || null),
             fetchLoans(query, branch || null),
-            fetchUchakInterestDetails({createdAt}, company, branch || null),
-            fetchPartPaymentDetails({createdAt}, company, branch || null),
-            fetchPartReleaseDetails({createdAt}, company, branch || null),
+            fetchUchakInterestDetails({createdAt}, companyId, branch || null),
+            fetchPartPaymentDetails({createdAt}, companyId, branch || null),
+            fetchPartReleaseDetails({createdAt}, companyId, branch || null),
         ]);
 
         return res.status(200).json({
@@ -389,24 +390,24 @@ const otherLoanSummary = async (req, res) => {
 
 const loanDetail = async (req, res) => {
     try {
-        const {loanId} = req.params;
+        const {loanId, companyId} = req.params;
 
         const query = {
             loan: loanId,
         };
 
-        const [
+        const [Id
             interestDetail,
             uchakInterestDetail,
             partPaymentDetail,
             partReleaseDetail,
             loanCloseDetail
         ] = await Promise.all([
-            fetchInterestDetails(query, null),
-            fetchUchakInterestDetails(query, null),
-            fetchPartPaymentDetails(query, null),
-            fetchPartReleaseDetails(query, null),
-            fetchLoanCloseDetails(query, null),
+            fetchInterestDetails(query, companyId, null),
+            fetchUchakInterestDetails(query, companyId, null),
+            fetchPartPaymentDetails(query, companyId, null),
+            fetchPartReleaseDetails(query, companyId, null),
+            fetchLoanCloseDetails(query, companyId, null),
         ]);
 
         return res.status(200).json({
@@ -431,7 +432,7 @@ const loanDetail = async (req, res) => {
 
 const customerStatement = async (req, res) => {
     try {
-        const {customerId} = req.params;
+        const {customerId, companyId} = req.params;
 
         // Fetch loan details
         const loanDetails = await IssuedLoanModel.find({customer: customerId}).select('_id').lean();
@@ -440,11 +441,11 @@ const customerStatement = async (req, res) => {
 
         // Fetch all relevant details in parallel
         const details = await Promise.all([
-            fetchInterestDetails(query, null),
-            fetchUchakInterestDetails(query, null),
-            fetchPartPaymentDetails(query, null),
-            fetchPartReleaseDetails(query, null),
-            fetchLoanCloseDetails(query, null),
+            fetchInterestDetails(query, companyId, null),
+            fetchUchakInterestDetails(query, companyId, null),
+            fetchPartPaymentDetails(query, companyId, null),
+            fetchPartReleaseDetails(query, companyId, null),
+            fetchLoanCloseDetails(query, companyId, null),
         ]);
 
         const types = [
