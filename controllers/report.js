@@ -396,7 +396,7 @@ const loanDetail = async (req, res) => {
             loan: loanId,
         };
 
-        const [Id
+        const [
             interestDetail,
             uchakInterestDetail,
             partPaymentDetail,
