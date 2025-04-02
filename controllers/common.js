@@ -361,6 +361,7 @@ const scenarios = {
         payload.companyContact,
         payload.companyEmail,
         payload.companyName,
+        payload.companyName,
     ],
     uchak_interest: (payload, file) => [
         `${payload.firstName} ${payload.middleName} ${payload.lastName}`,
