@@ -65,30 +65,33 @@ const fetchOtherLoanCloseDetails = async (query, company) => {
     }).lean();
 };
 
-const fetchInterestDetails = async (query, branch) => {
+const fetchInterestDetails = async (query, company, branch) => {
     return InterestModel.find(query).populate({
         path: "loan",
         populate: [
             {path: "scheme"},
+            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
 };
 
-const fetchUchakInterestDetails = async (query, branch) => {
+const fetchUchakInterestDetails = async (query, company, branch) => {
     return UchakInterestModel.find(query).populate({
         path: "loan",
         populate: [
             {path: "scheme"},
+            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
 };
 
-const fetchPartPaymentDetails = async (query, branch) => {
+const fetchPartPaymentDetails = async (query, company, branch) => {
     return PartPaymentModel.find(query).populate({
         path: "loan",
         populate: [
+            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "scheme"}, {
                 path: "customer",
                 populate: {path: "branch"},
@@ -98,10 +101,11 @@ const fetchPartPaymentDetails = async (query, branch) => {
     }).lean();
 };
 
-const fetchPartReleaseDetails = async (query, branch) => {
+const fetchPartReleaseDetails = async (query, company, branch) => {
     return PartReleaseModel.find(query).populate({
         path: "loan",
         populate: [
+            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "scheme"}, {
                 path: "customer",
                 populate: {path: "branch"},
@@ -150,11 +154,11 @@ const dailyReport = async (req, res) => {
             partPaymentDetail,
             partReleaseDetail,
         ] = await Promise.all([
-            fetchInterestDetails({createdAt}, branch || null),
+            fetchInterestDetails({createdAt}, company, branch || null),
             fetchLoans(query, branch || null),
-            fetchUchakInterestDetails({createdAt}, branch || null),
-            fetchPartPaymentDetails({createdAt}, branch || null),
-            fetchPartReleaseDetails({createdAt}, branch || null),
+            fetchUchakInterestDetails({createdAt}, company, branch || null),
+            fetchPartPaymentDetails({createdAt}, company, branch || null),
+            fetchPartReleaseDetails({createdAt}, company, branch || null),
         ]);
 
         return res.status(200).json({
@@ -516,7 +520,10 @@ const allInOutReport = async (req, res) => {
     try {
         const {companyId} = req.params;
 
-        const customerLoans = await IssuedLoanModel.find({company: companyId, deleted_at: null}).populate([{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}])
+        const customerLoans = await IssuedLoanModel.find({
+            company: companyId,
+            deleted_at: null
+        }).populate([{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}])
         const otherLoans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
@@ -568,7 +575,7 @@ const allInOutReport = async (req, res) => {
             if (foundLoans) {
                 return foundLoans; // Return array of matched loans
             } else {
-                const interests = await InterestModel.find({ loan: item?._id, deleted_at: null });
+                const interests = await InterestModel.find({loan: item?._id, deleted_at: null});
 
                 return {
                     loan: item,
