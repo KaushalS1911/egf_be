@@ -40,58 +40,64 @@ const fetchOtherLoans = async (query) => {
 };
 
 const fetchOtherInterestDetails = async (query, company) => {
-    return OtherLoanInterestModel.find(query).populate({
+    const otherLoanInterests = await OtherLoanInterestModel.find(query).populate({
         path: "otherLoan",
         populate: {
             path: "loan",
-            populate: [{
-                path: "company",
-                match: company ? {"company._id": company} : {}
-            }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+            populate: [{path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
         }
     }).lean();
+
+    return company ? otherLoanInterests.filter(ele => ele?.otherLoan?.company === company) : otherLoanInterests;
 };
 
 const fetchOtherLoanCloseDetails = async (query, company) => {
-    return OtherCloseLoanModel.find(query).populate({
+    const otherClosedLoans = await OtherCloseLoanModel.find(query).populate({
         path: "otherLoan",
         populate: {
             path: "loan",
-            populate: [{
-                path: "company",
-                match: company ? {"company._id": company} : {}
-            }, {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+            populate: [ {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
         }
     }).lean();
+
+    return company ? otherClosedLoans.filter(ele => ele?.otherLoan?.company === company) : otherClosedLoans;
 };
 
 const fetchInterestDetails = async (query, company, branch) => {
-    return InterestModel.find(query).populate({
-        path: "loan",
-        populate: [
-            {path: "scheme"},
-            {path: "company", match: company ? {"company._id": company} : {}},
-            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
-        ],
-    }).lean();
+    const interests = await InterestModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [
+                {path: "scheme"},
+                {
+                    path: "customer",
+                    populate: {path: "branch"},
+                    match: branch ? {'branch._id': branch} : {}
+                },
+            ],
+        })
+        .lean();
+
+    return company ? interests.filter(ele => ele.loan.company === company) : interests;
 };
 
+
 const fetchUchakInterestDetails = async (query, company, branch) => {
-    return UchakInterestModel.find(query).populate({
+    const uchakInterests = await UchakInterestModel.find(query).populate({
         path: "loan",
         populate: [
             {path: "scheme"},
-            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
+
+    return company ? uchakInterests.filter(ele => ele.loan.company === company) : uchakInterests;
 };
 
 const fetchPartPaymentDetails = async (query, company, branch) => {
-    return PartPaymentModel.find(query).populate({
+    const partPayments = await PartPaymentModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "scheme"}, {
                 path: "customer",
                 populate: {path: "branch"},
@@ -99,13 +105,14 @@ const fetchPartPaymentDetails = async (query, company, branch) => {
             },
         ],
     }).lean();
+
+    return company ? partPayments.filter(ele => ele.loan.company === company) : partPayments;
 };
 
 const fetchPartReleaseDetails = async (query, company, branch) => {
-    return PartReleaseModel.find(query).populate({
+    const partReleases = await PartReleaseModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "scheme"}, {
                 path: "customer",
                 populate: {path: "branch"},
@@ -113,16 +120,20 @@ const fetchPartReleaseDetails = async (query, company, branch) => {
             },
         ],
     }).lean();
+
+    return company ? partReleases.filter(ele => ele.loan.company === company) : partReleases;
 };
 
 const fetchLoanCloseDetails = async (query, company, branch) => {
-    return CloseLoanModel.find(query).populate({
+    const closedLoans = await CloseLoanModel.find(query).populate({
         path: "loan",
         populate: [
-            {path: "company", match: company ? {"company._id": company} : {}},
             {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
         ],
     }).lean();
+
+    return company ? closedLoans.filter(ele => ele.loan.company === company) : closedLoans;
+
 };
 
 const dailyReport = async (req, res) => {
