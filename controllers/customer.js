@@ -30,7 +30,7 @@ const createCustomer = async (req, res) => {
             throw new Error("Customer already exists.");
         }
 
-        const customerCount = await CustomerModel.countDocuments({}).session(session);
+        const customerCount = await CustomerModel.countDocuments({company: companyId, deleted_at: null}).session(session);
         const paddedSeq = (customerCount + 1).toString().padStart(4, "0");
         const customerCode = `${paddedSeq}`;
 
