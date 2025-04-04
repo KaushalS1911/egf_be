@@ -173,17 +173,17 @@ async function updateInquiry(req, res) {
     const {email, contact} = req.body;
 
     try {
-        const isInquiryExist = await InquiryModel.exists({
-            company: companyId,
-            branch, assignTo,
-            $or: [{email}, {contact}],
-            _id: {$ne: inquiryId},
-            deleted_at: null
-        });
-
-        if (isInquiryExist) {
-            return res.status(400).json({status: 400, message: "Inquiry already exists"});
-        }
+        // const isInquiryExist = await InquiryModel.exists({
+        //     company: companyId,
+        //     branch, assignTo,
+        //     $or: [{email}, {contact}],
+        //     _id: {$ne: inquiryId},
+        //     deleted_at: null
+        // });
+        //
+        // if (isInquiryExist) {
+        //     return res.status(400).json({status: 400, message: "Inquiry already exists"});
+        // }
 
         const updatedInquiry = await InquiryModel.findByIdAndUpdate(inquiryId, req.body, {new: true});
 
