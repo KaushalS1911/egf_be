@@ -20,7 +20,8 @@ async function allTransactions(req, res) {
                 fields: ['cashAmount', 'issueDate'],
                 type: "Loan issued",
                 category: "Payment Out",
-                dateField: 'issueDate'
+                dateField: 'issueDate',
+                populate: 'customer'
             },
             {
                 model: InterestModel,
@@ -29,7 +30,7 @@ async function allTransactions(req, res) {
                 type: "Customer Interest",
                 category: "Payment In",
                 dateField: 'createdAt',
-                populate: 'loan'
+                populate: {path: 'loan', populate: 'customer'}
             },
             {
                 model: PartReleaseModel,
@@ -38,7 +39,7 @@ async function allTransactions(req, res) {
                 type: "Part Release",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path: 'loan', populate: 'customer'}
             },
             {
                 model: PartPaymentModel,
@@ -47,7 +48,7 @@ async function allTransactions(req, res) {
                 type: "Loan Part Payment",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path: 'loan', populate: 'customer'}
             },
             {
                 model: UchakInterestModel,
@@ -56,7 +57,7 @@ async function allTransactions(req, res) {
                 type: "Uchak Interest",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path: 'loan', populate: 'customer'}
             },
             {
                 model: ClosedLoanModel,
@@ -65,7 +66,7 @@ async function allTransactions(req, res) {
                 type: "Customer Loan Close",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path: 'loan', populate: 'customer'}
             },
             {
                 model: OtherIssuedLoanModel,
@@ -73,7 +74,7 @@ async function allTransactions(req, res) {
                 fields: ['cashAmount', 'date'],
                 type: "Other Loan Issued",
                 category: "Payment In",
-                dateField: 'date'
+                dateField: 'date',
             },
             {
                 model: OtherLoanInterestModel,
@@ -106,10 +107,9 @@ async function allTransactions(req, res) {
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
-                detail: models[index]?.type ?? 'Unknown',
+                detail: `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''} (${models[index]?.type})`,
                 date: entry[models[index]?.dateField] ?? null,
                 amount: (entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? 0),
-                bankName: null
             }))
         );
 
@@ -136,7 +136,8 @@ async function allBankTransactions(req, res) {
                 fields: ['bankAmount', 'issueDate', 'companyBankDetail'],
                 type: "Loan issued",
                 category: "Payment Out",
-                dateField: 'issueDate'
+                dateField: 'issueDate',
+                populate: 'customer'
             },
             {
                 model: InterestModel,
@@ -145,7 +146,7 @@ async function allBankTransactions(req, res) {
                 type: "Customer Interest",
                 category: "Payment In",
                 dateField: 'createdAt',
-                populate: 'loan'
+                populate: {path:'loan', populate: "customer"}
             },
             {
                 model: PartReleaseModel,
@@ -154,7 +155,7 @@ async function allBankTransactions(req, res) {
                 type: "Part Release",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path:'loan', populate: "customer"}
             },
             {
                 model: PartPaymentModel,
@@ -163,7 +164,7 @@ async function allBankTransactions(req, res) {
                 type: "Loan Part Payment",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path:'loan', populate: "customer"}
             },
             {
                 model: UchakInterestModel,
@@ -172,7 +173,7 @@ async function allBankTransactions(req, res) {
                 type: "Uchak Interest",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path:'loan', populate: "customer"}
             },
             {
                 model: ClosedLoanModel,
@@ -181,15 +182,15 @@ async function allBankTransactions(req, res) {
                 type: "Customer Loan Close",
                 category: "Payment In",
                 dateField: 'date',
-                populate: 'loan'
+                populate: {path:'loan', populate: "customer"}
             },
             {
                 model: OtherIssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['bankAmount', 'date', 'bankDetails'],
+                fields: ['bankAmount', 'date', 'bankDetails', 'otherName'],
                 type: "Other Loan Issued",
                 category: "Payment In",
-                dateField: 'date'
+                dateField: 'date',
             },
             {
                 model: OtherLoanInterestModel,
@@ -220,13 +221,16 @@ async function allBankTransactions(req, res) {
         );
 
         const transactions = results.flatMap((data, index) =>
-            (Array.isArray(data) ? data : []).map(entry => ({
-                category: models[index]?.category ?? 'Unknown',
-                detail: models[index]?.type ?? 'Unknown',
-                date: entry[models[index]?.dateField] ?? null,
-                amount: (entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? 0),
-                bankName: entry?.companyBankDetail?.account?.bankName ?? entry?.bankDetails?.bankName ?? entry?.paymentDetail?.bankName ?? null,
-            }))
+            (Array.isArray(data) ? data : []).map(entry => {
+                const name = `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''}`
+                return ({
+                    category: models[index]?.category ?? 'Unknown',
+                    detail: `${name} (${models[index]?.type})` ?? 'Unknown',
+                    date: entry[models[index]?.dateField] ?? null,
+                    amount: (entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? 0),
+                    bankName: entry?.companyBankDetail?.account?.bankName ?? entry?.bankDetails?.bankName ?? entry?.paymentDetail?.bankName ?? null,
+                })
+            })
         );
 
         function bankWiseCreditTransaction(name) {
