@@ -813,7 +813,6 @@ async function getAllLoans(req, res) {
         let loans = await IssuedLoanModel.find(query)
             .populate('company scheme closedBy issuedBy')
             .populate({ path: 'customer', populate: { path: 'branch' } })
-            .sort({ createdAt: -1 });
 
         if (branch) {
             loans = loans.filter(loan =>
