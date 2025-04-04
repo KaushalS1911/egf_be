@@ -107,7 +107,8 @@ async function allTransactions(req, res) {
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
-                detail: `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''} (${models[index]?.type})`,
+                detail: `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''}`,
+                status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? null,
                 amount: (entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? 0),
             }))
@@ -225,7 +226,8 @@ async function allBankTransactions(req, res) {
                 const name = `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''}`
                 return ({
                     category: models[index]?.category ?? 'Unknown',
-                    detail: `${name} (${models[index]?.type})` ?? 'Unknown',
+                    detail: name ?? '',
+                    status: models[index]?.type,
                     date: entry[models[index]?.dateField] ?? null,
                     amount: (entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? 0),
                     bankName: entry?.companyBankDetail?.account?.bankName ?? entry?.bankDetails?.bankName ?? entry?.paymentDetail?.bankName ?? null,
