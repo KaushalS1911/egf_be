@@ -7,8 +7,8 @@ const ClosedLoanModel = require("../models/loan-close");
 const OtherIssuedLoanModel = require("../models/other-issued-loan");
 const OtherLoanInterestModel = require("../models/other-loan-interest-payment");
 const ClosedOtherLoanModel = require("../models/other-loan-close");
-const ExpenseModel = require("../models/expense");
-const OtherIncomeModel = require("../models/other-income");
+// const ExpenseModel = require("../models/expense");
+// const OtherIncomeModel = require("../models/other-income");
 const CompanyModel = require("../models/company");
 
 async function allTransactions(req, res) {
@@ -27,48 +27,53 @@ async function allTransactions(req, res) {
             },
             {
                 model: InterestModel,
-                query: { "loan.company": companyId }, // Filtering directly
+                query: { }, // Filtering directly
                 fields: ['paymentDetail', 'createdAt'],
                 type: "Customer Interest",
                 category: "Payment In",
                 dateField: 'createdAt',
-                populate: {path: 'loan', populate: 'customer'}
+                populate: {path: 'loan', populate: 'customer'},
+                filter: item => item?.loan?.company?.toString() === companyId
             },
             {
                 model: PartReleaseModel,
-                query: { "loan.company": companyId },
+                query: { },
                 fields: ['paymentDetail', 'date'],
                 type: "Part Release",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer'}
+                populate: {path: 'loan', populate: 'customer'},
+                filter: item => item?.loan?.company?.toString() === companyId
             },
             {
                 model: PartPaymentModel,
-                query: { "loan.company": companyId },
+                query: { },
                 fields: ['paymentDetail', 'date'],
                 type: "Loan Part Payment",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer'}
+                populate: {path: 'loan', populate: 'customer'},
+                filter: item => item?.loan?.company?.toString() === companyId
             },
             {
                 model: UchakInterestModel,
-                query: { "loan.company": companyId },
+                query: { },
                 fields: ['paymentDetail', 'date'],
                 type: "Uchak Interest",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer'}
+                populate: {path: 'loan', populate: 'customer'},
+                filter: item => item?.loan?.company?.toString() === companyId
             },
             {
                 model: ClosedLoanModel,
-                query: { "loan.company": companyId },
+                query: { },
                 fields: ['paymentDetail', 'date'],
                 type: "Customer Loan Close",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer'}
+                populate: {path: 'loan', populate: 'customer'},
+                filter: item => item?.loan?.company?.toString() === companyId
             },
             {
                 model: OtherIssuedLoanModel,
@@ -80,47 +85,51 @@ async function allTransactions(req, res) {
             },
             {
                 model: OtherLoanInterestModel,
-                query: { "otherLoan.company": companyId },
+                query: {},
                 fields: ['paymentDetail', 'payDate'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
                 dateField: 'payDate',
-                populate: 'otherLoan'
+                populate: 'otherLoan',
+                filter: item => item?.otherLoan?.company?.toString() === companyId
             },
             {
                 model: ClosedOtherLoanModel,
-                query: { "otherLoan.company": companyId },
+                query: { },
                 fields: ['paymentDetail', 'payDate'],
                 type: "Other Loan Close",
                 category: "Payment Out",
                 dateField: 'payDate',
-                populate: 'otherLoan'
+                populate: 'otherLoan',
+                filter: item => item?.otherLoan?.company?.toString() === companyId
             },
-            {
-                model: ExpenseModel,
-                query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
-                type: "Expense",
-                category: "Payment Out",
-                dateField: 'date',
-            },
-            {
-                model: OtherIncomeModel,
-                query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
-                type: "Other Income",
-                category: "Payment In",
-                dateField: 'date',
-            },
+            // {
+            //     model: ExpenseModel,
+            //     query: { company: companyId },
+            //     fields: ['paymentDetail', 'date'],
+            //     type: "Expense",
+            //     category: "Payment Out",
+            //     dateField: 'date',
+            // },
+            // {
+            //     model: OtherIncomeModel,
+            //     query: { company: companyId },
+            //     fields: ['paymentDetail', 'date'],
+            //     type: "Other Income",
+            //     category: "Payment In",
+            //     dateField: 'date',
+            // },
         ];
 
         const results = await Promise.all(
-            models.map(({ model, query, fields, populate }) => {
+            models.map(async ({ model, query, fields, populate, filter }) => {
                 let queryExec = model.find(query).select(fields.join(' ')).lean();
                 if (populate) queryExec = queryExec.populate(populate);
-                return queryExec;
+                let data = await queryExec;
+                return filter ? data.filter(filter) : data;
             })
         );
+
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
@@ -236,22 +245,22 @@ async function allBankTransactions(req, res) {
                 populate: 'otherLoan',
                 filter: item => item?.otherLoan?.company?.toString() === companyId
             },
-            {
-                model: ExpenseModel,
-                query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
-                type: "Expense",
-                category: "Payment Out",
-                dateField: 'date'
-            },
-            {
-                model: OtherIncomeModel,
-                query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
-                type: "Other Income",
-                category: "Payment In",
-                dateField: 'date'
-            }
+            // {
+            //     model: ExpenseModel,
+            //     query: { company: companyId },
+            //     fields: ['paymentDetail', 'date'],
+            //     type: "Expense",
+            //     category: "Payment Out",
+            //     dateField: 'date'
+            // },
+            // {
+            //     model: OtherIncomeModel,
+            //     query: { company: companyId },
+            //     fields: ['paymentDetail', 'date'],
+            //     type: "Other Income",
+            //     category: "Payment In",
+            //     dateField: 'date'
+            // }
         ];
 
         const results = await Promise.all(
