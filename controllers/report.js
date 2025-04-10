@@ -165,12 +165,14 @@ const dailyReport = async (req, res) => {
             uchakInterestDetail,
             partPaymentDetail,
             partReleaseDetail,
+            closedLoans
         ] = await Promise.all([
             fetchInterestDetails({createdAt}, companyId, branch || null),
             fetchLoans(query, branch || null),
             fetchUchakInterestDetails({createdAt}, companyId, branch || null),
             fetchPartPaymentDetails({createdAt}, companyId, branch || null),
             fetchPartReleaseDetails({createdAt}, companyId, branch || null),
+            fetchLoanCloseDetails({createdAt}, companyId, branch || null)
         ]);
 
         return res.status(200).json({
@@ -181,6 +183,7 @@ const dailyReport = async (req, res) => {
                 uchakInterestDetail,
                 partPaymentDetail,
                 partReleaseDetail,
+                closedLoans
             },
         });
     } catch (err) {
@@ -443,51 +446,51 @@ const loanDetail = async (req, res) => {
 
 const customerStatement = async (req, res) => {
     try {
-        const {customerId, companyId} = req.params;
+        const {companyId} = req.params;
+        const {loan} = req.query
 
-        // Fetch loan details
-        const loanDetails = await IssuedLoanModel.find({customer: customerId}).select('_id').lean();
-        const loanIds = loanDetails.map(loan => loan._id);
-        const query = {loan: {$in: loanIds}, deleted_at: null};
+        const query = {loan: {$in: loan}, deleted_at: null};
 
         // Fetch all relevant details in parallel
-        const details = await Promise.all([
-            fetchInterestDetails(query, companyId, null),
-            fetchUchakInterestDetails(query, companyId, null),
+        const loanDetails = await Promise.all([
+            IssuedLoanModel.findById(loan).lean(),
             fetchPartPaymentDetails(query, companyId, null),
             fetchPartReleaseDetails(query, companyId, null),
             fetchLoanCloseDetails(query, companyId, null),
         ]);
 
+        const interestDetails = await Promise.all([
+            fetchInterestDetails(query, companyId, null),
+            fetchUchakInterestDetails(query, companyId, null),
+        ])
+
         const types = [
-            "Interest payment",
-            "Uchak interest payment",
+            'Loan Issued',
             "Loan part payment",
             "Loan part release",
             "Loan close",
         ];
 
-        // Combine results and assign types
-        const result = details.flatMap((detail, index) =>
+        const result = loanDetails.flatMap((detail, index) =>
             detail.map(entry => ({...entry, type: types[index]}))
         );
 
-        const statementData = result.map(({type, loan, paymentDetail, createdAt, interestLoanAmount}) => {
-            const amount = (paymentDetail.paymentMode === 'Cash')
-                ? Number(paymentDetail.cashAmount) || 0
-                : (paymentDetail.paymentMode === 'Bank')
-                    ? Number(paymentDetail.bankAmount) || 0
-                    : Number(paymentDetail.cashAmount) + Number(paymentDetail.bankAmount) || 0;
+        const sortedResults = result
+            .sort((a, b) => new Date(b.date ?? b.issueDate) - new Date(a.date));
+
+        let balance = 0
+        const statementData = sortedResults.map((ele) => {
+            const amount = (ele.paymentDetail.paymentMode === 'Cash')
+                ? Number(ele.paymentDetail.cashAmount) || 0
+                : (ele.paymentDetail.paymentMode === 'Bank')
+                    ? Number(ele.paymentDetail.bankAmount) || 0
+                    : Number(ele.paymentDetail.cashAmount) + Number(ele.paymentDetail.bankAmount) || 0;
 
             return {
-                type,
-                loanNo: loan.loanNo,
-                customerName: `${loan.customer.firstName} ${loan.customer.lastName}`,
-                loanAmount: loan.loanAmount,
+                detail: ele.type,
+                loanNo: ele.loan.loanNo,
                 amount,
-                interestLoanAmount: type === 'Interest payment' ? interestLoanAmount : interestLoanAmount - amount,
-                partLoanAmount: loan.loanAmount - interestLoanAmount + amount,
-                createdAt,
+                date: ele.issueDate ?? ele.date ?? null,
             };
         }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
