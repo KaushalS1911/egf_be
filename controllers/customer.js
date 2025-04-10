@@ -4,6 +4,7 @@ const CompanyModel = require("../models/company");
 const BranchModel = require("../models/branch");
 const {uploadFile} = require("../helpers/avatar");
 const {sendWhatsAppMessage} = require("./common");
+const {uploadDir} = require("../constant");
 
 const createCustomer = async (req, res) => {
     const session = await mongoose.startSession();
@@ -14,7 +15,8 @@ const createCustomer = async (req, res) => {
         const {branch} = req.query;
         const customerData = req.body;
 
-        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+        const fileName = `${customerData.firstName}_${customerData.lastName}`;
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer, uploadDir.CUSTOMERS, fileName) : null;
 
         const isCustomerExist = await CustomerModel.exists({
             deleted_at: null,
@@ -143,7 +145,7 @@ async function updateCustomerProfile(req, res) {
     try {
         const {customerId} = req.params;
 
-        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer, uploadDir.CUSTOMERS, `${req.body.firstName}_${req.body.lastName}`) : null;
 
         const updatedCustomer = await CustomerModel.findByIdAndUpdate(customerId, {avatar_url: avatar}, {new: true});
 

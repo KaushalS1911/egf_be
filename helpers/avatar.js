@@ -6,46 +6,13 @@ cloudinary.config({
     api_secret: process.env.CLOUD_API_SECRET
 });
 
-const uploadFile = async (fileBuffer) => {
+const uploadFile = async (fileBuffer, directory, fileName) => {
     try {
-        // const fileSize = fileBuffer.length;
-        // const maxFileSize = 10 * 1024 * 1024;
-        //
-        // if (fileSize > maxFileSize) {
-        //     throw new Error("File size exceeds the maximum allowed limit.");
-        // }
-
         return new Promise((resolve, reject) => {
             const uploadOptions = {
-                folder: "EGF-users",
-            };
-
-            cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-                if (error) {
-                    reject(error.message);
-                } else {
-                    resolve(result.secure_url);
-                }
-            }).end(fileBuffer);
-        });
-    } catch (error) {
-        console.log(error.message);
-        throw new Error("Error uploading file..");
-    }
-};
-
-const uploadPropertyFile = async (fileBuffer) => {
-    try {
-        // const fileSize = fileBuffer.length;
-        // const maxFileSize = 10 * 1024 * 1024;
-        //
-        // if (fileSize > maxFileSize) {
-        //     throw new Error("File size exceeds the maximum allowed limit.");
-        // }
-
-        return new Promise((resolve, reject) => {
-            const uploadOptions = {
-                folder: "EGF-property-image",
+                folder: directory,
+                public_id: fileName,
+                overwrite: true,
             };
 
             cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
@@ -63,4 +30,5 @@ const uploadPropertyFile = async (fileBuffer) => {
 };
 
 
-module.exports = { uploadFile,uploadPropertyFile };
+
+module.exports = { uploadFile };

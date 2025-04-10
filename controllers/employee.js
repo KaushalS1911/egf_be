@@ -6,7 +6,7 @@ const {uploadFile} = require("../helpers/avatar");
 const path = require("path");
 const ejs = require("ejs");
 const {sendMail} = require("../helpers/sendmail");
-const {createHash} = require('../helpers/hash');
+const {uploadDir} = require("../constant");
 
 async function createEmployee(req, res) {
     const session = await mongoose.startSession();
@@ -37,7 +37,7 @@ async function createEmployee(req, res) {
             isAadharVerified
         } = req.body;
 
-        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer, uploadDir.EMPLOYEES, firstName+"_"+lastName) : null;
 
         const isEmployeeExist = await UserModel.exists({
             company: companyId,

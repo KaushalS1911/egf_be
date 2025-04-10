@@ -6,10 +6,11 @@ const PartPaymentModel = require("../models/loan-part-payment");
 const LoanCloseModel = require("../models/loan-close");
 const UchakInterestModel = require("../models/uchak-interest-payment");
 const mongoose = require('mongoose')
-const {uploadPropertyFile} = require("../helpers/avatar");
+const {uploadFile} = require("../helpers/avatar");
 const {generateNextLoanNumber} = require("../helpers/loan");
 const moment = require("moment");
 const PenaltyModel = require("../models/penalty");
+const {uploadDir} = require("../constant");
 
 async function issueLoan(req, res) {
     let session = null;
@@ -22,12 +23,12 @@ async function issueLoan(req, res) {
         const {companyId} = req.params;
         const {issueDate, series, branch, ...loanData} = req.body;
 
-        // Process property image if available
-        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
-
         // Generate loan number and next installment date
         const loanNo = await generateNextLoanNumber(series, companyId, branch);
         const nextInstallmentDate = getNextInterestPayDate(issueDate);
+
+        // Process property image if available
+        const propertyImage = req.file?.buffer ? await uploadFile(req.file.buffer, uploadDir.ORNAMENTS, loanNo) : null;
 
         // Prepare loan details
         const loanDetails = {
@@ -695,7 +696,7 @@ async function partRelease(req, res) {
     try {
         const {loanId} = req.params;
 
-        const propertyImage = req.file?.buffer ? await uploadPropertyFile(req.file.buffer) : null;
+        const propertyImage = req.file?.buffer ? await uploadFile(req.file.buffer, uploadDir.ORNAMENTS, req.file.originalname) : null;
 
         const loanDetails = await IssuedLoanModel.findById(loanId);
         if (!loanDetails) {
@@ -848,8 +849,7 @@ async function updateLoan(req, res) {
         const {loanId} = req.params;
 
         let payload = req.body
-        if (req.file && req.file.buffer) payload.propertyImage = await uploadPropertyFile(req.file.buffer)
-
+        if (req.file && req.file.buffer) payload.propertyImage = await uploadFile(req.file.buffer, uploadDir.ORNAMENTS, req.body.loanNo)
 
         const updatedLoan = await IssuedLoanModel.findByIdAndUpdate(loanId, payload, {new: true});
 

@@ -1,5 +1,6 @@
 const CompanyModel = require("../models/company");
 const { uploadFile } = require("../helpers/avatar");
+const {uploadDir} = require("../constant");
 
 async function getSingleCompany(req, res) {
     const { companyId } = req.params;
@@ -39,7 +40,7 @@ async function updateCompanyLogo(req, res) {
     const { companyId } = req.params;
 
     try {
-        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer, uploadDir.COMPANY, 'company-logo') : null;
 
         const updatedCompany = await CompanyModel.findByIdAndUpdate(companyId, { logo_url: avatar }, { new: true });
 

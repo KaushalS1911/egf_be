@@ -1,6 +1,7 @@
 const UserModel = require("../models/user");
 const { uploadFile } = require("../helpers/avatar");
 const { verifyHash, createHash } = require("../helpers/hash");
+const {uploadDir} = require("../constant");
 
 async function getAllUsers(req, res) {
     const { companyId } = req.params;
@@ -29,7 +30,9 @@ async function updateUserProfile(req, res) {
     const { userId } = req.params;
 
     try {
-        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer) : null;
+        const user = await UserModel.findById(userId)
+
+        const avatar = req.file && req.file.buffer ? await uploadFile(req.file.buffer, uploadDir.EMPLOYEES, `${user.firstName}_${user.lastName}`) : null;
 
         const updatedUser = await UserModel.findByIdAndUpdate(userId, { avatar_url: avatar }, { new: true });
 
