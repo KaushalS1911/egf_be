@@ -72,7 +72,7 @@ async function getSingleExpense(req, res) {
         console.error("Error fetching employee:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
-}s
+}
 
 async function deleteExpense(req, res) {
     try {

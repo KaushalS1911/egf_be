@@ -72,7 +72,7 @@ async function getSingleOtherIncome(req, res) {
         console.error("Error fetching other income:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
-}s
+}
 
 async function deleteOtherIncome(req, res) {
     try {
