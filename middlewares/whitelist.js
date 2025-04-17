@@ -14,6 +14,7 @@ function getMacFromIp(ip) {
 
 function macWhitelistMiddleware(req, res, next) {
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    console.log('ip', ip)
     const mac = getMacFromIp(ip);
     const whitelist = ["4C-CC-6A-CA-4D-9C","AC-E2-D3-0C-E8-E5"]
 
