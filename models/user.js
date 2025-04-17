@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     branch: {type: String, ref: "Branch", default: null},
     role: String,
     otp: String,
+    otpExpiry: Number,
     avatar_url: {type: String, default: null},
     firstName: String,
     middleName: String,

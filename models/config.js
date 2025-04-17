@@ -71,7 +71,8 @@ const configSchema = new mongoose.Schema({
     otherNames: [],
     whatsappConfig: {},
     expenseType: [],
-    otherIncomeType: []
+    otherIncomeType: [],
+    devices: []
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)

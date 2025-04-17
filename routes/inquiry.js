@@ -8,7 +8,7 @@ const upload = multer({storage: storage});
 
 router.post('/:companyId/inquiry', addInquiry);
 router.post('/:companyId/bulk-inquiry', upload.single('inquiry-file'), addBulkInquiries);
-router.get('/:companyId/inquiry', macWhitelistMiddleware ,getAllInquiries);
+router.get('/:companyId/inquiry' ,getAllInquiries);
 router.get('/:companyId/inquiry/:inquiryId', getSingleInquiry);
 router.put('/:companyId/inquiry/:inquiryId', updateInquiry);
 router.delete('/:companyId/inquiry', deleteMultipleInquiries);

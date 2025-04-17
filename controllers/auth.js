@@ -115,10 +115,11 @@ async function sendOtp(req, res) {
     try{
         const {contact} = req.body
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = Date.now() + 5 * 60 * 1000;
 
         await createMessage(otp, contact);
 
-        await UserModel.findOneAndUpdate({contact}, {otp}, {new: true})
+        await UserModel.findOneAndUpdate({contact}, {otp, otpExpiry}, {new: true})
 
         return res.status(200).json({
             status: 200,
