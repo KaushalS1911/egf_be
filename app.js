@@ -31,7 +31,7 @@ app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api', macWhitelistMiddleware,  appRouter);
+app.use('/api',  appRouter);
 
 cron.schedule('*/5 * * * *', async () => {
     try {
