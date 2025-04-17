@@ -7,9 +7,9 @@ const ClosedLoanModel = require("../models/loan-close");
 const OtherIssuedLoanModel = require("../models/other-issued-loan");
 const OtherLoanInterestModel = require("../models/other-loan-interest-payment");
 const ClosedOtherLoanModel = require("../models/other-loan-close");
-// const ExpenseModel = require("../models/expense");
-// const OtherIncomeModel = require("../models/other-income");
 const CompanyModel = require("../models/company");
+const ExpenseModel = require("../models/expense");
+const OtherIncomeModel = require("../models/other-income");
 
 async function allTransactions(req, res) {
     try {
@@ -103,22 +103,22 @@ async function allTransactions(req, res) {
                 populate: 'otherLoan',
                 filter: item => item?.otherLoan?.company?.toString() === companyId
             },
-            // {
-            //     model: ExpenseModel,
-            //     query: { company: companyId },
-            //     fields: ['paymentDetail', 'date'],
-            //     type: "Expense",
-            //     category: "Payment Out",
-            //     dateField: 'date',
-            // },
-            // {
-            //     model: OtherIncomeModel,
-            //     query: { company: companyId },
-            //     fields: ['paymentDetail', 'date'],
-            //     type: "Other Income",
-            //     category: "Payment In",
-            //     dateField: 'date',
-            // },
+            {
+                model: ExpenseModel,
+                query: { company: companyId },
+                fields: ['paymentDetail', 'date'],
+                type: "Expense",
+                category: "Payment Out",
+                dateField: 'date',
+            },
+            {
+                model: OtherIncomeModel,
+                query: { company: companyId },
+                fields: ['paymentDetail', 'date'],
+                type: "Other Income",
+                category: "Payment In",
+                dateField: 'date',
+            },
         ];
 
         const results = await Promise.all(
@@ -245,22 +245,22 @@ async function allBankTransactions(req, res) {
                 populate: 'otherLoan',
                 filter: item => item?.otherLoan?.company?.toString() === companyId
             },
-            // {
-            //     model: ExpenseModel,
-            //     query: { company: companyId },
-            //     fields: ['paymentDetail', 'date'],
-            //     type: "Expense",
-            //     category: "Payment Out",
-            //     dateField: 'date'
-            // },
-            // {
-            //     model: OtherIncomeModel,
-            //     query: { company: companyId },
-            //     fields: ['paymentDetail', 'date'],
-            //     type: "Other Income",
-            //     category: "Payment In",
-            //     dateField: 'date'
-            // }
+            {
+                model: ExpenseModel,
+                query: { company: companyId },
+                fields: ['paymentDetail', 'date'],
+                type: "Expense",
+                category: "Payment Out",
+                dateField: 'date'
+            },
+            {
+                model: OtherIncomeModel,
+                query: { company: companyId },
+                fields: ['paymentDetail', 'date'],
+                type: "Other Income",
+                category: "Payment In",
+                dateField: 'date'
+            }
         ];
 
         const results = await Promise.all(

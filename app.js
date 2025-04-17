@@ -10,6 +10,7 @@ const {updateOverdueLoans, updateOverdueOtherLoans, interestReminders} = require
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
+const macWhitelistMiddleware = require("./middlewares/whitelist");
 const port = process.env.PORT || 8000
 
 const app = express();
@@ -30,12 +31,12 @@ app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api', appRouter);
+app.use('/api', macWhitelistMiddleware,  appRouter);
 
 cron.schedule('*/5 * * * *', async () => {
     try {
         await updateOverdueLoans();
-        await updateOverdueOtherLoans()
+        await updateOverdueOtherLoans();
         console.log("Loan status updated successfully");
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
@@ -45,7 +46,7 @@ cron.schedule('*/5 * * * *', async () => {
 cron.schedule('0 0 * * *', async () => {
     try {
         await interestReminders();
-        console.log("Reminders sended successfully");
+        console.log("Reminders sent successfully");
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
     }
