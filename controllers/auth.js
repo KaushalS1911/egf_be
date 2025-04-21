@@ -81,15 +81,15 @@ async function login(req, res) {
         const user = await UserModel.findOne({contact}).lean();
 
         if (user.role !== 'Admin') {
-            const configs = await ConfigModel.findOne({company: user.company})
+            const configs = await ConfigModel.findOne({company: user?.company})
 
-            const [configDevices] = configs.devices.filter((e) => e.employee.userId)
+            const [configDevices] = configs?.devices?.filter((e) => e?.employee?.userId)
 
             if(!configDevices) {
                 return res.json({status: 400, message: "Access denied."});
             }
 
-            if (configDevices.macAddress !== mac) {
+            if (configDevices?.macAddress !== mac) {
                 return res.status(403).json({ message: 'Device not authorized' });
             }
 
