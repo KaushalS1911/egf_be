@@ -24,7 +24,6 @@ const expenseRouter = require("../routes/expense")
 const otherIncomeRouter = require("../routes/other-income")
 
 const router = express.Router();
-const auth = require("../middlewares/auth");
 
 router.get('/', function (req, res, next) {
     res.render('index', {title: 'EGF'});
@@ -54,7 +53,7 @@ router.use('/company', expenseRouter)
 router.use('/company', otherIncomeRouter)
 
 // loans
-router.use('/company', auth, issueLoanRouter)
-router.use('/company', auth, otherIssuedLoanRouter)
+router.use('/company',  issueLoanRouter)
+router.use('/company',  otherIssuedLoanRouter)
 
 module.exports = router;
