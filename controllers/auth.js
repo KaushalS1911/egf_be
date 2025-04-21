@@ -75,7 +75,7 @@ async function register(req, res) {
 async function login(req, res) {
     try {
         console.log(os.networkInterfaces())
-        const mac = os?.networkInterfaces()?.Ethernet?.filter(e => e?.family === 'IPv4')[0]?.mac?.toUpperCase()
+        const mac = os?.networkInterfaces()?.eth0?.filter(e => e?.family === 'IPv4')[0]?.mac?.toUpperCase()
 
         const {otp, contact} = req.body;
 
