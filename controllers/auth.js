@@ -74,8 +74,7 @@ async function register(req, res) {
 
 async function login(req, res) {
     try {
-        console.log(req.headers['x-forwarded-for']?.split(',')[0] || req.ip)
-        const mac = os?.networkInterfaces()?.eth0?.filter(e => e?.family === 'IPv4')[0]?.mac?.toUpperCase()
+        const mac = req.headers['x-forwarded-for']?.split(',')[0] || req.ip
 
         const {otp, contact} = req.body;
 
