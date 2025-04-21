@@ -89,6 +89,8 @@ async function login(req, res) {
                 return res.json({status: 400, message: "Access denied."});
             }
 
+            console.log(configDevices.macAddress, mac)
+
             if (configDevices?.macAddress !== mac) {
                 return res.status(403).json({ message: 'Device not authorized' });
             }
