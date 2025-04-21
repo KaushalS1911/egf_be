@@ -24,53 +24,37 @@ const expenseRouter = require("../routes/expense")
 const otherIncomeRouter = require("../routes/other-income")
 
 const router = express.Router();
-const multer = require('multer')
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './public/images')
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, uniqueSuffix + '-' + file.originalname)
-    }
-})
-
-const upload = multer({ storage })
-
+const auth = require("../middlewares/auth");
 
 router.get('/', function (req, res, next) {
     res.render('index', {title: 'EGF'});
 });
 
-router.post('/print-file', upload.single('print'), function (req, res, next) {
-
-});
-
 router.use('/auth', authRouter)
-router.use('/company', companyRouter)
-router.use('/company', branchRouter)
-router.use('/company', schemeRouter)
-router.use('/company', inquiryRouter)
-router.use('/company', branchRouter)
-router.use('/company', userRouter)
-router.use('/company', customerRouter)
-router.use('/company', caratRouter)
-router.use('/company', loanRouter)
-router.use('/company', propertyRouter)
-router.use('/company', penaltyRouter)
-router.use('/company', employeeRouter)
-router.use('/company', configRouter)
-router.use('/company', reminderRouter)
-router.use('/company', commonRouter)
-router.use('/company', reportRouter)
+router.use('/company', auth, companyRouter)
+router.use('/company', auth, branchRouter)
+router.use('/company', auth, schemeRouter)
+router.use('/company', auth, inquiryRouter)
+router.use('/company', auth, branchRouter)
+router.use('/company', auth, userRouter)
+router.use('/company', auth, customerRouter)
+router.use('/company', auth, caratRouter)
+router.use('/company', auth, loanRouter)
+router.use('/company', auth, propertyRouter)
+router.use('/company', auth, penaltyRouter)
+router.use('/company', auth, employeeRouter)
+router.use('/company', auth, configRouter)
+router.use('/company', auth, reminderRouter)
+router.use('/company', auth, commonRouter)
+router.use('/company', auth, reportRouter)
 router.use('/verification', verificationRouter)
 router.use('/whatsapp-notification', whatsappNotificationRouter)
-router.use('/company', analyticsRouter)
-router.use('/company', expenseRouter)
-router.use('/company', otherIncomeRouter)
+router.use('/company', auth, analyticsRouter)
+router.use('/company', auth, expenseRouter)
+router.use('/company', auth, otherIncomeRouter)
 
 // loans
-router.use('/company', issueLoanRouter)
-router.use('/company', otherIssuedLoanRouter)
+router.use('/company', auth, issueLoanRouter)
+router.use('/company', auth, otherIssuedLoanRouter)
 
 module.exports = router;
