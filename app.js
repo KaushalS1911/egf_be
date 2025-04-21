@@ -10,10 +10,11 @@ const {updateOverdueLoans, updateOverdueOtherLoans, interestReminders} = require
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
-const macWhitelistMiddleware = require("./middlewares/whitelist");
 const port = process.env.PORT || 8000
 
 const app = express();
+
+app.set('trust proxy', true);
 
 mongoose.connect(process.env.DB_CONNECTION_STRING)
     .then(() => {
