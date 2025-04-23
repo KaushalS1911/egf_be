@@ -19,7 +19,7 @@ async function allTransactions(req, res) {
             {
                 model: IssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['cashAmount', 'issueDate'],
+                fields: ['cashAmount', 'issueDate', 'loanNo'],
                 type: "Loan issued",
                 category: "Payment Out",
                 dateField: 'issueDate',
@@ -130,11 +130,10 @@ async function allTransactions(req, res) {
             })
         );
 
-
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
-                ref: entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
                 detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? null,
@@ -145,7 +144,7 @@ async function allTransactions(req, res) {
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
-            data: transactions.filter((e) => e.amount !== 0)
+            data: transactions.filter((e) => e?.amount !== 0)
         });
 
     } catch (error) {
@@ -162,7 +161,7 @@ async function allBankTransactions(req, res) {
             {
                 model: IssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['bankAmount', 'issueDate', 'companyBankDetail'],
+                fields: ['bankAmount', 'issueDate', 'companyBankDetail', 'loanNo'],
                 type: "Loan issued",
                 category: "Payment Out",
                 dateField: 'issueDate',
@@ -276,14 +275,14 @@ async function allBankTransactions(req, res) {
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
-                ref: entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
-                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
+                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.otherLoan?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
-                date: entry[models[index]?.dateField] ?? null,
+                date: entry[models[index]?.dateField] ?? entry?.otherLoan?.date ?? null,
                 bankName: entry?.companyBankDetail?.account?.bankName ??
                     entry?.bankDetails?.bankName ??
-                    entry?.paymentDetail?.account?.bankName ?? entry?.paymentDetails?.bankName ?? null,
-                amount: Number(entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? entry?.paymentDetails?.bankAmount ?? 0),
+                    entry?.bankDetails?.account?.bankName ?? entry?.bankDetails?.bankName ?? null,
+                amount: Number(entry?.bankAmount ?? entry?.bankDetails?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
             }))
         );
 
