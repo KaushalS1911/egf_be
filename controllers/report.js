@@ -522,7 +522,9 @@ const customerStatement = async (req, res) => {
 const initialLoanDetail = async (req, res) => {
 
     try {
-        const loans = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
+        const {companyId} = req.params;
+
+        const loans = await IssuedLoanInitialModel.find({company: companyId}).populate('customer').populate("scheme");
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject();
