@@ -115,11 +115,11 @@ async function updateOverdueLoans() {
 async function interestReminders() {
     try {
         const today = moment().startOf('day');
-        const nextTwoDays = moment().add(2, 'days').startOf('day');
+        const fromDate = moment().add(3, 'days').startOf('day');
 
         const loans = await IssuedLoanModel.find({
-            nextInstallmentDate: { $gte: today.toDate(), $lt: nextTwoDays.toDate() },
-            status: { $nin: ["Closed"] },
+            nextInstallmentDate: { $gte: today.toDate(), $lt: fromDate.toDate() },
+            status: { $nin: ["Closed",'Issued'] },
             deleted_at: null,
         }).populate([
             { path: "customer", populate: "branch" },
@@ -128,9 +128,8 @@ async function interestReminders() {
         ]);
 
         const reminders = loans.map(async (loan) => {
-            const [interests, uchakInterests] = await Promise.all([
+            const [interests] = await Promise.all([
                 InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
-                UchakInterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
             ]);
 
             let uchakInterest = 0;
@@ -181,7 +180,6 @@ async function interestReminders() {
                 companyEmail: loan.company.email,
                 companyName: loan.company.name,
             };
-
             await sendMessage(payload);
         });
 
