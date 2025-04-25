@@ -131,18 +131,16 @@ async function allTransactions(req, res) {
             })
         );
 
-        const transfers = await TransferModel.find({company: companyId})?.map((e) => {
-                return {
-                    category: e?.from ? "Payment In" : "Payment Out",
-                    ref: e?.from ? "Bank to Cash Transfer" : "Cash to Bank Transfer",
-                    detail: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
-                    status: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
-                    date: e?.date,
-                    amount: e?.amount
-                }
-        })
-
-        console.log("transfers", transfers)
+        // const transfers = await TransferModel.find({company: companyId})?.map((e) => {
+        //         return {
+        //             category: e?.from ? "Payment In" : "Payment Out",
+        //             ref: e?.from ? "Bank to Cash Transfer" : "Cash to Bank Transfer",
+        //             detail: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+        //             status: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+        //             date: e?.date,
+        //             amount: e?.amount
+        //         }
+        // })
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
@@ -287,6 +285,8 @@ async function allBankTransactions(req, res) {
             })
         );
 
+        console.log(results[5])
+
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
@@ -295,11 +295,10 @@ async function allBankTransactions(req, res) {
                 status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? entry?.otherLoan?.date ?? null,
                 bankName: entry?.companyBankDetail?.account?.bankName ??
-                    entry?.bankDetail?.bankName ??
-                    entry?.bankDetails?.account?.bankName ?? entry?.bankDetails?.bankName ?? null,
-                amount: Number(entry?.bankAmount ?? entry?.bankDetail?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
+                    entry?.paymentDetail?.account?.bankName ?? entry?.paymentDetail?.bankName?? entry?.bankDetails?.bankName ?? null,
+                amount: Number(entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
             }))
-        ).filter(t => t.amount !== 0);
+        ).filter(t => t?.amount !== 0);
 
         const sumByBank = (bankName, type) =>
             transactions
