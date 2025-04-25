@@ -10,6 +10,7 @@ const ClosedOtherLoanModel = require("../models/other-loan-close");
 const CompanyModel = require("../models/company");
 const ExpenseModel = require("../models/expense");
 const OtherIncomeModel = require("../models/other-income");
+const TransferModel = require("../models/transfers");
 
 async function allTransactions(req, res) {
     try {
@@ -130,6 +131,19 @@ async function allTransactions(req, res) {
             })
         );
 
+        const transfers = await TransferModel.find({company: companyId})?.map((e) => {
+                return {
+                    category: e?.from ? "Payment In" : "Payment Out",
+                    ref: e?.from ? "Bank to Cash Transfer" : "Cash to Bank Transfer",
+                    detail: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+                    status: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+                    date: e?.date,
+                    amount: e?.amount
+                }
+        })
+
+        console.log("transfers", transfers)
+
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
@@ -220,7 +234,7 @@ async function allBankTransactions(req, res) {
             {
                 model: OtherIssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['cashAmount', 'date', 'otherNumber', 'loan'],
+                fields: ['bankAmount', 'date', 'otherNumber', 'loan', 'bankDetails', 'otherName'],
                 type: "Other Loan Issued",
                 category: "Payment In",
                 dateField: 'date',
@@ -263,6 +277,7 @@ async function allBankTransactions(req, res) {
             },
         ];
 
+
         const results = await Promise.all(
             models.map(async ({ model, query, fields, populate, filter }) => {
                 let queryExec = model.find(query).select(fields.join(' ')).lean();
@@ -280,16 +295,14 @@ async function allBankTransactions(req, res) {
                 status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? entry?.otherLoan?.date ?? null,
                 bankName: entry?.companyBankDetail?.account?.bankName ??
-                    entry?.bankDetails?.bankName ??
+                    entry?.bankDetail?.bankName ??
                     entry?.bankDetails?.account?.bankName ?? entry?.bankDetails?.bankName ?? null,
-                amount: Number(entry?.bankAmount ?? entry?.bankDetails?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
+                amount: Number(entry?.bankAmount ?? entry?.bankDetail?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
             }))
-        );
-
-        const filteredTransactions = transactions.filter(t => t.amount !== 0);
+        ).filter(t => t.amount !== 0);
 
         const sumByBank = (bankName, type) =>
-            filteredTransactions
+            transactions
                 .filter(txn => txn.category === type && txn.bankName === bankName)
                 .reduce((sum, txn) => sum + txn.amount, 0);
 
@@ -304,7 +317,7 @@ async function allBankTransactions(req, res) {
             status: 200,
             message: "All transactions fetched successfully",
             data: {
-                transactions: filteredTransactions,
+                transactions: transactions,
                 bankBalances
             }
         });
