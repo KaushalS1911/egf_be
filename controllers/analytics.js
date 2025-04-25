@@ -10,7 +10,7 @@ const ClosedOtherLoanModel = require("../models/other-loan-close");
 const CompanyModel = require("../models/company");
 const ExpenseModel = require("../models/expense");
 const OtherIncomeModel = require("../models/other-income");
-const TransferModel = require("../models/transfers");
+// const TransferModel = require("../models/transfers");
 
 async function allTransactions(req, res) {
     try {
