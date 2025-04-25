@@ -192,8 +192,6 @@ async function interestReminders() {
     }
 }
 
-
-
 async function sendWhatsAppMessage(formData) {
     try {
         await axios.post(process.env.WHATSAPP_API_URL, formData);
