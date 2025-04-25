@@ -6,7 +6,8 @@ const addressSchema = new mongoose.Schema({
     country: String,
     state: String,
     city: String,
-    zipcode: String
+    zipcode: String,
+    area: String
 })
 
 module.exports = addressSchema
