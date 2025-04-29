@@ -186,7 +186,7 @@ async function interestPayment(req, res) {
                 uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
             },
             {new: true}
-        ).populate([{path: "scheme"}, {path: "customer"}, {path: "company"}]);
+        ).populate([{path: "scheme"},  {path: "customer", populate: {path: "branch"}}, {path: "company"}]);
 
         return res.status(201).json({
             status: 201,
