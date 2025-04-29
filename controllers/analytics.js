@@ -285,7 +285,6 @@ async function allBankTransactions(req, res) {
             })
         );
 
-        console.log(results[5])
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({

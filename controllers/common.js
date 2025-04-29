@@ -10,6 +10,7 @@ const FormData = require("form-data");
 const PartPaymentModel = require("../models/loan-part-payment");
 const LoanPartReleaseModel = require("../models/part-release");
 const PenaltyModel = require("../models/penalty");
+const {mongo} = require("mongoose");
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -143,8 +144,9 @@ async function interestReminders() {
             }
 
             const lastInstallmentDate = loan.lastInstallmentDate ? moment(loan.lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
-            const daysDiff = today.diff(lastInstallmentDate, 'days');
-            const penaltyDayDiff = today.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
+            const nextInstallmentDate = moment(loan.nextInstallmentDate).startOf('day');
+            const daysDiff = nextInstallmentDate.diff(lastInstallmentDate, 'days');
+            const penaltyDayDiff = nextInstallmentDate.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
