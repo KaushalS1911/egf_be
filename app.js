@@ -51,6 +51,9 @@ cron.schedule('0 0 * * *', async () => {
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
     }
+},{
+    scheduled: true,
+    timezone: "Asia/Kolkata"
 });
 
 app.listen(port, () => {
