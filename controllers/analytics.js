@@ -10,6 +10,7 @@ const ClosedOtherLoanModel = require("../models/other-loan-close");
 const CompanyModel = require("../models/company");
 const ExpenseModel = require("../models/expense");
 const OtherIncomeModel = require("../models/other-income");
+// const TransferModel = require("../models/transfers");
 
 async function allTransactions(req, res) {
     try {
@@ -19,7 +20,7 @@ async function allTransactions(req, res) {
             {
                 model: IssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['cashAmount', 'issueDate'],
+                fields: ['cashAmount', 'issueDate', 'loanNo'],
                 type: "Loan issued",
                 category: "Payment Out",
                 dateField: 'issueDate',
@@ -78,7 +79,7 @@ async function allTransactions(req, res) {
             {
                 model: OtherIssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['cashAmount', 'date'],
+                fields: ['cashAmount', 'date', 'otherNumber', 'loan'],
                 type: "Other Loan Issued",
                 category: "Payment In",
                 dateField: 'date',
@@ -86,7 +87,7 @@ async function allTransactions(req, res) {
             {
                 model: OtherLoanInterestModel,
                 query: {},
-                fields: ['paymentDetail', 'payDate'],
+                fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
                 dateField: 'payDate',
@@ -96,7 +97,7 @@ async function allTransactions(req, res) {
             {
                 model: ClosedOtherLoanModel,
                 query: { },
-                fields: ['paymentDetail', 'payDate'],
+                fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Close",
                 category: "Payment Out",
                 dateField: 'payDate',
@@ -106,7 +107,7 @@ async function allTransactions(req, res) {
             {
                 model: ExpenseModel,
                 query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
+                fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
                 dateField: 'date',
@@ -114,7 +115,7 @@ async function allTransactions(req, res) {
             {
                 model: OtherIncomeModel,
                 query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
+                fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
                 dateField: 'date',
@@ -130,21 +131,32 @@ async function allTransactions(req, res) {
             })
         );
 
+        // const transfers = await TransferModel.find({company: companyId})?.map((e) => {
+        //         return {
+        //             category: e?.from ? "Payment In" : "Payment Out",
+        //             ref: e?.from ? "Bank to Cash Transfer" : "Cash to Bank Transfer",
+        //             detail: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+        //             status: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
+        //             date: e?.date,
+        //             amount: e?.amount
+        //         }
+        // })
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.category ?? 'Unknown',
-                detail: `${entry?.customer?.firstName ?? entry?.otherName} ${entry?.customer?.lastName || ''}`,
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
+                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? null,
-                amount: (entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? 0),
+                amount: Number(entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? entry?.paymentDetails?.cashAmount ?? 0),
             }))
         );
 
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
-            data: transactions.filter((e) => e.amount !== 0)
+            data: transactions.filter((e) => e?.amount !== 0)
         });
 
     } catch (error) {
@@ -161,7 +173,7 @@ async function allBankTransactions(req, res) {
             {
                 model: IssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['bankAmount', 'issueDate', 'companyBankDetail'],
+                fields: ['bankAmount', 'issueDate', 'companyBankDetail', 'loanNo'],
                 type: "Loan issued",
                 category: "Payment Out",
                 dateField: 'issueDate',
@@ -220,15 +232,15 @@ async function allBankTransactions(req, res) {
             {
                 model: OtherIssuedLoanModel,
                 query: { deleted_at: null, company: companyId },
-                fields: ['bankAmount', 'date', 'bankDetails', 'otherName'],
+                fields: ['bankAmount', 'date', 'otherNumber', 'loan', 'bankDetails', 'otherName'],
                 type: "Other Loan Issued",
                 category: "Payment In",
-                dateField: 'date'
+                dateField: 'date',
             },
             {
                 model: OtherLoanInterestModel,
                 query: {},
-                fields: ['paymentDetail', 'payDate'],
+                fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
                 dateField: 'payDate',
@@ -237,8 +249,8 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: ClosedOtherLoanModel,
-                query: {},
-                fields: ['paymentDetail', 'payDate'],
+                query: { },
+                fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Close",
                 category: "Payment Out",
                 dateField: 'payDate',
@@ -248,20 +260,21 @@ async function allBankTransactions(req, res) {
             {
                 model: ExpenseModel,
                 query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
+                fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
-                dateField: 'date'
+                dateField: 'date',
             },
             {
                 model: OtherIncomeModel,
                 query: { company: companyId },
-                fields: ['paymentDetail', 'date'],
+                fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
-                dateField: 'date'
-            }
+                dateField: 'date',
+            },
         ];
+
 
         const results = await Promise.all(
             models.map(async ({ model, query, fields, populate, filter }) => {
@@ -272,32 +285,22 @@ async function allBankTransactions(req, res) {
             })
         );
 
-        const transactions = results.flatMap((data, index) => {
-            const config = models[index];
-            return (Array.isArray(data) ? data : []).map(entry => {
-                const customer = entry?.customer || entry?.loan?.customer || entry?.otherLoan?.customer;
-                const name = `${customer?.firstName ?? entry?.otherName ?? ''} ${customer?.lastName ?? ''}`.trim();
-                const amount = entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? 0;
-                const bankName =
-                    entry?.companyBankDetail?.account?.bankName ??
-                    entry?.bankDetails?.bankName ??
-                    entry?.paymentDetail?.account?.bankName ?? null;
 
-                return {
-                    category: config.category,
-                    detail: name,
-                    status: config.type,
-                    date: entry[config.dateField] ?? null,
-                    amount,
-                    bankName
-                };
-            });
-        });
-
-        const filteredTransactions = transactions.filter(t => t.amount !== 0);
+        const transactions = results.flatMap((data, index) =>
+            (Array.isArray(data) ? data : []).map(entry => ({
+                category: models[index]?.category ?? 'Unknown',
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
+                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.otherLoan?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
+                status: models[index]?.type,
+                date: entry[models[index]?.dateField] ?? entry?.otherLoan?.date ?? null,
+                bankName: entry?.companyBankDetail?.account?.bankName ??
+                    entry?.paymentDetail?.account?.bankName ?? entry?.paymentDetail?.bankName?? entry?.bankDetails?.bankName ?? null,
+                amount: Number(entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
+            }))
+        ).filter(t => t?.amount !== 0);
 
         const sumByBank = (bankName, type) =>
-            filteredTransactions
+            transactions
                 .filter(txn => txn.category === type && txn.bankName === bankName)
                 .reduce((sum, txn) => sum + txn.amount, 0);
 
@@ -312,7 +315,7 @@ async function allBankTransactions(req, res) {
             status: 200,
             message: "All transactions fetched successfully",
             data: {
-                transactions: filteredTransactions,
+                transactions: transactions,
                 bankBalances
             }
         });

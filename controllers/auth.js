@@ -5,6 +5,7 @@ const EmployeeModel = require("../models/employee");
 const ConfigModel = require("../models/config");
 const mongoose = require('mongoose')
 const path = require("path")
+const os = require("os");
 const ejs = require("ejs")
 const jwt = require("jsonwebtoken");
 const {createHash, verifyHash} = require('../helpers/hash');
@@ -73,11 +74,27 @@ async function register(req, res) {
 
 async function login(req, res) {
     try {
+        const mac = req.headers['x-forwarded-for']?.split(',')[0] || req.ip
+
         const {otp, contact} = req.body;
 
         const user = await UserModel.findOne({contact}).lean();
 
         if (user.role !== 'Admin') {
+            // const configs = await ConfigModel.findOne({company: user?.company})
+            //
+            // const [configDevices] = configs?.devices?.filter((e) => e?.employee?.userId)
+            //
+            // if(!configDevices) {
+            //     return res.json({status: 400, message: "Access denied."});
+            // }
+            //
+            // console.log(configDevices.macAddress, mac)
+            //
+            // if (configDevices?.macAddress !== mac) {
+            //     return res.status(403).json({ message: 'Device not authorized' });
+            // }
+
             const emp = await EmployeeModel.findOne({user: user._id, deleted_at: null});
 
             if(emp.status !== "Active") {

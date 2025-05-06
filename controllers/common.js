@@ -10,6 +10,7 @@ const FormData = require("form-data");
 const PartPaymentModel = require("../models/loan-part-payment");
 const LoanPartReleaseModel = require("../models/part-release");
 const PenaltyModel = require("../models/penalty");
+const {mongo} = require("mongoose");
 
 async function sendBirthdayNotification(req, res) {
     try {
@@ -115,11 +116,11 @@ async function updateOverdueLoans() {
 async function interestReminders() {
     try {
         const today = moment().startOf('day');
-        const nextTwoDays = moment().add(2, 'days').startOf('day');
+        const fromDate = moment().add(3, 'days').startOf('day');
 
         const loans = await IssuedLoanModel.find({
-            nextInstallmentDate: { $gte: today.toDate(), $lt: nextTwoDays.toDate() },
-            status: { $nin: ["Closed"] },
+            nextInstallmentDate: { $gte: today.toDate(), $lt: fromDate.toDate() },
+            status: { $nin: ["Closed",'Issued'] },
             deleted_at: null,
         }).populate([
             { path: "customer", populate: "branch" },
@@ -128,9 +129,8 @@ async function interestReminders() {
         ]);
 
         const reminders = loans.map(async (loan) => {
-            const [interests, uchakInterests] = await Promise.all([
+            const [interests] = await Promise.all([
                 InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
-                UchakInterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }).limit(1),
             ]);
 
             let uchakInterest = 0;
@@ -144,8 +144,9 @@ async function interestReminders() {
             }
 
             const lastInstallmentDate = loan.lastInstallmentDate ? moment(loan.lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
-            const daysDiff = today.diff(lastInstallmentDate, 'days');
-            const penaltyDayDiff = today.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
+            const nextInstallmentDate = moment(loan.nextInstallmentDate).startOf('day');
+            const daysDiff = nextInstallmentDate.diff(lastInstallmentDate, 'days');
+            const penaltyDayDiff = nextInstallmentDate.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
@@ -176,12 +177,12 @@ async function interestReminders() {
                 loanNumber: loan.loanNo,
                 loanAmount: loan.loanAmount,
                 interestAmount: pendingInterest,
-                nextInstallmentDate: moment(loan.nextInstallmentDate).format("DD/MM/YYYY"),
+                nextInstallmentDate: moment(loan.nextInstallmentDate, 'DD-MM-YYYY').format(),
+                branchContact: loan.customer.branch.contact,
                 companyContact: loan.company.contact,
                 companyEmail: loan.company.email,
                 companyName: loan.company.name,
             };
-
             await sendMessage(payload);
         });
 
@@ -192,8 +193,6 @@ async function interestReminders() {
         console.error("Error sending interest reminders:", error);
     }
 }
-
-
 
 async function sendWhatsAppMessage(formData) {
     try {
@@ -347,6 +346,7 @@ const scenarios = {
         payload.loanAmount,
         payload.interestAmount,
         moment(payload.nextInstallmentDate).format("DD/MM/YYYY"),
+        payload.branchContact,
         payload.companyContact,
         payload.companyEmail,
         payload.companyName,

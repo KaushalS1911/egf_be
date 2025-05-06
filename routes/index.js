@@ -24,26 +24,9 @@ const expenseRouter = require("../routes/expense")
 const otherIncomeRouter = require("../routes/other-income")
 
 const router = express.Router();
-const multer = require('multer')
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './public/images')
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, uniqueSuffix + '-' + file.originalname)
-    }
-})
-
-const upload = multer({ storage })
-
 
 router.get('/', function (req, res, next) {
     res.render('index', {title: 'EGF'});
-});
-
-router.post('/print-file', upload.single('print'), function (req, res, next) {
-
 });
 
 router.use('/auth', authRouter)
@@ -70,7 +53,7 @@ router.use('/company', expenseRouter)
 router.use('/company', otherIncomeRouter)
 
 // loans
-router.use('/company', issueLoanRouter)
-router.use('/company', otherIssuedLoanRouter)
+router.use('/company',  issueLoanRouter)
+router.use('/company',  otherIssuedLoanRouter)
 
 module.exports = router;

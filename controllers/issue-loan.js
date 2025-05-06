@@ -178,7 +178,7 @@ async function interestPayment(req, res) {
         });
         //
 
-        await IssuedLoanModel.findByIdAndUpdate(
+        const loan = await IssuedLoanModel.findByIdAndUpdate(
             loanId,
             {
                 nextInstallmentDate,
@@ -186,12 +186,12 @@ async function interestPayment(req, res) {
                 uchakInterestAmount: loanDetails.uchakInterestAmount - uchakInterestAmount,
             },
             {new: true}
-        );
+        ).populate([{path: "scheme"},  {path: "customer", populate: {path: "branch"}}, {path: "company"}]);
 
         return res.status(201).json({
             status: 201,
             message: "Loan interest paid successfully",
-            data: interestDetail,
+            data: {...interestDetail.toObject(),loan:loan},
         });
     } catch (err) {
         console.error(err);

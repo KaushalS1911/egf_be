@@ -449,11 +449,13 @@ const customerStatement = async (req, res) => {
         const {companyId} = req.params;
         const {loan} = req.query
 
+
         const query = {loan: {$in: loan}, deleted_at: null};
+
+        const issuedLoan =  await IssuedLoanModel.findById(loan).select('loanNo loanAmount issueDate')
 
         // Fetch all relevant details in parallel
         const loanDetails = await Promise.all([
-            IssuedLoanModel.findById(loan).lean(),
             fetchPartPaymentDetails(query, companyId, null),
             fetchPartReleaseDetails(query, companyId, null),
             fetchLoanCloseDetails(query, companyId, null),
@@ -464,38 +466,52 @@ const customerStatement = async (req, res) => {
             fetchUchakInterestDetails(query, companyId, null),
         ])
 
+        const intStatements = interestDetails.flatMap((ele, index) => ele).map((e, index) => {
+            return{
+                date: e?.entryDate ?? e?.createdAt,
+                to: e?.to ?? null,
+                from: e?.from ?? null,
+                day: Number(e?.days),
+                detail: e.to ? 'Interest Payment' : 'Uchak Int Payment',
+                amount: e?.amountPaid
+            }
+        })
+
         const types = [
-            'Loan Issued',
-            "Loan part payment",
-            "Loan part release",
-            "Loan close",
+            "Loan Part Payment",
+            "Loan Part Release",
+            "Loan Close",
         ];
 
-        const result = loanDetails.flatMap((detail, index) =>
-            detail.map(entry => ({...entry, type: types[index]}))
+        const result = loanDetails.flatMap((ele, index) =>
+            ele?.map(entry => ({date: entry.date, debit: entry.amountPaid, loanNo: entry.loan.loanNo, detail: types[index]}))
         );
 
         const sortedResults = result
-            .sort((a, b) => new Date(b.date ?? b.issueDate) - new Date(a.date));
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let balance = 0
-        const statementData = sortedResults.map((ele) => {
-            const amount = (ele.paymentDetail.paymentMode === 'Cash')
-                ? Number(ele.paymentDetail.cashAmount) || 0
-                : (ele.paymentDetail.paymentMode === 'Bank')
-                    ? Number(ele.paymentDetail.bankAmount) || 0
-                    : Number(ele.paymentDetail.cashAmount) + Number(ele.paymentDetail.bankAmount) || 0;
+        sortedResults.unshift({date: issuedLoan.issueDate, credit: issuedLoan.loanAmount, loanNo: issuedLoan.loanNo, detail: "Loan Issued", balance: issuedLoan.loanAmount})
 
-            return {
-                detail: ele.type,
-                loanNo: ele.loan.loanNo,
-                amount,
-                date: ele.issueDate ?? ele.date ?? null,
+        let previousBalance = sortedResults[0]?.balance || 0;
+
+        const loanStatement = sortedResults.map((e, index) => {
+            const currentDebit = e.debit ?? null;
+            const balance = index === 0
+                ? e.balance
+                : previousBalance - currentDebit;
+
+            const updated = {
+                ...e,
+                debit: currentDebit,
+                credit: e.credit ?? null,
+                balance,
             };
-        }).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
+            previousBalance = balance;
+            return updated;
+        });
 
-        return res.status(200).json({status: 200, data: statementData});
+        return res.status(200).json({status: 200, data: { loanStatement, interestDetail: intStatements}});
     } catch (err) {
         console.error("Error fetching customer statement report:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
@@ -506,7 +522,9 @@ const customerStatement = async (req, res) => {
 const initialLoanDetail = async (req, res) => {
 
     try {
-        const loans = await IssuedLoanInitialModel.find().populate('customer').populate("scheme");
+        const {companyId} = req.params;
+
+        const loans = await IssuedLoanInitialModel.find({company: companyId}).populate('customer').populate("scheme");
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject();

@@ -28,6 +28,7 @@ const auth = handleException(async function authenticate(req, res, next) {
         const user = await UserModel.findById(decoded.id)
         req.user = user;
     } catch (err) {
+        console.log(err)
         if (err instanceof TokenExpiredError) {
             res.status(401).json({message: "Auth token expired, refresh your token", status: 401});
         }
