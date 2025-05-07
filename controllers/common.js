@@ -48,6 +48,8 @@ async function sendNotification(email, subject, message) {
 
 async function updateOverdueOtherLoans() {
     const today = new Date();
+    const sevenDaysBefore = new Date();
+    sevenDaysBefore.setDate(today.getDate() - 7);
 
     try {
         await OtherIssuedLoanModel.bulkWrite([
@@ -55,7 +57,7 @@ async function updateOverdueOtherLoans() {
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        renewalDate: {$gt: today},
+                        renewalDate: {$gt: sevenDaysBefore},
                         status: {$nin: ["Closed"]}
                     },
                     update: {$set: {status: 'Regular'}}
@@ -65,7 +67,7 @@ async function updateOverdueOtherLoans() {
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        renewalDate: {$lt: today},
+                        renewalDate: {$lt: sevenDaysBefore},
                         status: {$nin: ['Closed']}
                     },
                     update: {$set: {status: 'Overdue'}}
