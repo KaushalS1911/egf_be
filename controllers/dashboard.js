@@ -150,8 +150,8 @@ const getAreaAndReferenceStats = async (req, res) => {
         const formattedReferences = INQUIRY_REFERENCE_BY.map(ref => {
             const found = referenceCounts.find(item => item.reference === ref);
             return {
-                reference: ref,
-                count: found ? found.count : 0
+                label: ref,
+                value: found ? found.count : 0
             };
         });
 
@@ -160,14 +160,14 @@ const getAreaAndReferenceStats = async (req, res) => {
             {
                 $group: {
                     _id: "$permanentAddress.area",
-                    count: {$sum: 1}
+                    value: {$sum: 1}
                 }
             },
             {
                 $project: {
                     _id: 0,
-                    area: "$_id",
-                    count: 1
+                    label: "$_id",
+                    value: 1
                 }
             }
         ]);
