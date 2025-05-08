@@ -184,13 +184,25 @@ const getAreaAndReferenceStats = async (req, res) => {
 
         const activeLoanCustomerCount = await IssuedLoan.distinct("customer", loanMatch).then(ids => ids.length);
 
+        const totalCustomerMatch = {
+            company: companyId,
+            deleted_at: null,
+        };
+
+        if (branchId) {
+            totalCustomerMatch.branch = branchId;
+        }
+
+        const totalCustomerCount = await Customer.countDocuments(totalCustomerMatch);
+
         res.status(200).json({
             success: true,
             data: {
                 references: formattedReferences,
                 areas: areaStats,
                 newCustomerCount,
-                activeLoanCustomerCount
+                activeLoanCustomerCount,
+                totalCustomerCount
             }
         });
 
