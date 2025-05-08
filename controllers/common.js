@@ -48,29 +48,37 @@ async function sendNotification(email, subject, message) {
 
 async function updateOverdueOtherLoans() {
     const today = new Date();
-    const sevenDaysBefore = new Date();
-    sevenDaysBefore.setDate(today.getDate() - 7);
+    const sevenDaysAfterToday = new Date();
+    sevenDaysAfterToday.setDate(today.getDate() + 7);
 
     try {
         await OtherIssuedLoanModel.bulkWrite([
             {
+                // Set status to 'Overdue' if renewalDate is within next 7 days (inclusive)
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        renewalDate: {$gt: sevenDaysBefore},
-                        status: {$nin: ["Closed"]}
+                        renewalDate: {
+                            $gte: today,
+                            $lte: sevenDaysAfterToday
+                        },
+                        status: { $nin: ['Closed'] }
                     },
-                    update: {$set: {status: 'Regular'}}
+                    update: { $set: { status: 'Overdue' } }
                 }
             },
             {
+                // Set status to 'Regular' if it's not within the 7-day overdue window
                 updateMany: {
                     filter: {
                         deleted_at: null,
-                        renewalDate: {$lt: sevenDaysBefore},
-                        status: {$nin: ['Closed']}
+                        $or: [
+                            { renewalDate: { $lt: today } },
+                            { renewalDate: { $gt: sevenDaysAfterToday } }
+                        ],
+                        status: { $nin: ['Closed'] }
                     },
-                    update: {$set: {status: 'Overdue'}}
+                    update: { $set: { status: 'Regular' } }
                 }
             }
         ]);
@@ -78,6 +86,7 @@ async function updateOverdueOtherLoans() {
         console.error(error);
     }
 }
+
 
 
 async function updateOverdueLoans() {
