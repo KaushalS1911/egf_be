@@ -88,7 +88,7 @@ const getDateRange = (filter) => {
 
 const getAreaAndReferenceStats = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = 'this_month'} = req.query;
+    const {timeRange = 'this_month', branchId} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -99,17 +99,28 @@ const getAreaAndReferenceStats = async (req, res) => {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
     try {
         const {start, end} = getDateRange(timeRange);
 
-        const matchStage = {
-            deleted_at: null,
+        const customerMatch = {
             company: companyId,
+            deleted_at: null,
             createdAt: {$gte: start, $lte: end}
         };
 
+        if (branchId) {
+            customerMatch.branch = branchId;
+        }
+
+        const customers = await Customer.find(customerMatch).select('_id');
+        const customerIds = customers.map(c => c._id);
+
         const referenceCounts = await Customer.aggregate([
-            {$match: matchStage},
+            {$match: customerMatch},
             {
                 $project: {
                     reference: {
@@ -145,7 +156,7 @@ const getAreaAndReferenceStats = async (req, res) => {
         });
 
         const areaStats = await Customer.aggregate([
-            {$match: matchStage},
+            {$match: customerMatch},
             {
                 $group: {
                     _id: "$permanentAddress.area",
@@ -161,14 +172,17 @@ const getAreaAndReferenceStats = async (req, res) => {
             }
         ]);
 
-        const newCustomerCount = await Customer.countDocuments(matchStage);
+        const newCustomerCount = customerIds.length;
 
-        const activeLoanCustomerCount = await IssuedLoan.distinct("customer", {
+        const loanMatch = {
             deleted_at: null,
             company: companyId,
             status: {$in: ["Disbursed", "Regular", "Overdue"]},
-            createdAt: {$gte: start, $lte: end}
-        }).then(result => result.length);
+            createdAt: {$gte: start, $lte: end},
+            customer: {$in: customerIds}
+        };
+
+        const activeLoanCustomerCount = await IssuedLoan.distinct("customer", loanMatch).then(ids => ids.length);
 
         res.status(200).json({
             success: true,
@@ -188,7 +202,7 @@ const getAreaAndReferenceStats = async (req, res) => {
 
 const getInquiryStatusSummary = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = 'this_month'} = req.query;
+    const {timeRange = 'this_month', branchId} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -199,20 +213,36 @@ const getInquiryStatusSummary = async (req, res) => {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
     try {
         const {start, end} = getDateRange(timeRange);
 
         const allowedStatuses = ["Active", "Completed", "Responded", "Not Responded"];
 
+        let customerIds = [];
+        if (branchId) {
+            const customers = await Customer.find({
+                company: companyId,
+                branch: branchId,
+                deleted_at: null
+            }).select("_id");
+
+            customerIds = customers.map(c => c._id);
+        }
+
+        const matchStage = {
+            deleted_at: null,
+            company: mongoose.Types.ObjectId(companyId),
+            status: {$in: allowedStatuses},
+            createdAt: {$gte: start, $lte: end},
+            ...(branchId && customerIds.length > 0 && {customer: {$in: customerIds}})
+        };
+
         const statusCounts = await Inquiry.aggregate([
-            {
-                $match: {
-                    deleted_at: null,
-                    company: companyId,
-                    status: {$in: allowedStatuses},
-                    createdAt: {$gte: start, $lte: end}
-                }
-            },
+            {$match: matchStage},
             {
                 $group: {
                     _id: "$status",
@@ -246,7 +276,7 @@ const getInquiryStatusSummary = async (req, res) => {
 
 const getLoanAmountPerScheme = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = 'this_month'} = req.query;
+    const {timeRange = 'this_month', branchId} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -257,19 +287,34 @@ const getLoanAmountPerScheme = async (req, res) => {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
     try {
         const {start, end} = getDateRange(timeRange);
 
         const schemes = await Scheme.find({company: companyId, deleted_at: null});
 
+        let customerIds = [];
+        if (branchId) {
+            const customers = await Customer.find({
+                company: companyId,
+                branch: branchId,
+                deleted_at: null
+            }).select("_id");
+            customerIds = customers.map(c => c._id);
+        }
+
+        const matchStage = {
+            company: mongoose.Types.ObjectId(companyId),
+            deleted_at: null,
+            createdAt: {$gte: start, $lte: end},
+            ...(branchId && customerIds.length > 0 && {customer: {$in: customerIds}})
+        };
+
         const schemeLoanStats = await IssuedLoan.aggregate([
-            {
-                $match: {
-                    company: companyId,
-                    deleted_at: null,
-                    createdAt: {$gte: start, $lte: end}
-                }
-            },
+            {$match: matchStage},
             {
                 $group: {
                     _id: "$scheme",
@@ -302,7 +347,8 @@ const getLoanAmountPerScheme = async (req, res) => {
             };
         });
 
-        const globalAvgInterestRate = interestRateCount > 0 ? (totalInterestRate / interestRateCount) : 0;
+        const globalAvgInterestRate =
+            interestRateCount > 0 ? totalInterestRate / interestRateCount : 0;
 
         res.status(200).json({
             success: true,
@@ -320,7 +366,7 @@ const getLoanAmountPerScheme = async (req, res) => {
 
 const getAllLoanStatsWithCharges = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = "this_month"} = req.query;
+    const {timeRange = "this_month", branchId} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -334,11 +380,23 @@ const getAllLoanStatsWithCharges = async (req, res) => {
     try {
         const {start, end} = getDateRange(timeRange);
 
+        let customerIds = [];
+        if (branchId) {
+            const customers = await Customer.find({
+                company: companyId,
+                branch: branchId,
+                deleted_at: null
+            }).select('_id');
+            customerIds = customers.map(c => c._id);
+        }
+
         // ===== Main Loans =====
         const issuedLoans = await IssuedLoan.find({
             company: companyId,
             deleted_at: null,
-            createdAt: {$gte: start, $lte: end}
+            status: {$in: ["Disbursed", "Regular", "Overdue"]},
+            createdAt: {$gte: start, $lte: end},
+            ...(branchId && {customer: {$in: customerIds}})
         });
 
         const loanCloses = await LoanClose.find({
@@ -346,7 +404,11 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             date: {$gte: start, $lte: end}
         }).populate("loan");
 
-        const filteredLoanCloses = loanCloses.filter(cl => cl.loan && cl.loan.company?.toString() === companyId);
+        const filteredLoanCloses = loanCloses.filter(cl =>
+            cl.loan &&
+            cl.loan.company?.toString() === companyId &&
+            (!branchId || customerIds.some(id => id.equals(cl.loan.customer)))
+        );
 
         const newLoanCount = issuedLoans.length;
         const newLoanAmount = issuedLoans.reduce((sum, loan) => sum + (loan.loanAmount || 0), 0);
@@ -364,7 +426,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const otherIssuedLoans = await OtherIssuedLoan.find({
             company: companyId,
             deleted_at: null,
-            createdAt: {$gte: start, $lte: end}
+            createdAt: {$gte: start, $lte: end},
+            ...(branchId && {customer: {$in: customerIds}})
         });
 
         const otherLoanCloses = await OtherLoanClose.find({
@@ -373,7 +436,9 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         }).populate("otherLoan");
 
         const filteredOtherLoanCloses = otherLoanCloses.filter(cl =>
-            cl.otherLoan && cl.otherLoan.company?.toString() === companyId
+            cl.otherLoan &&
+            cl.otherLoan.company?.toString() === companyId &&
+            (!branchId || customerIds.some(id => id.equals(cl.otherLoan.customer)))
         );
 
         const newOtherLoanCount = otherIssuedLoans.length;
@@ -394,7 +459,9 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         }).populate('loan');
 
         const filteredInterestsMain = interestsMain.filter(interest =>
-            interest.loan && interest.loan.company?.toString() === companyId
+            interest.loan &&
+            interest.loan.company?.toString() === companyId &&
+            (!branchId || customerIds.some(id => id.equals(interest.loan.customer)))
         );
 
         const interestInMain = filteredInterestsMain.reduce((sum, i) => sum + (i.interestAmount || 0), 0);
@@ -404,27 +471,24 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             createdAt: {$gte: start, $lte: end}
         }).populate({
             path: "otherLoan",
-            select: "company deleted_at"
+            select: "company deleted_at customer"
         });
 
         const filteredInterestOutRecords = interestOutRecords.filter(p => {
             const loan = p.otherLoan;
             return loan &&
                 loan.company?.toString() === companyId &&
-                loan.deleted_at == null;
+                loan.deleted_at == null &&
+                (!branchId || customerIds.some(id => id.equals(loan.customer)));
         });
 
         let interestOutOther = 0;
-
         for (const p of filteredInterestOutRecords) {
             const payment = p.paymentDetail || {};
             const cash = Number(payment.cashAmount) || 0;
             const bank = Number(payment.bankAmount) || 0;
-
             interestOutOther += cash + bank;
         }
-
-        const interestDifference = interestInMain - interestOutOther;
 
         // ===== Totals =====
         const totalIssuedCount = newLoanCount + newOtherLoanCount;
@@ -436,6 +500,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const chargeIn = chargeInMain + otherChargeIn;
         const chargeOut = closingChargeOutMain + closingChargeOutOther;
         const chargeDifference = chargeIn - chargeOut;
+
+        const interestDifference = interestInMain - interestOutOther;
 
         res.status(200).json({
             success: true,
