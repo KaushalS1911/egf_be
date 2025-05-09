@@ -283,7 +283,13 @@ const getInquiryStatusSummary = async (req, res) => {
             };
         });
 
-        res.status(200).json({success: true, data: formattedData});
+        const totalInquiries = formattedData.reduce((sum, item) => sum + item.value, 0);
+
+        res.status(200).json({
+            success: true,
+            data: formattedData,
+            total: totalInquiries
+        });
 
     } catch (error) {
         console.error("Error fetching inquiry status summary:", error);
