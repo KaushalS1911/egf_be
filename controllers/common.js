@@ -59,7 +59,6 @@ async function updateOverdueOtherLoans() {
                     filter: {
                         deleted_at: null,
                         renewalDate: {
-                            $gte: today,
                             $lte: sevenDaysAfterToday
                         },
                         status: { $nin: ['Closed'] }
@@ -67,20 +66,19 @@ async function updateOverdueOtherLoans() {
                     update: { $set: { status: 'Overdue' } }
                 }
             },
-            {
-                // Set status to 'Regular' if it's not within the 7-day overdue window
-                updateMany: {
-                    filter: {
-                        deleted_at: null,
-                        $or: [
-                            { renewalDate: { $lt: today } },
-                            { renewalDate: { $gt: sevenDaysAfterToday } }
-                        ],
-                        status: { $nin: ['Closed'] }
-                    },
-                    update: { $set: { status: 'Regular' } }
-                }
-            }
+            // {
+            //     // Set status to 'Regular' if it's not within the 7-day overdue window
+            //     updateMany: {
+            //         filter: {
+            //             deleted_at: null,
+            //             $or: [
+            //                 { renewalDate: { $gt: today } }
+            //             ],
+            //             status: { $nin: ['Closed'] }
+            //         },
+            //         update: { $set: { status: 'Regular' } }
+            //     }
+            // }
         ]);
     } catch (error) {
         console.error(error);
