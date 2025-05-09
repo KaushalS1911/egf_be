@@ -88,7 +88,10 @@ const getDateRange = (filter) => {
 
 const getAreaAndReferenceStats = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = 'this_month', branchId} = req.query;
+    const {timeRange = 'this_month', branchId, fields = ''} = req.query;
+
+    const requestedFields = fields.split(',').map(f => f.trim().toLowerCase());
+    const includeAll = requestedFields.length === 0 || requestedFields.includes('all');
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -116,94 +119,105 @@ const getAreaAndReferenceStats = async (req, res) => {
             customerMatch.branch = branchId;
         }
 
-        const customers = await Customer.find(customerMatch).select('_id');
-        const customerIds = customers.map(c => c._id);
+        const responseData = {};
 
-        const referenceCounts = await Customer.aggregate([
-            {$match: customerMatch},
-            {
-                $project: {
-                    reference: {
-                        $cond: {
-                            if: {$in: ["$referenceBy", INQUIRY_REFERENCE_BY.slice(0, -1)]},
-                            then: "$referenceBy",
-                            else: "Other"
-                        }
-                    }
-                }
-            },
-            {
-                $group: {
-                    _id: "$reference",
-                    count: {$sum: 1}
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    reference: "$_id",
-                    count: 1
-                }
-            }
-        ]);
+        let customerIds = [];
 
-        const formattedReferences = INQUIRY_REFERENCE_BY.map(ref => {
-            const found = referenceCounts.find(item => item.reference === ref);
-            return {
-                label: ref,
-                value: found ? found.count : 0
-            };
-        });
-
-        const areaStats = await Customer.aggregate([
-            {$match: customerMatch},
-            {
-                $group: {
-                    _id: "$permanentAddress.area",
-                    value: {$sum: 1}
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    label: "$_id",
-                    value: 1
-                }
-            }
-        ]);
-
-        const newCustomerCount = customerIds.length;
-
-        const loanMatch = {
-            deleted_at: null,
-            company: companyId,
-            status: {$in: ["Disbursed", "Regular", "Overdue"]},
-            createdAt: {$gte: start, $lte: end},
-            customer: {$in: customerIds}
-        };
-
-        const activeLoanCustomerCount = await IssuedLoan.distinct("customer", loanMatch).then(ids => ids.length);
-
-        const totalCustomerMatch = {
-            company: companyId,
-            deleted_at: null,
-        };
-
-        if (branchId) {
-            totalCustomerMatch.branch = branchId;
+        if (includeAll || requestedFields.includes('customerstats') || requestedFields.includes('references') || requestedFields.includes('areas')) {
+            const customers = await Customer.find(customerMatch).select('_id');
+            customerIds = customers.map(c => c._id);
         }
 
-        const totalCustomerCount = await Customer.countDocuments(totalCustomerMatch);
+        if (includeAll || requestedFields.includes('references')) {
+            const referenceCounts = await Customer.aggregate([
+                {$match: customerMatch},
+                {
+                    $project: {
+                        reference: {
+                            $cond: {
+                                if: {$in: ["$referenceBy", INQUIRY_REFERENCE_BY.slice(0, -1)]},
+                                then: "$referenceBy",
+                                else: "Other"
+                            }
+                        }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$reference",
+                        count: {$sum: 1}
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        reference: "$_id",
+                        count: 1
+                    }
+                }
+            ]);
+
+            responseData.references = INQUIRY_REFERENCE_BY.map(ref => {
+                const found = referenceCounts.find(item => item.reference === ref);
+                return {
+                    label: ref,
+                    value: found ? found.count : 0
+                };
+            });
+        }
+
+        if (includeAll || requestedFields.includes('areas')) {
+            const areaStats = await Customer.aggregate([
+                {$match: customerMatch},
+                {
+                    $group: {
+                        _id: "$permanentAddress.area",
+                        value: {$sum: 1}
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        label: "$_id",
+                        value: 1
+                    }
+                }
+            ]);
+            responseData.areas = areaStats;
+        }
+
+        if (includeAll || requestedFields.includes('customerstats')) {
+            const loanMatch = {
+                deleted_at: null,
+                company: companyId,
+                status: {$in: ["Disbursed", "Regular", "Overdue"]},
+                createdAt: {$gte: start, $lte: end},
+                customer: {$in: customerIds}
+            };
+
+            const activeLoanCustomerCount = await IssuedLoan.distinct("customer", loanMatch).then(ids => ids.length);
+
+            const totalCustomerMatch = {
+                company: companyId,
+                deleted_at: null,
+            };
+
+            if (branchId) {
+                totalCustomerMatch.branch = branchId;
+            }
+
+            const totalCustomerCount = await Customer.countDocuments(totalCustomerMatch);
+
+            responseData.customerStats = {
+                newCustomerCount: customerIds.length,
+                activeLoanCustomerCount,
+                totalCustomerCount
+            };
+        }
 
         res.status(200).json({
             success: true,
-            data: {
-                references: formattedReferences,
-                areas: areaStats,
-                newCustomerCount,
-                activeLoanCustomerCount,
-                totalCustomerCount
-            }
+            data: responseData
         });
 
     } catch (error) {
@@ -220,41 +234,32 @@ const getInquiryStatusSummary = async (req, res) => {
         return res.status(400).json({success: false, message: "Invalid company ID"});
     }
 
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
     const companyExists = await Company.exists({_id: companyId});
     if (!companyExists) {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
-    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
-        return res.status(400).json({success: false, message: "Invalid branch ID"});
-    }
-
     try {
         const {start, end} = getDateRange(timeRange);
-
         const allowedStatuses = ["Active", "Completed", "Responded", "Not Responded"];
 
-        let customerIds = [];
-        if (branchId) {
-            const customers = await Customer.find({
-                company: companyId,
-                branch: branchId,
-                deleted_at: null
-            }).select("_id");
-
-            customerIds = customers.map(c => c._id);
-        }
-
-        const matchStage = {
+        const matchQuery = {
             deleted_at: null,
-            company: mongoose.Types.ObjectId(companyId),
+            company: companyId,
             status: {$in: allowedStatuses},
-            createdAt: {$gte: start, $lte: end},
-            ...(branchId && customerIds.length > 0 && {customer: {$in: customerIds}})
+            createdAt: {$gte: start, $lte: end}
         };
 
+        if (branchId) {
+            matchQuery.branch = branchId;
+        }
+
         const statusCounts = await Inquiry.aggregate([
-            {$match: matchStage},
+            {$match: matchQuery},
             {
                 $group: {
                     _id: "$status",
