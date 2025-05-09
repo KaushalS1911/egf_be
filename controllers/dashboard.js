@@ -299,7 +299,7 @@ const getInquiryStatusSummary = async (req, res) => {
 
 const getLoanAmountPerScheme = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = 'this_month', branchId} = req.query;
+    const {timeRange = 'this_month'} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
@@ -310,34 +310,18 @@ const getLoanAmountPerScheme = async (req, res) => {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
-    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
-        return res.status(400).json({success: false, message: "Invalid branch ID"});
-    }
-
     try {
         const {start, end} = getDateRange(timeRange);
-
         const schemes = await Scheme.find({company: companyId, deleted_at: null});
 
-        let customerIds = [];
-        if (branchId) {
-            const customers = await Customer.find({
-                company: companyId,
-                branch: branchId,
-                deleted_at: null
-            }).select("_id");
-            customerIds = customers.map(c => c._id);
-        }
-
-        const matchStage = {
-            company: mongoose.Types.ObjectId(companyId),
-            deleted_at: null,
-            createdAt: {$gte: start, $lte: end},
-            ...(branchId && customerIds.length > 0 && {customer: {$in: customerIds}})
-        };
-
         const schemeLoanStats = await IssuedLoan.aggregate([
-            {$match: matchStage},
+            {
+                $match: {
+                    company: companyId,
+                    deleted_at: null,
+                    createdAt: {$gte: start, $lte: end}
+                }
+            },
             {
                 $group: {
                     _id: "$scheme",
@@ -370,8 +354,7 @@ const getLoanAmountPerScheme = async (req, res) => {
             };
         });
 
-        const globalAvgInterestRate =
-            interestRateCount > 0 ? totalInterestRate / interestRateCount : 0;
+        const globalAvgInterestRate = interestRateCount > 0 ? (totalInterestRate / interestRateCount) : 0;
 
         res.status(200).json({
             success: true,
