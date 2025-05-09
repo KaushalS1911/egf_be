@@ -34,15 +34,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api',  appRouter);
 
-cron.schedule('*/5 * * * *', async () => {
+const updateLoanStatus = async () => {
     try {
-        await updateOverdueLoans();
-        await updateOverdueOtherLoans();
+        await Promise.all([
+            updateOverdueLoans(),
+            updateOverdueOtherLoans()
+        ]);
         console.log("Loan status updated successfully");
     } catch (error) {
         console.error("Error occurred during loan status update:", error);
     }
-});
+};
+
+// Schedule the task to run every 5 minutes
+cron.schedule('*/5 * * * *', updateLoanStatus);
+
 
 cron.schedule('0 0 * * *', async () => {
     try {
