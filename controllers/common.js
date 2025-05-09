@@ -51,6 +51,8 @@ async function updateOverdueOtherLoans() {
     const sevenDaysAfterToday = new Date();
     sevenDaysAfterToday.setDate(today.getDate() + 7);
 
+    console.log(sevenDaysAfterToday);
+
     try {
         await OtherIssuedLoanModel.bulkWrite([
             {
