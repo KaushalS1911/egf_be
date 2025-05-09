@@ -22,6 +22,7 @@ const whatsappNotificationRouter = require("../routes/whatsapp-notification")
 const analyticsRouter = require("../routes/analytics")
 const expenseRouter = require("../routes/expense")
 const otherIncomeRouter = require("../routes/other-income")
+const dashboardRouter = require("../routes/dashboard")
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ router.get('/', function (req, res, next) {
 
 router.use('/auth', authRouter)
 router.use('/company', companyRouter)
+router.use('/company', dashboardRouter)
 router.use('/company', branchRouter)
 router.use('/company', schemeRouter)
 router.use('/company', inquiryRouter)
