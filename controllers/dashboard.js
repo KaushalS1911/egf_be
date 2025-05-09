@@ -574,13 +574,13 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             const selectedFields = fields.split(',');
             const filteredResponse = {};
             selectedFields.forEach(field => {
-                if (response.add[field]) {
-                    filteredResponse[field] = response.add[field];
+                if (response.data[field]) {
+                    filteredResponse[field] = response.data[field];
                 }
             });
             return res.status(200).json({
                 success: true,
-                add: filteredResponse
+                data: filteredResponse
             });
         }
 
