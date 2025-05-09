@@ -386,10 +386,14 @@ const getLoanAmountPerScheme = async (req, res) => {
 
 const getAllLoanStatsWithCharges = async (req, res) => {
     const {companyId} = req.params;
-    const {timeRange = "this_month", branchId} = req.query;
+    const {timeRange = "this_month", branchId, fields} = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
         return res.status(400).json({success: false, message: "Invalid company ID"});
+    }
+
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
     }
 
     const companyExists = await Company.exists({_id: companyId});
@@ -400,23 +404,23 @@ const getAllLoanStatsWithCharges = async (req, res) => {
     try {
         const {start, end} = getDateRange(timeRange);
 
-        let customerIds = [];
+        const customerFilter = {
+            company: companyId,
+            deleted_at: null
+        };
         if (branchId) {
-            const customers = await Customer.find({
-                company: companyId,
-                branch: branchId,
-                deleted_at: null
-            }).select('_id');
-            customerIds = customers.map(c => c._id);
+            customerFilter.branch = branchId;
         }
+
+        const customers = await Customer.find(customerFilter).select('_id');
+        const customerIds = customers.map(c => c._id.toString());
 
         // ===== Main Loans =====
         const issuedLoans = await IssuedLoan.find({
             company: companyId,
             deleted_at: null,
-            status: {$in: ["Disbursed", "Regular", "Overdue"]},
             createdAt: {$gte: start, $lte: end},
-            ...(branchId && {customer: {$in: customerIds}})
+            customer: {$in: customerIds}
         });
 
         const loanCloses = await LoanClose.find({
@@ -427,7 +431,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const filteredLoanCloses = loanCloses.filter(cl =>
             cl.loan &&
             cl.loan.company?.toString() === companyId &&
-            (!branchId || customerIds.some(id => id.equals(cl.loan.customer)))
+            cl.loan.customer &&
+            customerIds.includes(cl.loan.customer.toString())
         );
 
         const newLoanCount = issuedLoans.length;
@@ -447,7 +452,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             company: companyId,
             deleted_at: null,
             createdAt: {$gte: start, $lte: end},
-            ...(branchId && {customer: {$in: customerIds}})
+            customer: {$in: customerIds}
         });
 
         const otherLoanCloses = await OtherLoanClose.find({
@@ -458,7 +463,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const filteredOtherLoanCloses = otherLoanCloses.filter(cl =>
             cl.otherLoan &&
             cl.otherLoan.company?.toString() === companyId &&
-            (!branchId || customerIds.some(id => id.equals(cl.otherLoan.customer)))
+            cl.otherLoan.customer &&
+            customerIds.includes(cl.otherLoan.customer.toString())
         );
 
         const newOtherLoanCount = otherIssuedLoans.length;
@@ -478,10 +484,11 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             createdAt: {$gte: start, $lte: end}
         }).populate('loan');
 
-        const filteredInterestsMain = interestsMain.filter(interest =>
-            interest.loan &&
-            interest.loan.company?.toString() === companyId &&
-            (!branchId || customerIds.some(id => id.equals(interest.loan.customer)))
+        const filteredInterestsMain = interestsMain.filter(i =>
+            i.loan &&
+            i.loan.company?.toString() === companyId &&
+            i.loan.customer &&
+            customerIds.includes(i.loan.customer.toString())
         );
 
         const interestInMain = filteredInterestsMain.reduce((sum, i) => sum + (i.interestAmount || 0), 0);
@@ -491,7 +498,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             createdAt: {$gte: start, $lte: end}
         }).populate({
             path: "otherLoan",
-            select: "company deleted_at customer"
+            select: "company customer deleted_at"
         });
 
         const filteredInterestOutRecords = interestOutRecords.filter(p => {
@@ -499,7 +506,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             return loan &&
                 loan.company?.toString() === companyId &&
                 loan.deleted_at == null &&
-                (!branchId || customerIds.some(id => id.equals(loan.customer)));
+                loan.customer &&
+                customerIds.includes(loan.customer.toString());
         });
 
         let interestOutOther = 0;
@@ -509,6 +517,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             const bank = Number(payment.bankAmount) || 0;
             interestOutOther += cash + bank;
         }
+
+        const interestDifference = interestInMain - interestOutOther;
 
         // ===== Totals =====
         const totalIssuedCount = newLoanCount + newOtherLoanCount;
@@ -521,40 +531,60 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const chargeOut = closingChargeOutMain + closingChargeOutOther;
         const chargeDifference = chargeIn - chargeOut;
 
-        const interestDifference = interestInMain - interestOutOther;
-
-        res.status(200).json({
+        const response = {
             success: true,
-            data: {
-                newLoanCount,
-                newLoanAmount: newLoanAmount.toFixed(2),
-                closedLoanCount,
-                closedLoanAmount: closedLoanAmount.toFixed(2),
-                differenceCount,
-                differenceAmount: differenceAmount.toFixed(2),
-
-                newOtherLoanCount,
-                newOtherLoanAmount: newOtherLoanAmount.toFixed(2),
-                closedOtherLoanCount,
-                closedOtherLoanAmount: closedOtherLoanAmount.toFixed(2),
-                otherDifferenceCount,
-                otherDifferenceAmount: otherDifferenceAmount.toFixed(2),
-
-                totalIssuedCount,
-                totalClosedCount,
-                totalIssuedAmount: totalIssuedAmount.toFixed(2),
-                totalClosedAmount: totalClosedAmount.toFixed(2),
-                totalDifferenceAmount: totalDifferenceAmount.toFixed(2),
-
-                chargeIn: chargeIn.toFixed(2),
-                chargeOut: chargeOut.toFixed(2),
-                chargeDifference: chargeDifference.toFixed(2),
-
-                interestInMain: interestInMain.toFixed(2),
-                interestOutOther: interestOutOther.toFixed(2),
-                interestDifference: interestDifference.toFixed(2)
+            add: {
+                mainLoan: {
+                    newLoanCount,
+                    newLoanAmount: newLoanAmount.toFixed(2),
+                    closedLoanCount,
+                    closedLoanAmount: closedLoanAmount.toFixed(2),
+                    differenceCount,
+                    differenceAmount: differenceAmount.toFixed(2),
+                },
+                otherLoan: {
+                    newOtherLoanCount,
+                    newOtherLoanAmount: newOtherLoanAmount.toFixed(2),
+                    closedOtherLoanCount,
+                    closedOtherLoanAmount: closedOtherLoanAmount.toFixed(2),
+                    otherDifferenceCount,
+                    otherDifferenceAmount: otherDifferenceAmount.toFixed(2),
+                },
+                total: {
+                    totalIssuedCount,
+                    totalClosedCount,
+                    totalIssuedAmount: totalIssuedAmount.toFixed(2),
+                    totalClosedAmount: totalClosedAmount.toFixed(2),
+                    totalDifferenceAmount: totalDifferenceAmount.toFixed(2),
+                },
+                charge: {
+                    chargeIn: chargeIn.toFixed(2),
+                    chargeOut: chargeOut.toFixed(2),
+                    chargeDifference: chargeDifference.toFixed(2),
+                },
+                interest: {
+                    interestInMain: interestInMain.toFixed(2),
+                    interestOutOther: interestOutOther.toFixed(2),
+                    interestDifference: interestDifference.toFixed(2),
+                }
             }
-        });
+        };
+
+        if (fields) {
+            const selectedFields = fields.split(',');
+            const filteredResponse = {};
+            selectedFields.forEach(field => {
+                if (response.add[field]) {
+                    filteredResponse[field] = response.add[field];
+                }
+            });
+            return res.status(200).json({
+                success: true,
+                add: filteredResponse
+            });
+        }
+
+        res.status(200).json(response);
 
     } catch (error) {
         console.error("Error in getAllLoanStatsWithCharges:", error);
