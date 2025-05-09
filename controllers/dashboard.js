@@ -533,7 +533,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
 
         const response = {
             success: true,
-            add: {
+            data: {
                 mainLoan: {
                     newLoanCount,
                     newLoanAmount: newLoanAmount.toFixed(2),
