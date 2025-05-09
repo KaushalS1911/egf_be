@@ -335,6 +335,12 @@ const getLoanAmountPerScheme = async (req, res) => {
         let totalInterestRate = 0;
         let interestRateCount = 0;
 
+        const categories = [];
+        const series = [{
+            name: "Loan Amount",
+            data: []
+        }];
+
         const result = schemes.map(scheme => {
             const stat = schemeLoanStats.find(stat => String(stat._id) === String(scheme._id));
             const totalLoanAmount = stat ? stat.totalLoanAmount || 0 : 0;
@@ -345,6 +351,10 @@ const getLoanAmountPerScheme = async (req, res) => {
                 totalInterestRate += scheme.interestRate;
                 interestRateCount += 1;
             }
+
+            const interestLabel = scheme.interestRate != null ? ` (${scheme.interestRate}%)` : " (0%)";
+            categories.push(`${scheme.name}${interestLabel}`);
+            series[0].data.push(totalLoanAmount);
 
             return {
                 schemeId: scheme._id,
@@ -362,6 +372,10 @@ const getLoanAmountPerScheme = async (req, res) => {
             global: {
                 totalLoanAmount: globalLoanTotal,
                 avgInterestRate: globalAvgInterestRate
+            },
+            chartData: {
+                categories: categories,
+                series: series
             }
         });
     } catch (error) {
