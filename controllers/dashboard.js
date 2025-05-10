@@ -689,11 +689,110 @@ const getOtherLoanChart = async (req, res) => {
     }
 };
 
+const getLoanChartData = async (req, res) => {
+    try {
+        const {companyId} = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(companyId)) {
+            return res.status(400).json({success: false, message: "Invalid company ID"});
+        }
+
+        const companyExists = await Company.exists({_id: companyId});
+        if (!companyExists) {
+            return res.status(404).json({success: false, message: "Company not found"});
+        }
+
+        const today = moment();
+        const series = [];
+
+        const timeConfigs = [
+            {
+                type: "Week",
+                start: moment().startOf("week"),
+                end: moment().endOf("week"),
+                categories: Array.from({length: 7}, (_, i) =>
+                    moment().startOf("week").add(i, "days").format("ddd")
+                ),
+                groupFormat: "ddd",
+                key: "issueDate",
+                closeKey: "date",
+            },
+            {
+                type: "Month",
+                start: moment().startOf("year"),
+                end: moment().endOf("year"),
+                categories: moment.monthsShort(),
+                groupFormat: "MMM",
+                key: "issueDate",
+                closeKey: "date",
+            },
+            {
+                type: "Year",
+                start: moment().subtract(4, "years").startOf("year"),
+                end: moment().endOf("year"),
+                categories: Array.from({length: 5}, (_, i) =>
+                    moment().subtract(4 - i, "years").format("YYYY")
+                ),
+                groupFormat: "YYYY",
+                key: "issueDate",
+                closeKey: "date",
+            },
+        ];
+
+        for (const config of timeConfigs) {
+            const issuedLoans = await IssuedLoan.find({
+                [config.key]: {$gte: config.start.toDate(), $lte: config.end.toDate()},
+                company: companyId,
+            });
+
+            const closedLoans = await LoanClose.find({
+                [config.closeKey]: {$gte: config.start.toDate(), $lte: config.end.toDate()},
+            }).populate({
+                path: "loan",
+                match: {company: companyId},
+                select: "company loanAmount",
+            });
+
+            const filteredClosedLoans = closedLoans.filter((item) => item.loan != null);
+
+            const groupData = (items, key, amountField, format) => {
+                const grouped = {};
+                items.forEach((item) => {
+                    const label = moment(item[key]).format(format);
+                    const amount = item[amountField] || 0;
+                    grouped[label] = (grouped[label] || 0) + amount;
+                });
+                return config.categories.map((label) => grouped[label] || 0);
+            };
+
+            const newLoanData = groupData(issuedLoans, config.key, "loanAmount", config.groupFormat);
+            const closeLoanData = groupData(filteredClosedLoans, config.closeKey, "netAmount", config.groupFormat);
+            const differenceData = newLoanData.map((v, i) => v - closeLoanData[i]);
+
+            series.push({
+                categories: config.categories,
+                type: config.type,
+                data: [
+                    {name: "New Loan", data: newLoanData},
+                    {name: "Close Loan", data: closeLoanData},
+                    {name: "difference", data: differenceData},
+                ],
+            });
+        }
+
+        return res.status(200).json({series});
+    } catch (err) {
+        console.error("Chart data error:", err);
+        return res.status(500).json({success: false, message: "Internal Server Error"});
+    }
+};
+
 module.exports = {
     getAreaAndReferenceStats,
     getInquiryStatusSummary,
     getLoanAmountPerScheme,
     getAllLoanStatsWithCharges,
     getCompanyPortfolioSummary,
-    getOtherLoanChart
+    getOtherLoanChart,
+    getLoanChartData
 };
