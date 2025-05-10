@@ -605,7 +605,6 @@ const getCompanyPortfolioSummary = async (req, res) => {
 
 const getOtherLoanChart = async (req, res) => {
     try {
-        const {type} = req.query;
         const {companyId} = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(companyId)) {
@@ -617,85 +616,73 @@ const getOtherLoanChart = async (req, res) => {
             return res.status(404).json({success: false, message: "Company not found"});
         }
 
-        let categories = [];
-        let groupFormat = '';
-        let groupCount = 0;
-
-        const now = moment();
-
-        if (type === 'Week') {
-            groupFormat = 'dddd';
-            groupCount = 7;
-            for (let i = 6; i >= 0; i--) {
-                categories.push(moment().subtract(i, 'days').format('ddd'));
-            }
-        } else if (type === 'Month') {
-            groupFormat = 'MMMM';
-            groupCount = 12;
-            for (let i = 0; i < 12; i++) {
-                categories.push(moment().month(i).format('MMMM'));
-            }
-        } else if (type === 'Year') {
-            groupFormat = 'YYYY';
-            groupCount = 5;
-            for (let i = 4; i >= 0; i--) {
-                categories.push(moment().subtract(i, 'years').format('YYYY'));
-            }
-        }
-
         const newLoans = await OtherIssuedLoan.find({deleted_at: null, company: companyId});
-        const closedLoans = await OtherLoanClose.find().populate({path: 'otherLoan', match: {company: companyId}});
-
-        const incomeMap = new Map();
-        const expenseMap = new Map();
-
-        newLoans.forEach((loan) => {
-            const key = moment(loan.date).format(groupFormat);
-            incomeMap.set(key, (incomeMap.get(key) || 0) + (loan.otherLoanAmount || 0));
+        const closedLoans = await OtherLoanClose.find().populate({
+            path: 'otherLoan',
+            match: {company: companyId}
         });
 
-        closedLoans.forEach((loan) => {
-            if (!loan.otherLoan) return;
-            const key = moment(loan.payDate).format(groupFormat);
-            expenseMap.set(key, (expenseMap.get(key) || 0) + (loan.paidLoanAmount || 0));
-        });
+        const buildChartData = (type, groupFormat, categories) => {
+            const incomeMap = new Map();
+            const expenseMap = new Map();
 
-        const incomeData = [];
-        const expenseData = [];
-        const diffData = [];
+            newLoans.forEach((loan) => {
+                const key = moment(loan.date).format(groupFormat);
+                incomeMap.set(key, (incomeMap.get(key) || 0) + (loan.otherLoanAmount || 0));
+            });
 
-        categories.forEach((key) => {
-            const income = incomeMap.get(key) || 0;
-            const expense = expenseMap.get(key) || 0;
-            incomeData.push(income);
-            expenseData.push(expense);
-            diffData.push(income - expense);
-        });
+            closedLoans.forEach((loan) => {
+                if (!loan.otherLoan) return;
+                const key = moment(loan.payDate).format(groupFormat);
+                expenseMap.set(key, (expenseMap.get(key) || 0) + (loan.paidLoanAmount || 0));
+            });
 
-        const response = {
-            series: [
-                {
-                    categories,
-                    type,
-                    data: [
-                        {
-                            name: 'newOtherLoanAmount',
-                            data: incomeData,
-                        },
-                        {
-                            name: 'closeOtherLoan',
-                            data: expenseData,
-                        },
-                        {
-                            name: 'difference',
-                            data: diffData,
-                        },
-                    ],
-                },
-            ],
+            const incomeData = [];
+            const expenseData = [];
+            const diffData = [];
+
+            categories.forEach((key) => {
+                const income = incomeMap.get(key) || 0;
+                const expense = expenseMap.get(key) || 0;
+                incomeData.push(income);
+                expenseData.push(expense);
+                diffData.push(income - expense);
+            });
+
+            return {
+                categories,
+                type,
+                data: [
+                    {name: 'newOtherLoanAmount', data: incomeData},
+                    {name: 'closeOtherLoan', data: expenseData},
+                    {name: 'difference', data: diffData}
+                ]
+            };
         };
 
-        return res.json(response);
+        const weekCategories = [];
+        for (let i = 6; i >= 0; i--) {
+            weekCategories.push(moment().subtract(i, 'days').format('ddd'));
+        }
+
+        const monthCategories = [];
+        for (let i = 0; i < 12; i++) {
+            monthCategories.push(moment().month(i).format('MMMM'));
+        }
+
+        const yearCategories = [];
+        for (let i = 4; i >= 0; i--) {
+            yearCategories.push(moment().subtract(i, 'years').format('YYYY'));
+        }
+
+        const series = [
+            buildChartData('Week', 'ddd', weekCategories),
+            buildChartData('Month', 'MMMM', monthCategories),
+            buildChartData('Year', 'YYYY', yearCategories)
+        ];
+
+        return res.json({series});
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({message: 'Internal server error'});
