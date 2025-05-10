@@ -653,8 +653,8 @@ const getOtherLoanChart = async (req, res) => {
                 categories,
                 type,
                 data: [
-                    {name: 'newOtherLoanAmount', data: incomeData},
-                    {name: 'closeOtherLoan', data: expenseData},
+                    {name: 'New Other Loan', data: incomeData},
+                    {name: 'Close Other Loan', data: expenseData},
                     {name: 'difference', data: diffData}
                 ]
             };
@@ -667,7 +667,7 @@ const getOtherLoanChart = async (req, res) => {
 
         const monthCategories = [];
         for (let i = 0; i < 12; i++) {
-            monthCategories.push(moment().month(i).format('MMMM'));
+            monthCategories.push(moment().month(i).format('MMM'));
         }
 
         const yearCategories = [];
@@ -677,7 +677,7 @@ const getOtherLoanChart = async (req, res) => {
 
         const series = [
             buildChartData('Week', 'ddd', weekCategories),
-            buildChartData('Month', 'MMMM', monthCategories),
+            buildChartData('Month', 'MMM', monthCategories),
             buildChartData('Year', 'YYYY', yearCategories)
         ];
 
