@@ -584,9 +584,9 @@ const getCompanyPortfolioSummary = async (req, res) => {
         });
 
         const totalClosedLoanAmount = closedLoans.reduce((sum, item) => {
-            const cash = Number(item.paymentDetail?.cashAmount || 0);
-            const bank = Number(item.paymentDetail?.bankAmount || 0);
-            return sum + cash + bank;
+            const closeCharge = Number(item?.closingCharge || 0);
+            const netAmount = Number(item?.netAmount || 0);
+            return sum + (netAmount - closeCharge);
         }, 0);
 
         res.json({
