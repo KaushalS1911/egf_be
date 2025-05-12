@@ -330,9 +330,6 @@ const getLoanAmountPerScheme = async (req, res) => {
             {
                 $group: {
                     _id: "$scheme",
-                    totalLoanAmount: {
-                        $sum: {$add: ["$loanAmount", "$interestLoanAmount"]}
-                    },
                     totalInterestAmount: {$sum: "$interestLoanAmount"}
                 }
             }
@@ -350,7 +347,7 @@ const getLoanAmountPerScheme = async (req, res) => {
 
         const result = schemes.map(scheme => {
             const stat = schemeLoanStats.find(stat => String(stat._id) === String(scheme._id));
-            const totalLoanAmount = stat ? stat.totalLoanAmount || 0 : 0;
+            const totalLoanAmount = stat ? stat.totalInterestAmount || 0 : 0;
 
             globalLoanTotal += totalLoanAmount;
 
