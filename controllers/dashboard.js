@@ -444,8 +444,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
 
         const consultingCharge = issuedLoans.reduce((sum, loan) => sum + (loan.consultingCharge || 0), 0);
         const approvalCharge = issuedLoans.reduce((sum, loan) => sum + (loan.approvalCharge || 0), 0);
+
         const closingChargeOutMain = filteredLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
-        const chargeInMain = consultingCharge + approvalCharge;
 
         const otherIssuedLoans = await OtherIssuedLoan.find({
             company: companyId,
@@ -466,10 +466,14 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             customerIds.includes(cl.otherLoan.customer.toString())
         );
 
-        const otherChargeIn = otherIssuedLoans.reduce((sum, loan) =>
-            sum + (loan.closingCharge || 0) + (loan.otherCharge || 0), 0);
-
         const closingChargeOutOther = filteredOtherLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
+
+        const closingCharge = closingChargeOutMain + closingChargeOutOther;
+        const otherCharge = otherIssuedLoans.reduce((sum, loan) => sum + (loan.otherCharge || 0), 0);
+
+        const chargeIn = consultingCharge + approvalCharge + closingCharge;
+        const chargeOut = closingCharge + otherCharge;
+        const chargeDifference = chargeIn - chargeOut;
 
         const interestsMain = await Interest.find({
             createdAt: {$gte: start, $lte: end}
@@ -508,9 +512,6 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             interestOutOther += cash + bank;
         }
 
-        const chargeIn = chargeInMain + otherChargeIn;
-        const chargeOut = closingChargeOutMain + closingChargeOutOther;
-        const chargeDifference = chargeIn - chargeOut;
         const interestDifference = interestInMain - interestOutOther;
 
         const response = {
