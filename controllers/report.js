@@ -540,6 +540,7 @@ const initialLoanDetail = async (req, res) => {
             status: 200,
             data: result
         })
+
     } catch (e) {
         console.error("Error fetching loan detail report:", e.message);
         return res.status(500).json({
@@ -557,6 +558,7 @@ const allInOutReport = async (req, res) => {
             company: companyId,
             deleted_at: null
         }).populate([{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}])
+
         const otherLoans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
@@ -566,7 +568,6 @@ const allInOutReport = async (req, res) => {
         const result = await Promise.all(otherLoans.map(async (loan) => {
             loan = loan.toObject();
 
-            // Fetch Interest and Part Payments
             const [customerLoanInterests, interests] = await Promise.all([
                 InterestModel.find({loan: loan.loan._id, deleted_at: null}),
                 OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
@@ -575,7 +576,6 @@ const allInOutReport = async (req, res) => {
             loan.totalInterestAmount = customerLoanInterests.reduce((sum, amount) => sum + (amount.amountPaid || 0), 0)
             loan.totalOtherInterestAmount = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
 
-            // Interest & Penalty Calculation
             const today = moment();
             const lastInstallmentDate = moment(loan.renewalDate);
             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
@@ -606,7 +606,7 @@ const allInOutReport = async (req, res) => {
             const foundLoans = resultMap.get(item?._id.toString());
 
             if (foundLoans) {
-                return foundLoans; // Return array of matched loans
+                return foundLoans;
             } else {
                 const interests = await InterestModel.find({loan: item?._id, deleted_at: null});
 
@@ -628,11 +628,9 @@ const allInOutReport = async (req, res) => {
             }
         }));
 
-
         const finalLoans = totalLoans.flat();
 
         const groupedByLoanData = finalLoans.reduce((grouped, loan) => {
-            // Determine which ID to use as the grouping key
             const loanId = loan?.loan?._id.toString();
 
             if (!grouped[loanId]) {
@@ -658,6 +656,30 @@ const allInOutReport = async (req, res) => {
 }
 
 
+const interestEntryReport = async (req, res) => {
+    const {companyId} = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+        return res.status(400).json({success: false, message: "Invalid company ID"});
+    }
+
+    try {
+        const entries = await Interest.find()
+            .populate({
+                path: "loan",
+                match: {company: companyId},
+            })
+            .exec();
+
+        const filteredEntries = entries.filter(entry => entry.loan !== null);
+
+        res.status(200).json({success: true, data: filteredEntries});
+    } catch (error) {
+        console.error("Error fetching interest entries:", error);
+        res.status(500).json({success: false, message: "Server error"});
+    }
+};
+
 module.exports = {
     dailyReport,
     loanSummary,
@@ -666,5 +688,6 @@ module.exports = {
     initialLoanDetail,
     otherLoanSummary,
     dailyOtherLoanReport,
-    allInOutReport
+    allInOutReport,
+    interestEntryReport
 }
