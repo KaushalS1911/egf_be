@@ -317,7 +317,6 @@ const getLoanAmountPerScheme = async (req, res) => {
 
     try {
         const {start, end} = getDateRange(timeRange, company.createdAt);
-        const schemes = await Scheme.find({company: companyId, deleted_at: null});
 
         const schemeLoanStats = await IssuedLoan.aggregate([
             {
@@ -335,13 +334,20 @@ const getLoanAmountPerScheme = async (req, res) => {
             }
         ]);
 
+        const schemeIdsUsed = schemeLoanStats.map(stat => stat._id);
+        const schemes = await Scheme.find({
+            _id: {$in: schemeIdsUsed},
+            company: companyId,
+            deleted_at: null
+        });
+
         let globalLoanTotal = 0;
         let totalInterestRate = 0;
         let interestRateCount = 0;
 
         const categories = [];
         const series = [{
-            name: "Loan Amount",
+            name: "Interest Loan Amount",
             data: []
         }];
 
@@ -378,8 +384,8 @@ const getLoanAmountPerScheme = async (req, res) => {
                 avgInterestRate: globalAvgInterestRate
             },
             chartData: {
-                categories: categories,
-                series: series
+                categories,
+                series
             }
         });
     } catch (error) {
