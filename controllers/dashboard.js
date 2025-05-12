@@ -20,12 +20,17 @@ const INQUIRY_REFERENCE_BY = [
     'Other'
 ];
 
-const getDateRange = (filter) => {
+const getDateRange = (filter, companyCreatedAt = null) => {
     const now = new Date();
     const start = new Date();
     const end = new Date();
 
     switch (filter) {
+        case 'all':
+            start.setTime(companyCreatedAt ? new Date(companyCreatedAt).getTime() : 0);
+            end.setTime(now.getTime());
+            break;
+
         case 'this_week':
             const day = now.getDay();
             start.setDate(now.getDate() - day);
@@ -98,8 +103,8 @@ const getAreaAndReferenceStats = async (req, res) => {
         return res.status(400).json({success: false, message: "Invalid company ID"});
     }
 
-    const companyExists = await Company.exists({_id: companyId});
-    if (!companyExists) {
+    const company = await Company.findById(companyId).select('createdAt');
+    if (!company) {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
@@ -108,7 +113,7 @@ const getAreaAndReferenceStats = async (req, res) => {
     }
 
     try {
-        const {start, end} = getDateRange(timeRange);
+        const {start, end} = getDateRange(timeRange, company.createdAt);
 
         const customerMatch = {
             company: companyId,
@@ -121,7 +126,6 @@ const getAreaAndReferenceStats = async (req, res) => {
         }
 
         const responseData = {};
-
         let customerIds = [];
 
         if (includeAll || requestedFields.includes('customerstats') || requestedFields.includes('references') || requestedFields.includes('areas')) {
@@ -239,13 +243,13 @@ const getInquiryStatusSummary = async (req, res) => {
         return res.status(400).json({success: false, message: "Invalid branch ID"});
     }
 
-    const companyExists = await Company.exists({_id: companyId});
-    if (!companyExists) {
+    const company = await Company.findById(companyId).select('createdAt');
+    if (!company) {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
     try {
-        const {start, end} = getDateRange(timeRange);
+        const {start, end} = getDateRange(timeRange, company.createdAt);
         const allowedStatuses = ["Active", "Completed", "Responded", "Not Responded"];
 
         const matchQuery = {
@@ -306,13 +310,13 @@ const getLoanAmountPerScheme = async (req, res) => {
         return res.status(400).json({success: false, message: "Invalid company ID"});
     }
 
-    const companyExists = await Company.exists({_id: companyId});
-    if (!companyExists) {
+    const company = await Company.findById(companyId).select('createdAt');
+    if (!company) {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
     try {
-        const {start, end} = getDateRange(timeRange);
+        const {start, end} = getDateRange(timeRange, company.createdAt);
         const schemes = await Scheme.find({company: companyId, deleted_at: null});
 
         const schemeLoanStats = await IssuedLoan.aggregate([
@@ -397,21 +401,19 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         return res.status(400).json({success: false, message: "Invalid branch ID"});
     }
 
-    const companyExists = await Company.exists({_id: companyId});
-    if (!companyExists) {
+    const company = await Company.findById(companyId).select('createdAt');
+    if (!company) {
         return res.status(404).json({success: false, message: "Company not found"});
     }
 
     try {
-        const {start, end} = getDateRange(timeRange);
+        const {start, end} = getDateRange(timeRange, company.createdAt);
 
         const customerFilter = {
             company: companyId,
             deleted_at: null
         };
-        if (branchId) {
-            customerFilter.branch = branchId;
-        }
+        if (branchId) customerFilter.branch = branchId;
 
         const customers = await Customer.find(customerFilter).select('_id');
         const customerIds = customers.map(c => c._id.toString());
@@ -461,6 +463,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
 
         const otherChargeIn = otherIssuedLoans.reduce((sum, loan) =>
             sum + (loan.closingCharge || 0) + (loan.otherCharge || 0), 0);
+
         const closingChargeOutOther = filteredOtherLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
 
         const interestsMain = await Interest.find({
