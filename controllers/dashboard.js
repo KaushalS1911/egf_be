@@ -330,7 +330,9 @@ const getLoanAmountPerScheme = async (req, res) => {
             {
                 $group: {
                     _id: "$scheme",
-                    totalLoanAmount: {$sum: "$loanAmount"},
+                    totalLoanAmount: {
+                        $sum: {$add: ["$loanAmount", "$interestLoanAmount"]}
+                    },
                     totalInterestAmount: {$sum: "$interestLoanAmount"}
                 }
             }
