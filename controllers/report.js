@@ -1,4 +1,5 @@
 const moment = require("moment");
+const mongoose = require("mongoose");
 const IssuedLoanModel = require("../models/issued-loan")
 const InterestModel = require("../models/interest")
 const UchakInterestModel = require("../models/uchak-interest-payment")
@@ -655,7 +656,6 @@ const allInOutReport = async (req, res) => {
     }
 }
 
-
 const interestEntryReport = async (req, res) => {
     const {companyId} = req.params;
 
@@ -664,7 +664,7 @@ const interestEntryReport = async (req, res) => {
     }
 
     try {
-        const entries = await Interest.find()
+        const entries = await InterestModel.find()
             .populate({
                 path: "loan",
                 match: {company: companyId},
