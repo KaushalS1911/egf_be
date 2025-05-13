@@ -21,7 +21,10 @@ const verificationRouter = require("../routes/verification")
 const whatsappNotificationRouter = require("../routes/whatsapp-notification")
 const analyticsRouter = require("../routes/analytics")
 const expenseRouter = require("../routes/expense")
+const chargeInOutRouter = require("../routes/charge-in-out")
+const partyRouter = require("../routes/party")
 const otherIncomeRouter = require("../routes/other-income")
+const paymentInOutRouter = require("../routes/payment-in-out")
 const dashboardRouter = require("../routes/dashboard")
 
 const router = express.Router();
@@ -52,6 +55,9 @@ router.use('/verification', verificationRouter)
 router.use('/whatsapp-notification', whatsappNotificationRouter)
 router.use('/company', analyticsRouter)
 router.use('/company', expenseRouter)
+router.use('/company', partyRouter)
+router.use('/company', chargeInOutRouter)
+router.use('/company', paymentInOutRouter)
 router.use('/company', otherIncomeRouter)
 
 // loans

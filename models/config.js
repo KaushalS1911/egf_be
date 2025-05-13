@@ -71,7 +71,7 @@ const configSchema = new mongoose.Schema({
     otherNames: [],
     whatsappConfig: {},
     expenseType: [],
-    otherIncomeType: [],
+    chargeType: [],
     devices: [],
     area: []
 },{timestamps: true})
