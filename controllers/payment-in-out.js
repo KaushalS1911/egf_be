@@ -72,7 +72,7 @@ async function updatePaymentInOut(req, res) {
         const { paymentId } = req.params;
 
         const invoice = req.file && req.file.buffer
-            ? await uploadFile(req.file.buffer, uploadDir.PAYMENTS, req.file.originalname)
+            ? await uploadFile(req.file.buffer, uploadDir.PAYMENT_IN_OUT, req.file.originalname)
             : '';
 
         const payload = { ...req.body };
