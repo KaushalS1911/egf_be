@@ -19,15 +19,13 @@ async function getAllParties(req, res) {
     const { branch } = req.query;
 
     try {
-        const query = {
-            company: companyId
-        };
+        const query = { company: companyId };
+        if (branch) query.branch = branch;
 
-        if (branch) {
-            query.branch = branch;
-        }
+        const parties = await PartyModel.find(query)
+            .populate('company')
+            .populate('branch');
 
-        const parties = await PartyModel.find(query);
         return res.status(200).json({ status: 200, data: parties });
     } catch (err) {
         console.error("Error fetching parties:", err.message);
@@ -52,7 +50,10 @@ async function getSingleParty(req, res) {
     const { partyId } = req.params;
 
     try {
-        const party = await PartyModel.findById(partyId);
+        const party = await PartyModel.findById(partyId)
+            .populate('company')
+            .populate('branch');
+
         return res.status(200).json({ status: 200, data: party });
     } catch (err) {
         console.error("Error fetching party:", err.message);
