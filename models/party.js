@@ -12,7 +12,8 @@ const partySchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
-    }
+    },
+    amount: {type: Number, default: 0},
 }, { timestamps: true });
 
 module.exports = mongoose.model('Party', partySchema);

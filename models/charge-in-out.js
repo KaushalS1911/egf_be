@@ -7,7 +7,8 @@ const chargeInOutSchema = new mongoose.Schema({
     description: String,
     category: String,
     date: Date,
-    paymentDetails: Object
+    paymentDetails: Object,
+    status: {type: String}
 }, {timestamps: true});
 
 module.exports = mongoose.model('ChargeInOut', chargeInOutSchema);

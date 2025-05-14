@@ -1,4 +1,5 @@
 const PartyModel = require("../models/party");
+const PaymentInOutModel = require("../models/payment-in-out");
 
 async function addParty(req, res) {
     try {
@@ -22,9 +23,26 @@ async function getAllParties(req, res) {
         const query = { company: companyId };
         if (branch) query.branch = branch;
 
-        const parties = await PartyModel.find(query)
+        let parties = await PartyModel.find(query)
             .populate('company')
             .populate('branch');
+
+        for (let party of parties) {
+            const payments = await PaymentInOutModel.find({party: party._id});
+
+            let balance = 0;
+            for (const payment of payments) {
+                const cashAmount = Number(payment.paymentDetails?.cashAmount || 0);
+                if (payment.status === "Payment In") {
+                    balance -= cashAmount;
+                } else if (payment.status === "Payment Out") {
+                    balance += cashAmount;
+                }
+            }
+
+            party.amount = balance;
+            await PartyModel.findByIdAndUpdate(party._id, {amount: balance});
+        }
 
         return res.status(200).json({ status: 200, data: parties });
     } catch (err) {
