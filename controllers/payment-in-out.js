@@ -34,8 +34,6 @@ async function generateReceiptNo() {
 async function addPaymentInOut(req, res) {
     try {
         const { companyId } = req.params;
-        const { branch } = req.query;
-
         const invoice = req.file && req.file.buffer
             ? await uploadFile(req.file.buffer, uploadDir.PAYMENT_IN_OUT, req.file.originalname)
             : '';
@@ -48,7 +46,6 @@ async function addPaymentInOut(req, res) {
         const paymentInOut = await PaymentInOutModel.create({
             ...bodyWithoutReceipt,
             company: companyId,
-            branch,
             invoice,
             receiptNo
         });
