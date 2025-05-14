@@ -71,7 +71,8 @@ async function getAllPaymentInOut(req, res) {
 
         const payments = await PaymentInOutModel.find(query)
             .populate('company')
-            .populate('branch');
+            .populate('branch')
+            .populate('party');;
 
         return res.status(200).json({ status: 200, data: payments });
     } catch (err) {
@@ -86,7 +87,8 @@ async function getSinglePaymentInOut(req, res) {
     try {
         const payment = await PaymentInOutModel.findById(paymentId)
             .populate('company')
-            .populate('branch');
+            .populate('branch')
+            .populate('party');
 
         if (!payment) {
             return res.status(404).json({ status: 404, message: "Payment not found" });
