@@ -30,7 +30,9 @@ async function getAllChargesInOut(req, res) {
         const query = { company: companyId };
         if (branch) query.branch = branch;
 
-        const charges = await ChargeInOutModel.find(query);
+        const charges = await ChargeInOutModel.find(query)
+            .populate('company')
+            .populate('branch');
 
         return res.status(200).json({ status: 200, data: charges });
     } catch (err) {
@@ -43,7 +45,9 @@ async function getSingleChargeInOut(req, res) {
     try {
         const { chargeId } = req.params;
 
-        const charge = await ChargeInOutModel.findById(chargeId);
+        const charge = await ChargeInOutModel.findById(chargeId)
+            .populate('company')
+            .populate('branch');
 
         if (!charge) {
             return res.status(404).json({ status: 404, message: "ChargeInOut not found" });
