@@ -9,6 +9,7 @@ const Interest = require("../models/interest");
 const OtherIssuedLoan = require('../models/other-issued-loan');
 const OtherLoanClose = require('../models/other-loan-close');
 const OtherLoanInterestPayment = require("../models/other-loan-interest-payment");
+const ChargeInOut = require('../models/charge-in-out');
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -430,6 +431,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             customer: {$in: customerIds}
         });
 
+        const approvalCharge = issuedLoans.reduce((sum, loan) => sum + (loan.approvalCharge || 0), 0);
+
         const loanCloses = await LoanClose.find({
             deleted_at: null,
             date: {$gte: start, $lte: end}
@@ -442,37 +445,43 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             customerIds.includes(cl.loan.customer.toString())
         );
 
-        const consultingCharge = issuedLoans.reduce((sum, loan) => sum + (loan.consultingCharge || 0), 0);
-        const approvalCharge = issuedLoans.reduce((sum, loan) => sum + (loan.approvalCharge || 0), 0);
-
         const closingChargeOutMain = filteredLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
 
         const otherIssuedLoans = await OtherIssuedLoan.find({
             company: companyId,
             deleted_at: null,
             createdAt: {$gte: start, $lte: end},
-            customer: {$in: customerIds}
         });
 
-        const otherLoanCloses = await OtherLoanClose.find({
-            deleted_at: null,
-            payDate: {$gte: start, $lte: end}
-        }).populate("otherLoan");
-
-        const filteredOtherLoanCloses = otherLoanCloses.filter(cl =>
-            cl.otherLoan &&
-            cl.otherLoan.company?.toString() === companyId &&
-            cl.otherLoan.customer &&
-            customerIds.includes(cl.otherLoan.customer.toString())
-        );
-
-        const closingChargeOutOther = filteredOtherLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
-
-        const closingCharge = closingChargeOutMain + closingChargeOutOther;
+        const closingChargeOutOther = otherIssuedLoans.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
         const otherCharge = otherIssuedLoans.reduce((sum, loan) => sum + (loan.otherCharge || 0), 0);
 
-        const chargeIn = consultingCharge + approvalCharge + closingCharge;
-        const chargeOut = closingCharge + otherCharge;
+        const chargeQuery = {
+            company: companyId,
+            date: {$gte: start, $lte: end}
+        };
+        if (branchId) chargeQuery.branch = branchId;
+
+        const chargeEntries = await ChargeInOut.find(chargeQuery);
+
+        let chargeInFromModule = 0;
+        let chargeOutFromModule = 0;
+
+        for (const entry of chargeEntries) {
+            const payment = entry.paymentDetails || {};
+            const cash = Number(payment.cashAmount) || 0;
+            const bank = Number(payment.bankAmount) || 0;
+            const total = cash + bank;
+
+            if (entry.status === "Payment In") {
+                chargeInFromModule += total;
+            } else if (entry.status === "Payment Out") {
+                chargeOutFromModule += total;
+            }
+        }
+
+        const chargeIn = chargeInFromModule + approvalCharge + closingChargeOutMain;
+        const chargeOut = chargeOutFromModule + otherCharge + closingChargeOutOther;
         const chargeDifference = chargeIn - chargeOut;
 
         const interestsMain = await Interest.find({
@@ -499,9 +508,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             const loan = p.otherLoan;
             return loan &&
                 loan.company?.toString() === companyId &&
-                loan.deleted_at == null &&
-                loan.customer &&
-                customerIds.includes(loan.customer.toString());
+                loan.deleted_at == null
         });
 
         let interestOutOther = 0;
