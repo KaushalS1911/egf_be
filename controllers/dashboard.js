@@ -10,6 +10,8 @@ const OtherIssuedLoan = require('../models/other-issued-loan');
 const OtherLoanClose = require('../models/other-loan-close');
 const OtherLoanInterestPayment = require("../models/other-loan-interest-payment");
 const ChargeInOut = require('../models/charge-in-out');
+const Expense = require('../models/expense');
+const PaymentInOut = require('../models/payment-in-out');
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -803,6 +805,127 @@ const getLoanChartData = async (req, res) => {
     }
 };
 
+const getPaymentInOutSummary = async (req, res) => {
+    const {companyId} = req.params;
+    const {timeRange = 'this_month', branchId, fields = ''} = req.query;
+
+    const requestedFields = fields.split(',').map(f => f.trim().toLowerCase());
+    const includeAll = requestedFields.length === 0 || requestedFields.includes('all');
+
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+        return res.status(400).json({success: false, message: "Invalid company ID"});
+    }
+
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
+    try {
+        const company = await Company.findById(companyId).select('createdAt');
+        if (!company) {
+            return res.status(404).json({success: false, message: "Company not found"});
+        }
+
+        const {start, end} = getDateRange(timeRange, company.createdAt);
+
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+        const baseMatch = {
+            company: companyId,
+            date: {$gte: start, $lte: end}
+        };
+
+        if (branchId) baseMatch.branch = branchId;
+
+        const payments = await PaymentInOut.aggregate([
+            {$match: baseMatch},
+            {
+                $group: {
+                    _id: "$status",
+                    totalCash: {
+                        $sum: {
+                            $toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}
+                        }
+                    },
+                    totalBank: {
+                        $sum: {
+                            $toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}
+                        }
+                    }
+                }
+            }
+        ]);
+
+        let paymentInTotal = 0;
+        let paymentOutTotal = 0;
+
+        payments.forEach(p => {
+            const total = p.totalCash + p.totalBank;
+            if (p._id === 'Payment In') {
+                paymentInTotal = total;
+            } else if (p._id === 'Payment Out') {
+                paymentOutTotal = total;
+            }
+        });
+
+        const difference = paymentInTotal - paymentOutTotal;
+
+        let totalExpense = 0;
+        if (includeAll || requestedFields.includes('totalexpense')) {
+            const expenseMatch = {...baseMatch};
+
+            const expenses = await Expense.aggregate([
+                {$match: expenseMatch},
+                {
+                    $group: {
+                        _id: null,
+                        totalCash: {
+                            $sum: {
+                                $toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}
+                            }
+                        },
+                        totalBank: {
+                            $sum: {
+                                $toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}
+                            }
+                        }
+                    }
+                }
+            ]);
+
+            if (expenses.length > 0) {
+                totalExpense = expenses[0].totalCash + expenses[0].totalBank;
+            }
+        }
+
+        const responseData = {
+            days
+        };
+
+        if (includeAll || requestedFields.includes('paymentintotal')) {
+            responseData.paymentInTotal = paymentInTotal;
+        }
+        if (includeAll || requestedFields.includes('paymentouttotal')) {
+            responseData.paymentOutTotal = paymentOutTotal;
+        }
+        if (includeAll || requestedFields.includes('difference')) {
+            responseData.difference = difference;
+        }
+        if (includeAll || requestedFields.includes('totalexpense')) {
+            responseData.totalExpense = totalExpense;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error("Error fetching payment summary:", error);
+        res.status(500).json({success: false, message: "Internal server error"});
+    }
+};
+
 module.exports = {
     getAreaAndReferenceStats,
     getInquiryStatusSummary,
@@ -810,5 +933,6 @@ module.exports = {
     getAllLoanStatsWithCharges,
     getCompanyPortfolioSummary,
     getOtherLoanChart,
-    getLoanChartData
+    getLoanChartData,
+    getPaymentInOutSummary
 };
