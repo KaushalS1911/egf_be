@@ -4,9 +4,8 @@ const PaymentInOutModel = require("../models/payment-in-out");
 async function addParty(req, res) {
     try {
         const { companyId } = req.params;
-        const { branch } = req.query;
 
-        const party = await PartyModel.create({ ...req.body, company: companyId, branch });
+        const party = await PartyModel.create({...req.body, company: companyId});
 
         return res.status(201).json({ status: 201, message: "Party created successfully", data: party });
     } catch (err) {
