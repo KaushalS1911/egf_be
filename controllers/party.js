@@ -54,6 +54,13 @@ async function getAllParties(req, res) {
 async function updateParty(req, res) {
     try {
         const { partyId } = req.params;
+        const {branch} = req.query;
+
+        const party = await PartyModel.findOne({_id: partyId, branch});
+
+        if (!party) {
+            return res.status(404).json({status: 404, message: "Party not found for the specified branch."});
+        }
 
         const updatedParty = await PartyModel.findByIdAndUpdate(partyId, req.body, { new: true });
 
