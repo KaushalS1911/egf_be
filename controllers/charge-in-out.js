@@ -4,19 +4,10 @@ const BranchModel = require('../models/branch');
 async function addChargeInOut(req, res) {
     try {
         const { companyId } = req.params;
-        const { branch } = req.query;
-
-        if (branch) {
-            const branchDoc = await BranchModel.findOne({_id: branch, company: companyId});
-            if (!branchDoc) {
-                return res.status(400).json({status: 400, message: "Invalid or unauthorized branch for this company"});
-            }
-        }
 
         const charge = await ChargeInOutModel.create({
             ...req.body,
             company: companyId,
-            branch
         });
 
         return res.status(201).json({
