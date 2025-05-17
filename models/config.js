@@ -73,7 +73,8 @@ const configSchema = new mongoose.Schema({
     expenseType: [],
     chargeType: [],
     devices: [],
-    area: []
+    area: [],
+    percentage: []
 },{timestamps: true})
 
 module.exports = mongoose.model("Config", configSchema)
