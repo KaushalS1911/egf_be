@@ -11,6 +11,7 @@ const otherLoanInterestPaymentSchema = new mongoose.Schema({
     remark: String,
     paymentDetail: {type: Object, default: null},
     charge: Number,
+    interestAmount: Number,
 }, {timestamps: true});
 
 module.exports = mongoose.model('OtherLoanInterestPayment', otherLoanInterestPaymentSchema);
