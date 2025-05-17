@@ -32,6 +32,7 @@ const issuedLoanSchema = new mongoose.Schema({
     companyBankDetail: {type: Object, default: null},
     customerBankDetail: {type: Object, default: null},
     status: {type: String, default: 'Issued'},
+    chargePaymentDetail: {type: Object, default: null},
     deleted_at: {type: Date, default: null}
 }, {timestamps: true})
 

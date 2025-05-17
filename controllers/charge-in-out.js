@@ -24,16 +24,16 @@ async function addChargeInOut(req, res) {
 async function getAllChargesInOut(req, res) {
     try {
         const { companyId } = req.params;
-        const { branch } = req.query;
+        const { branchId } = req.query;
 
         const query = { company: companyId };
 
-        if (branch) {
-            const branchDoc = await BranchModel.findOne({_id: branch, company: companyId});
+        if (branchId) {
+            const branchDoc = await BranchModel.findOne({_id: branchId, company: companyId});
             if (!branchDoc) {
                 return res.status(400).json({status: 400, message: "Invalid or unauthorized branch for this company"});
             }
-            query.branch = branch;
+            query.branch = branchId;
         }
 
         const charges = await ChargeInOutModel.find(query)

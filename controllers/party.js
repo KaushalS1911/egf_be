@@ -16,11 +16,11 @@ async function addParty(req, res) {
 
 async function getAllParties(req, res) {
     const { companyId } = req.params;
-    const { branch } = req.query;
+    const {branchId} = req.query;
 
     try {
         const query = { company: companyId };
-        if (branch) query.branch = branch;
+        if (branchId) query.branch = branchId;
 
         let parties = await PartyModel.find(query)
             .populate('company')

@@ -2,7 +2,6 @@ const PaymentInOutModel = require("../models/payment-in-out");
 const { uploadFile } = require("../helpers/avatar");
 const { uploadDir } = require("../constant");
 
-
 function getFinancialYear(date = new Date()) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
@@ -30,7 +29,6 @@ async function generateReceiptNo() {
     return `EGF/${financialYear}/${padded}`;
 }
 
-
 async function addPaymentInOut(req, res) {
     try {
         const { companyId } = req.params;
@@ -39,7 +37,6 @@ async function addPaymentInOut(req, res) {
             : '';
 
         const receiptNo = await generateReceiptNo();
-
 
         const { receiptNo: _, ...bodyWithoutReceipt } = req.body;
 
@@ -63,11 +60,11 @@ async function addPaymentInOut(req, res) {
 
 async function getAllPaymentInOut(req, res) {
     const { companyId } = req.params;
-    const { branch } = req.query;
+    const {branchId} = req.query;
 
     try {
         const query = { company: companyId };
-        if (branch) query.branch = branch;
+        if (branchId) query.branch = branchId;
 
         const payments = await PaymentInOutModel.find(query)
             .populate('company')
