@@ -10,6 +10,7 @@ const loanCloseSchema = new mongoose.Schema({
     entryBy: String,
     paymentDetail: Object,
     deleted_at: {type: Date, default: null},
+    chargePaymentDetail: Object,
 },{timestamps: true})
 
 module.exports = mongoose.model("Loan Close", loanCloseSchema)
