@@ -497,7 +497,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             customerIds.includes(i.loan.customer.toString())
         );
 
-        const interestInMain = filteredInterestsMain.reduce((sum, i) => sum + (i.interestAmount || 0), 0);
+        const interestInMain = filteredInterestsMain.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
 
         const interestOutRecords = await OtherLoanInterestPayment.find({
             createdAt: {$gte: start, $lte: end}

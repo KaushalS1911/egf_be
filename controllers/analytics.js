@@ -10,6 +10,9 @@ const ClosedOtherLoanModel = require("../models/other-loan-close");
 const CompanyModel = require("../models/company");
 const ExpenseModel = require("../models/expense");
 const OtherIncomeModel = require("../models/other-income");
+const ChargeInOutModel = require("../models/charge-in-out");
+const PaymentInOutModel = require("../models/payment-in-out");
+
 // const TransferModel = require("../models/transfers");
 
 async function allTransactions(req, res) {
@@ -120,6 +123,23 @@ async function allTransactions(req, res) {
                 category: "Payment In",
                 dateField: 'date',
             },
+            {
+                model: ChargeInOutModel,
+                query: {company: companyId},
+                fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetails'],
+                type: 'Charge In/Out',
+                categoryField: 'status',
+                dateField: 'date',
+            },
+            {
+                model: PaymentInOutModel,
+                query: {company: companyId},
+                fields: ['party', 'status', 'description', 'date', 'paymentDetails'],
+                type: 'Payment In/Out',
+                categoryField: 'status',
+                dateField: 'date',
+                populate: 'party',
+            }
         ];
 
         const results = await Promise.all(
@@ -144,14 +164,17 @@ async function allTransactions(req, res) {
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
-                category: models[index]?.category ?? 'Unknown',
-                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
-                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
+                category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? entry?.category ?? entry?.description ?? '',
+                detail: entry?.chargeType ?? entry?.party?.name ?? `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType}` +
+                    ` ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
                 date: entry[models[index]?.dateField] ?? null,
                 amount: Number(entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? entry?.paymentDetails?.cashAmount ?? 0),
             }))
         );
+
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.status(200).json({
             status: 200,
@@ -273,8 +296,24 @@ async function allBankTransactions(req, res) {
                 category: "Payment In",
                 dateField: 'date',
             },
+            {
+                model: ChargeInOutModel,
+                query: {company: companyId},
+                fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetails'],
+                type: 'Charge In/Out',
+                categoryField: 'status',
+                dateField: 'date',
+            },
+            {
+                model: PaymentInOutModel,
+                query: {company: companyId},
+                fields: ['party', 'status', 'description', 'date', 'paymentDetails'],
+                type: 'Payment In/Out',
+                categoryField: 'status',
+                dateField: 'date',
+                populate: 'party',
+            },
         ];
-
 
         const results = await Promise.all(
             models.map(async ({ model, query, fields, populate, filter }) => {
@@ -285,17 +324,30 @@ async function allBankTransactions(req, res) {
             })
         );
 
-
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
-                category: models[index]?.category ?? 'Unknown',
-                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? '',
-                detail: `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.otherLoan?.otherName ?? entry?.expenseType ?? entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
+                category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
+                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? entry?.description ?? '',
+                detail: `${entry?.customer?.firstName ??
+                entry?.party?.name ??
+                entry?.loan?.customer?.firstName ??
+                entry?.otherName ??
+                entry?.otherLoan?.otherName ??
+                entry?.expenseType ??
+                entry?.chargeType ??
+                entry?.incomeType} ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
-                date: entry[models[index]?.dateField] ?? entry?.otherLoan?.date ?? null,
+                date: entry[models[index]?.dateField] ??
+                    entry?.otherLoan?.date ??
+                    null,
                 bankName: entry?.companyBankDetail?.account?.bankName ??
-                    entry?.paymentDetail?.account?.bankName ?? entry?.paymentDetail?.bankName?? entry?.bankDetails?.bankName ?? null,
-                amount: Number(entry?.bankAmount ?? entry?.paymentDetail?.bankAmount ?? entry?.bankDetails?.bankAmount ?? 0),
+                    entry?.paymentDetail?.account?.bankName ??
+                    entry?.paymentDetail?.bankName ?? entry?.bankDetails?.bankName ??
+                    null,
+                amount: Number(entry?.bankAmount ??
+                    entry?.paymentDetails?.bankAmount ??
+                    entry?.paymentDetail?.bankAmount ??
+                    entry?.bankDetails?.bankAmount ?? 0),
             }))
         ).filter(t => t?.amount !== 0);
 
@@ -311,6 +363,8 @@ async function allBankTransactions(req, res) {
             balance: sumByBank(bank?.bankName, 'Payment In') - sumByBank(bank?.bankName, 'Payment Out')
         }));
 
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
@@ -325,7 +379,5 @@ async function allBankTransactions(req, res) {
         res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
-
-
 
 module.exports = {allTransactions, allBankTransactions}

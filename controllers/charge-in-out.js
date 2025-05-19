@@ -38,7 +38,8 @@ async function getAllChargesInOut(req, res) {
 
         const charges = await ChargeInOutModel.find(query)
             .populate('company')
-            .populate('branch');
+            .populate('branch')
+            .sort({date: -1})
 
         return res.status(200).json({ status: 200, data: charges });
     } catch (err) {

@@ -32,7 +32,7 @@ async function getAllExpenses(req, res) {
             query['branch'] = branch;
         }
 
-        const expenses = await ExpenseModel.find(query)
+        const expenses = await ExpenseModel.find(query).sort({date: -1})
 
         return res.status(200).json({status: 200, data: expenses});
     } catch (err) {

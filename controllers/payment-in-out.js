@@ -69,7 +69,8 @@ async function getAllPaymentInOut(req, res) {
         const payments = await PaymentInOutModel.find(query)
             .populate('company')
             .populate('branch')
-            .populate('party');;
+            .populate('party')
+            .sort({date: -1});
 
         return res.status(200).json({ status: 200, data: payments });
     } catch (err) {

@@ -32,10 +32,13 @@ async function getAllParties(req, res) {
             let balance = 0;
             for (const payment of payments) {
                 const cashAmount = Number(payment.paymentDetails?.cashAmount || 0);
+                const bankAmount = Number(payment.paymentDetails?.bankAmount || 0);
+                const totalAmount = cashAmount + bankAmount;
+
                 if (payment.status === "Payment In") {
-                    balance -= cashAmount;
+                    balance -= totalAmount;
                 } else if (payment.status === "Payment Out") {
-                    balance += cashAmount;
+                    balance += totalAmount;
                 }
             }
 

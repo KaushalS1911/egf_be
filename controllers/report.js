@@ -49,7 +49,9 @@ const fetchOtherInterestDetails = async (query, company) => {
         }
     }).lean();
 
-    return company ? otherLoanInterests.filter(ele => ele?.otherLoan?.company === company) : otherLoanInterests;
+    return company
+        ? otherLoanInterests.filter(ele => ele?.otherLoan?.company === company)
+        : otherLoanInterests;
 };
 
 const fetchOtherLoanCloseDetails = async (query, company) => {
@@ -61,7 +63,9 @@ const fetchOtherLoanCloseDetails = async (query, company) => {
         }
     }).lean();
 
-    return company ? otherClosedLoans.filter(ele => ele?.otherLoan?.company === company) : otherClosedLoans;
+    return company
+        ? otherClosedLoans.filter(ele => ele?.otherLoan?.company === company)
+        : otherClosedLoans;
 };
 
 const fetchInterestDetails = async (query, company, branch) => {
@@ -79,9 +83,10 @@ const fetchInterestDetails = async (query, company, branch) => {
         })
         .lean();
 
-    return company ? interests.filter(ele => ele.loan.company === company) : interests;
+    return company
+        ? interests.filter(ele => ele?.loan?.company === company)
+        : interests;
 };
-
 
 const fetchUchakInterestDetails = async (query, company, branch) => {
     const uchakInterests = await UchakInterestModel.find(query).populate({
@@ -92,7 +97,9 @@ const fetchUchakInterestDetails = async (query, company, branch) => {
         ],
     }).lean();
 
-    return company ? uchakInterests.filter(ele => ele.loan.company === company) : uchakInterests;
+    return company
+        ? uchakInterests.filter(ele => ele?.loan?.company === company)
+        : uchakInterests;
 };
 
 const fetchPartPaymentDetails = async (query, company, branch) => {
@@ -107,7 +114,9 @@ const fetchPartPaymentDetails = async (query, company, branch) => {
         ],
     }).lean();
 
-    return company ? partPayments.filter(ele => ele.loan.company === company) : partPayments;
+    return company
+        ? partPayments.filter(ele => ele?.loan?.company === company)
+        : partPayments;
 };
 
 const fetchPartReleaseDetails = async (query, company, branch) => {
@@ -122,7 +131,9 @@ const fetchPartReleaseDetails = async (query, company, branch) => {
         ],
     }).lean();
 
-    return company ? partReleases.filter(ele => ele.loan.company === company) : partReleases;
+    return company
+        ? partReleases.filter(ele => ele?.loan?.company === company)
+        : partReleases;
 };
 
 const fetchLoanCloseDetails = async (query, company, branch) => {
@@ -133,8 +144,9 @@ const fetchLoanCloseDetails = async (query, company, branch) => {
         ],
     }).lean();
 
-    return company ? closedLoans.filter(ele => ele.loan.company === company) : closedLoans;
-
+    return company
+        ? closedLoans.filter(ele => ele?.loan?.company === company)
+        : closedLoans;
 };
 
 const dailyReport = async (req, res) => {

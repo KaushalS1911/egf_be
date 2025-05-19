@@ -46,8 +46,12 @@ async function getAllSchemes(req, res) {
         const schemes = await SchemeModel.find({
             company: companyId,
             deleted_at: null
-        }).populate("company");
-
+        })
+            .populate("company")
+            .sort([
+                ['isActive', -1],
+                ['interestRate', 1]
+            ]);
         return res.status(200).json({ status: 200, data: schemes });
     } catch (err) {
         console.error("Error fetching schemes:", err.message);
@@ -122,7 +126,6 @@ async function updateMultipleSchemes(req, res) {
         return res.status(500).json({ status: 500, message: "Internal server error" });
     }
 }
-
 
 async function getSingleScheme(req, res) {
     const { schemeId } = req.params;

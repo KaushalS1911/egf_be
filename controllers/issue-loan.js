@@ -459,10 +459,10 @@ async function InterestReports(req, res) {
             pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * daysDiff) / 365;
 
             // Assign final values
-            loan.interestAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
-            loan.consultingAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
-            loan.penaltyAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
-            loan.pendingInterest = loan.status === 'Closed' ? 0 :pendingInterest;
+            loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
+            loan.consultingAmount = interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
+            loan.penaltyAmount = interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
+            loan.pendingInterest = pendingInterest;
             loan.totalPaidInterest = totalPaidInterest;
             loan.cr_dr = loan.status === 'Closed' ? 0 : old_cr_dr;
 
