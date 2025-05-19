@@ -140,41 +140,33 @@ const fetchLoanCloseDetails = async (query, company, branch) => {
 const dailyReport = async (req, res) => {
     try {
         const {companyId} = req.params;
-        const {branch, date} = req.query;
+        const {branch = null, date} = req.query;
 
-        if (!date || isNaN(new Date(date))) {
-            return res.status(400).json({
-                status: 400,
-                message: "Invalid or missing 'date' parameter",
-            });
-        }
+        if (!date) return res.status(400).json({status: 400, message: "Missing 'date' parameter"});
 
-        const query = {
-            company: companyId,
-            deleted_at: null,
-            createdAt: {
-                $gte: new Date(date),
-                $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
-            },
-        };
+        const [day, month, year] = date.split('/');
+        const parsedDate = new Date(`${year}-${month}-${day}T00:00:00`);
+        if (isNaN(parsedDate)) return res.status(400).json({status: 400, message: "Invalid date format (dd/mm/yyyy)"});
 
-        const {createdAt} = query
+        const nextDate = new Date(parsedDate);
+        nextDate.setDate(parsedDate.getDate() + 1);
+
+        const createdAt = {$gte: parsedDate, $lt: nextDate};
+        const query = {company: companyId, deleted_at: null, createdAt};
+
+        const data = await Promise.all([
+            fetchInterestDetails({createdAt}, companyId, branch),
+            fetchLoans(query, branch),
+            fetchUchakInterestDetails({createdAt}, companyId, branch),
+            fetchPartPaymentDetails({createdAt}, companyId, branch),
+            fetchPartReleaseDetails({createdAt}, companyId, branch),
+            fetchLoanCloseDetails({createdAt}, companyId, branch),
+        ]);
 
         const [
-            interestDetail,
-            loans,
-            uchakInterestDetail,
-            partPaymentDetail,
-            partReleaseDetail,
-            closedLoans
-        ] = await Promise.all([
-            fetchInterestDetails({createdAt}, companyId, branch || null),
-            fetchLoans(query, branch || null),
-            fetchUchakInterestDetails({createdAt}, companyId, branch || null),
-            fetchPartPaymentDetails({createdAt}, companyId, branch || null),
-            fetchPartReleaseDetails({createdAt}, companyId, branch || null),
-            fetchLoanCloseDetails({createdAt}, companyId, branch || null)
-        ]);
+            interestDetail, loans, uchakInterestDetail,
+            partPaymentDetail, partReleaseDetail, closedLoans
+        ] = data;
 
         return res.status(200).json({
             status: 200,
