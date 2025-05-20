@@ -12,8 +12,7 @@ const ExpenseModel = require("../models/expense");
 const OtherIncomeModel = require("../models/other-income");
 const ChargeInOutModel = require("../models/charge-in-out");
 const PaymentInOutModel = require("../models/payment-in-out");
-
-// const TransferModel = require("../models/transfers");
+const TransferModel = require("../models/transfer");
 
 async function allTransactions(req, res) {
     try {
@@ -151,16 +150,45 @@ async function allTransactions(req, res) {
             })
         );
 
-        // const transfers = await TransferModel.find({company: companyId})?.map((e) => {
-        //         return {
-        //             category: e?.from ? "Payment In" : "Payment Out",
-        //             ref: e?.from ? "Bank to Cash Transfer" : "Cash to Bank Transfer",
-        //             detail: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
-        //             status: e?.from ? `Received from (${e?.from?.bankName})` : `Cash transfer to (${e?.from?.bankName})`,
-        //             date: e?.date,
-        //             amount: e?.amount
-        //         }
-        // })
+        const validTransferTypes = ['Cash In Hand', 'Cash To Bank', 'Bank To Cash'];
+
+        const transfers = (await TransferModel.find({ company: companyId }) || [])
+            .filter(e => validTransferTypes.includes(e.transferType))
+            .map(e => {
+                const isPaymentIn =
+                    (e.transferType === 'Cash In Hand' && e.paymentDetails?.adjustmentType === 'Add Cash') ||
+                    e.transferType === 'Bank To Cash';
+
+                const commonFields = {
+                    status: e.transferType,
+                    date: e.transferDate,
+                    amount: e.paymentDetails?.amount ?? 0,
+                };
+
+                if (isPaymentIn) {
+                    return {
+                        ...commonFields,
+                        category: 'Payment In',
+                        ref: e.transferType === 'Bank To Cash'
+                            ? 'Bank to cash transfer'
+                            : 'Add cash amount for adjustment',
+                        detail: e.transferType === 'Bank To Cash'
+                            ? `Received from (${e.paymentDetails?.from?.bankName})`
+                            : 'Add Cash for Adjustment',
+                    };
+                } else {
+                    return {
+                        ...commonFields,
+                        category: 'Payment Out',
+                        ref: e.transferType === 'Cash To Bank'
+                            ? 'Cash to Bank transfer'
+                            : 'Add Bank amount for adjustment',
+                        detail: e.transferType === 'Cash To Bank'
+                            ? `Add Cash to (${e.paymentDetails?.to?.bankName})`
+                            : `Reduce Cash for Adjustment`,
+                    };
+                }
+            });
 
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
@@ -187,12 +215,12 @@ async function allTransactions(req, res) {
             }))
         );
 
-        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        [...transactions, ...transfers].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
-            data: transactions.filter((e) => e?.amount !== 0)
+            data: [...transactions, ...transfers].filter((e) => e?.amount !== 0)
         });
 
     } catch (error) {
@@ -346,6 +374,48 @@ async function allBankTransactions(req, res) {
             return Account?.accountHolderName
         }
 
+        const validTransferTypes = ['Adjust Bank Balance', 'Cash To Bank', 'Bank To Cash', 'Bank To Bank'];
+
+        const transfers = (await TransferModel.find({ company: companyId }) || [])
+            .filter(e => validTransferTypes.includes(e.transferType))
+            .map(e => {
+                const isPaymentIn =
+                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Add Adjust Balance') ||
+                    e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank' ;
+
+                const commonFields = {
+                    status: e.transferType,
+                    date: e.transferDate,
+                    amount: e.paymentDetails?.amount ?? 0,
+                };
+
+                if (isPaymentIn) {
+                    return {
+                        ...commonFields,
+                        category: 'Payment In',
+                        ref: '',
+                        // ref: (e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank')
+                        //     ? e.transferType === 'Cash To Bank' ? `Add Cash in (${e.paymentDetails?.to?.bankName})` : `Transfer amount to (${e.paymentDetails?.to?.bankName}) from (${e.paymentDetails?.from?.bankName})`
+                        //     : `Add amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                        detail: (e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank')
+                            ? e.transferType === 'Cash To Bank' ? `Add Cash in (${e.paymentDetails?.to?.bankName})` : `Transfer amount to (${e.paymentDetails?.to?.bankName}) from (${e.paymentDetails?.from?.bankName})`
+                            : `Add amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                    };
+                } else {
+                    return {
+                        ...commonFields,
+                        category: 'Payment Out',
+                        ref: '',
+                        // ref: (e.transferType === 'Bank To Cash' || e.transferType === 'Bank To Bank' )
+                        //     ? e.transferType === 'Bank To Cash' ? `Transfer Amount from Bank (${e.paymentDetails?.from?.bankName}) to Cash ` : `Transfer amount from (${e.paymentDetails?.from?.bankName}) to (${e.paymentDetails?.to?.bankName})`
+                        //     : `Reduce Amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                        detail: (e.transferType === 'Bank To Cash' || e.transferType === 'Bank To Bank')
+                            ? e.transferType === 'Bank To Cash' ? `Transfer Amount from Bank (${e.paymentDetails?.from?.bankName}) to Cash` : `Transfer amount from (${e.paymentDetails?.from?.bankName}) to (${e.paymentDetails?.to?.bankName})`
+                            : `Reduce Amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                    };
+                }
+            });
+
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
@@ -389,7 +459,7 @@ async function allBankTransactions(req, res) {
         ).filter(t => t?.amount !== 0);
 
         const sumByBank = (bankName, type) =>
-            transactions
+            [...transactions, ...transfers]
                 .filter(txn => txn.category === type && txn.bankName === bankName)
                 .reduce((sum, txn) => sum + txn.amount, 0);
 
@@ -400,13 +470,13 @@ async function allBankTransactions(req, res) {
             balance: sumByBank(bank?.bankName, 'Payment In') - sumByBank(bank?.bankName, 'Payment Out')
         }));
 
-        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        [...transactions, ...transfers].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
             data: {
-                transactions: transactions,
+                transactions: [...transactions, ...transfers],
                 bankBalances
             }
         });
