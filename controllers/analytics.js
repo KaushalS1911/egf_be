@@ -359,7 +359,9 @@ async function allBankTransactions(req, res) {
                     null,
                 bankName: entry?.companyBankDetail?.account?.bankName ??
                     entry?.paymentDetail?.account?.bankName ??
-                    entry?.paymentDetail?.bankName ?? entry?.bankDetails?.bankName ??
+                    entry?.paymentDetails?.account?.bankName ??
+                    entry?.paymentDetail?.bankName ??
+                    entry?.bankDetails?.bankName ??
                     null,
                 amount: Number(entry?.bankAmount ??
                     entry?.paymentDetails?.bankAmount ??
