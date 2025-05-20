@@ -9,7 +9,6 @@ const paymentDetailsSchema = new mongoose.Schema({
 
 const transferSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
-    brand: {type: String, ref: "Brand", required: true,},
     transferType: {type: String, required: true},
     transferDate: {type: Date, default: Date.now},
     desc: {type: String,},
