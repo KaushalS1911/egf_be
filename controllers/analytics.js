@@ -165,12 +165,25 @@ async function allTransactions(req, res) {
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
-                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? entry?.category ?? entry?.description ?? '',
-                detail: entry?.chargeType ?? entry?.party?.name ?? `${entry?.customer?.firstName ?? entry?.loan?.customer?.firstName ?? entry?.otherName ?? entry?.expenseType ?? entry?.incomeType}` +
-                    ` ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
+                ref: entry?.otherNumber ??
+                    entry?.loanNo ??
+                    entry?.loan?.loanNo ??
+                    entry?.otherLoan?.otherNumber ??
+                    entry?.category ??
+                    entry?.description ?? '',
+                detail: entry?.chargeType ??
+                    entry?.party?.name ??
+                    `${entry?.customer?.firstName ??
+                    entry?.loan?.customer?.firstName ??
+                    entry?.otherName ??
+                    entry?.expenseType ??
+                    entry?.incomeType}` + ` ${(entry?.customer?.lastName ?? entry?.loan?.customer?.lastName) || ''}`,
                 status: models[index]?.type,
-                date: entry[models[index]?.dateField] ?? null,
-                amount: Number(entry?.cashAmount ?? entry?.paymentDetail?.cashAmount ?? entry?.paymentDetails?.cashAmount ?? 0),
+                date: entry[models[index]?.dateField] ??
+                    null,
+                amount: Number(entry?.cashAmount ??
+                    entry?.paymentDetail?.cashAmount ??
+                    entry?.paymentDetails?.cashAmount ?? 0),
             }))
         );
 
@@ -327,7 +340,11 @@ async function allBankTransactions(req, res) {
         const transactions = results.flatMap((data, index) =>
             (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
-                ref: entry?.otherNumber ?? entry?.loanNo ?? entry?.loan?.loanNo ?? entry?.otherLoan?.otherNumber ?? entry?.description ?? '',
+                ref: entry?.otherNumber ??
+                    entry?.loanNo ??
+                    entry?.loan?.loanNo ??
+                    entry?.otherLoan?.otherNumber ??
+                    entry?.description ?? '',
                 detail: `${entry?.customer?.firstName ??
                 entry?.party?.name ??
                 entry?.loan?.customer?.firstName ??

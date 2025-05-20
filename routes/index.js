@@ -26,6 +26,7 @@ const partyRouter = require("../routes/party")
 const otherIncomeRouter = require("../routes/other-income")
 const paymentInOutRouter = require("../routes/payment-in-out")
 const dashboardRouter = require("../routes/dashboard")
+const transferRouter = require("../routes/transfer")
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.use('/company', partyRouter)
 router.use('/company', chargeInOutRouter)
 router.use('/company', paymentInOutRouter)
 router.use('/company', otherIncomeRouter)
+router.use('/company', transferRouter)
 
 // loans
 router.use('/company',  issueLoanRouter)
