@@ -9,15 +9,22 @@ async function validateCompany(companyId) {
 async function addTransfer(req, res) {
     try {
         const {companyId} = req.params;
+        const {branch, ...restData} = req.body;
 
         const company = await validateCompany(companyId);
         if (!company) {
             return res.status(404).json({status: 404, message: "Company not found"});
         }
 
+        const branchDoc = await BranchModel.findOne({_id: branch, company: companyId});
+        if (!branchDoc) {
+            return res.status(400).json({status: 400, message: "Invalid or unauthorized branch for this company"});
+        }
+
         const transfer = await Transfer.create({
-            ...req.body,
+            ...restData,
             company: companyId,
+            branch: branch
         });
 
         return res.status(201).json({
@@ -94,15 +101,26 @@ async function getTransferById(req, res) {
 async function updateTransfer(req, res) {
     try {
         const {id, companyId} = req.params;
+        const {branch, ...restData} = req.body;
 
         const company = await validateCompany(companyId);
         if (!company) {
             return res.status(404).json({status: 404, message: "Company not found"});
         }
 
+        if (branch) {
+            const branchDoc = await BranchModel.findOne({_id: branch, company: companyId});
+            if (!branchDoc) {
+                return res.status(400).json({status: 400, message: "Invalid or unauthorized branch for this company"});
+            }
+        }
+
         const updatedTransfer = await Transfer.findOneAndUpdate(
             {_id: id, company: companyId, deleted_at: null},
-            req.body,
+            {
+                ...restData,
+                ...(branch && {branch})
+            },
             {new: true}
         );
 
