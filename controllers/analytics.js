@@ -168,6 +168,7 @@ async function allTransactions(req, res) {
                 if (isPaymentIn) {
                     return {
                         ...commonFields,
+                        _id: e._id,
                         category: 'Payment In',
                         ref: e.transferType === 'Bank To Cash'
                             ? 'Bank to cash transfer'
@@ -179,6 +180,7 @@ async function allTransactions(req, res) {
                 } else {
                     return {
                         ...commonFields,
+                        _id: e._id,
                         category: 'Payment Out',
                         ref: e.transferType === 'Cash To Bank'
                             ? 'Cash to Bank transfer'
