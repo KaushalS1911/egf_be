@@ -30,7 +30,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: InterestModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'createdAt'],
                 type: "Customer Interest",
                 category: "Payment In",
@@ -40,7 +40,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: PartReleaseModel,
-                query: { },
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Part Release",
                 category: "Payment In",
@@ -50,7 +50,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: PartPaymentModel,
-                query: { },
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Loan Part Payment",
                 category: "Payment In",
@@ -60,7 +60,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: UchakInterestModel,
-                query: { },
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Uchak Interest",
                 category: "Payment In",
@@ -70,7 +70,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: ClosedLoanModel,
-                query: { },
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Customer Loan Close",
                 category: "Payment In",
@@ -88,7 +88,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: OtherLoanInterestModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
@@ -98,7 +98,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: ClosedOtherLoanModel,
-                query: { },
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Close",
                 category: "Payment Out",
@@ -108,7 +108,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: ExpenseModel,
-                query: { company: companyId },
+                query: {company: companyId, deleted_at: null},
                 fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
@@ -116,7 +116,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: OtherIncomeModel,
-                query: { company: companyId },
+                query: {company: companyId, deleted_at: null},
                 fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
@@ -124,7 +124,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: ChargeInOutModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetails'],
                 type: 'Charge In/Out',
                 categoryField: 'status',
@@ -132,7 +132,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: PaymentInOutModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['party', 'status', 'description', 'date', 'paymentDetails'],
                 type: 'Payment In/Out',
                 categoryField: 'status',
@@ -245,7 +245,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: InterestModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'createdAt'],
                 type: "Customer Interest",
                 category: "Payment In",
@@ -261,7 +261,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: PartReleaseModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Part Release",
                 category: "Payment In",
@@ -277,7 +277,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: PartPaymentModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Loan Part Payment",
                 category: "Payment In",
@@ -293,7 +293,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: UchakInterestModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Uchak Interest",
                 category: "Payment In",
@@ -309,7 +309,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: ClosedLoanModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'date'],
                 type: "Customer Loan Close",
                 category: "Payment In",
@@ -334,7 +334,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: OtherLoanInterestModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
@@ -349,7 +349,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: ClosedOtherLoanModel,
-                query: {},
+                query: {deleted_at: null},
                 fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Close",
                 category: "Payment Out",
@@ -364,7 +364,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: ExpenseModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
@@ -373,7 +373,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: OtherIncomeModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
@@ -382,7 +382,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: ChargeInOutModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetails'],
                 type: 'Charge In/Out',
                 categoryField: 'status',
@@ -391,7 +391,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: PaymentInOutModel,
-                query: {company: companyId},
+                query: {company: companyId, deleted_at: null},
                 fields: ['party', 'status', 'description', 'date', 'paymentDetails'],
                 type: 'Payment In/Out',
                 categoryField: 'status',

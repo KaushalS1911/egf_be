@@ -1,6 +1,11 @@
 const PaymentInOutModel = require("../models/payment-in-out");
+const CompanyModel = require("../models/company");
 const { uploadFile } = require("../helpers/avatar");
 const { uploadDir } = require("../constant");
+
+async function validateCompany(companyId) {
+    return await CompanyModel.findById(companyId);
+}
 
 function getFinancialYear(date = new Date()) {
     const year = date.getFullYear();
@@ -32,6 +37,12 @@ async function generateReceiptNo() {
 async function addPaymentInOut(req, res) {
     try {
         const { companyId } = req.params;
+
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
         const invoice = req.file && req.file.buffer
             ? await uploadFile(req.file.buffer, uploadDir.PAYMENT_IN_OUT, req.file.originalname)
             : '';
@@ -59,11 +70,16 @@ async function addPaymentInOut(req, res) {
 }
 
 async function getAllPaymentInOut(req, res) {
-    const { companyId } = req.params;
-    const {branchId} = req.query;
-
     try {
-        const query = { company: companyId };
+        const {companyId} = req.params;
+        const {branchId} = req.query;
+
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
+        const query = {company: companyId, deleted_at: null};
         if (branchId) query.branch = branchId;
 
         const payments = await PaymentInOutModel.find(query)
@@ -80,10 +96,15 @@ async function getAllPaymentInOut(req, res) {
 }
 
 async function getSinglePaymentInOut(req, res) {
-    const { paymentId } = req.params;
-
     try {
-        const payment = await PaymentInOutModel.findById(paymentId)
+        const {companyId, paymentId} = req.params;
+
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
+        const payment = await PaymentInOutModel.findOne({_id: paymentId, company: companyId, deleted_at: null})
             .populate('company')
             .populate('branch')
             .populate('party');
@@ -101,7 +122,12 @@ async function getSinglePaymentInOut(req, res) {
 
 async function updatePaymentInOut(req, res) {
     try {
-        const { paymentId } = req.params;
+        const {companyId, paymentId} = req.params;
+
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
 
         const invoice = req.file && req.file.buffer
             ? await uploadFile(req.file.buffer, uploadDir.PAYMENT_IN_OUT, req.file.originalname)
@@ -110,11 +136,15 @@ async function updatePaymentInOut(req, res) {
         const payload = { ...req.body };
         if (invoice) payload.invoice = invoice;
 
-        const updatedPayment = await PaymentInOutModel.findByIdAndUpdate(
-            paymentId,
+        const updatedPayment = await PaymentInOutModel.findOneAndUpdate(
+            {_id: paymentId, company: companyId, deleted_at: null},
             payload,
             { new: true }
         );
+
+        if (!updatedPayment) {
+            return res.status(404).json({status: 404, message: "Payment not found or already deleted"});
+        }
 
         return res.status(200).json({
             status: 200,
@@ -129,15 +159,28 @@ async function updatePaymentInOut(req, res) {
 
 async function deletePaymentInOut(req, res) {
     try {
-        const { paymentId } = req.params;
+        const {companyId, paymentId} = req.params;
 
-        const payment = await PaymentInOutModel.findByIdAndDelete(paymentId);
-
-        if (!payment) {
-            return res.status(404).json({ status: 404, message: "Payment not found" });
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
         }
 
-        return res.status(200).json({ status: 200, message: "Payment deleted successfully" });
+        const deleted = await PaymentInOutModel.findOneAndUpdate(
+            {_id: paymentId, company: companyId, deleted_at: null},
+            {deleted_at: new Date()},
+            {new: true}
+        );
+
+        if (!deleted) {
+            return res.status(404).json({status: 404, message: "Payment not found or already deleted"});
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "Payment soft deleted successfully",
+            data: deleted,
+        });
     } catch (err) {
         console.error("Error deleting payment:", err.message);
         return res.status(500).json({ status: 500, message: "Internal server error" });

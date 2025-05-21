@@ -1,9 +1,19 @@
 const ChargeInOutModel = require('../models/charge-in-out');
 const BranchModel = require('../models/branch');
+const CompanyModel = require('../models/company');
+
+async function validateCompany(companyId) {
+    return await CompanyModel.findById(companyId);
+}
 
 async function addChargeInOut(req, res) {
     try {
         const { companyId } = req.params;
+
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
 
         const charge = await ChargeInOutModel.create({
             ...req.body,
@@ -26,7 +36,15 @@ async function getAllChargesInOut(req, res) {
         const { companyId } = req.params;
         const { branchId } = req.query;
 
-        const query = { company: companyId };
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
+        const query = {
+            company: companyId,
+            deleted_at: null
+        };
 
         if (branchId) {
             const branchDoc = await BranchModel.findOne({_id: branchId, company: companyId});
@@ -39,7 +57,7 @@ async function getAllChargesInOut(req, res) {
         const charges = await ChargeInOutModel.find(query)
             .populate('company')
             .populate('branch')
-            .sort({date: -1})
+            .sort({date: -1});
 
         return res.status(200).json({ status: 200, data: charges });
     } catch (err) {
@@ -50,9 +68,14 @@ async function getAllChargesInOut(req, res) {
 
 async function getSingleChargeInOut(req, res) {
     try {
-        const { chargeId } = req.params;
+        const {companyId, chargeId} = req.params;
 
-        const charge = await ChargeInOutModel.findById(chargeId)
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
+        const charge = await ChargeInOutModel.findOne({_id: chargeId, company: companyId, deleted_at: null})
             .populate('company')
             .populate('branch');
 
@@ -69,16 +92,21 @@ async function getSingleChargeInOut(req, res) {
 
 async function updateChargeInOut(req, res) {
     try {
-        const { chargeId } = req.params;
+        const {companyId, chargeId} = req.params;
 
-        const updatedCharge = await ChargeInOutModel.findByIdAndUpdate(
-            chargeId,
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
+        }
+
+        const updatedCharge = await ChargeInOutModel.findOneAndUpdate(
+            {_id: chargeId, company: companyId, deleted_at: null},
             req.body,
             { new: true }
         );
 
         if (!updatedCharge) {
-            return res.status(404).json({ status: 404, message: "ChargeInOut not found" });
+            return res.status(404).json({status: 404, message: "ChargeInOut not found or already deleted"});
         }
 
         return res.status(200).json({
@@ -94,18 +122,31 @@ async function updateChargeInOut(req, res) {
 
 async function deleteChargeInOut(req, res) {
     try {
-        const { chargeId } = req.params;
+        const {chargeId, companyId} = req.params;
 
-        const deleted = await ChargeInOutModel.findByIdAndDelete(chargeId);
-
-        if (!deleted) {
-            return res.status(404).json({ status: 404, message: "ChargeInOut not found" });
+        const company = await validateCompany(companyId);
+        if (!company) {
+            return res.status(404).json({status: 404, message: "Company not found"});
         }
 
-        return res.status(200).json({ status: 200, message: "ChargeInOut deleted successfully" });
+        const deleted = await ChargeInOutModel.findOneAndUpdate(
+            {_id: chargeId, company: companyId, deleted_at: null},
+            {deleted_at: new Date()},
+            {new: true}
+        );
+
+        if (!deleted) {
+            return res.status(404).json({status: 404, message: "ChargeInOut not found or already deleted"});
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "ChargeInOut soft deleted successfully",
+            data: deleted,
+        });
     } catch (err) {
         console.error("Error deleting chargeInOut:", err.message);
-        return res.status(500).json({ status: 500, message: "Internal server error" });
+        return res.status(500).json({status: 500, message: "Internal server error"});
     }
 }
 
@@ -114,5 +155,5 @@ module.exports = {
     getAllChargesInOut,
     getSingleChargeInOut,
     updateChargeInOut,
-    deleteChargeInOut
+    deleteChargeInOut,
 };
