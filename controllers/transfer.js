@@ -1,5 +1,6 @@
 const Transfer = require('../models/transfer');
 const Company = require('../models/company');
+const BranchModel = require('../models/branch');
 
 async function validateCompany(companyId) {
     return await Company.findById(companyId);
@@ -33,19 +34,31 @@ async function addTransfer(req, res) {
 async function getAllTransfers(req, res) {
     try {
         const {companyId} = req.params;
+        const {branchId} = req.query;
 
         const company = await validateCompany(companyId);
         if (!company) {
             return res.status(404).json({status: 404, message: "Company not found"});
         }
 
-        const transfers = await Transfer.find({company: companyId, deleted_at: null})
-            .populate('company')
+        const query = {
+            company: companyId,
+            deleted_at: null
+        };
 
-        return res.status(200).json({
-            status: 200,
-            data: transfers
-        });
+        if (branchId) {
+            const branchDoc = await BranchModel.findOne({_id: branchId, company: companyId});
+            if (!branchDoc) {
+                return res.status(400).json({status: 400, message: "Invalid or unauthorized branch for this company"});
+            }
+            query.branch = branchId;
+        }
+
+        const transfers = await Transfer.find(query)
+            .populate('company')
+            .populate('branch');
+
+        return res.status(200).json({status: 200, data: transfers});
     } catch (err) {
         console.error("Error fetching transfers:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
