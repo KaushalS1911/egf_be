@@ -114,7 +114,12 @@ async function getSingleExpense(req, res) {
             return res.status(404).json({status: 404, message: "Company not found"});
         }
 
-        const expense = await ExpenseModel.findOne({_id: expenseId, company: companyId, deleted_at: null});
+        const expense = await ExpenseModel.findOne({
+            _id: expenseId,
+            company: companyId,
+            deleted_at: null
+        }).populate('company')
+            .populate('branch');
 
         if (!expense) {
             return res.status(404).json({status: 404, message: "Expense not found"});
