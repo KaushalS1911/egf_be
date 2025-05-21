@@ -152,7 +152,7 @@ async function allTransactions(req, res) {
 
         const validTransferTypes = ['Adjustment', 'Cash To Bank', 'Bank To Cash'];
 
-        const transfers = (await TransferModel.find({ company: companyId }) || [])
+        const transfers = (await TransferModel.find({company: companyId, deleted_at: null}) || [])
             .filter(e => validTransferTypes.includes(e.transferType))
             .map(e => {
                 const isPaymentIn =
@@ -416,7 +416,7 @@ async function allBankTransactions(req, res) {
 
         const validTransferTypes = ['Adjust Bank Balance', 'Cash To Bank', 'Bank To Cash', 'Bank To Bank'];
 
-        const transfers = (await TransferModel.find({ company: companyId }) || [])
+        const transfers = (await TransferModel.find({company: companyId, deleted_at: null}) || [])
             .filter(e => validTransferTypes.includes(e.transferType))
             .flatMap(e => {
 
