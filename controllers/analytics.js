@@ -30,7 +30,7 @@ async function allTransactions(req, res) {
             },
             {
                 model: InterestModel,
-                query: { }, // Filtering directly
+                query: {},
                 fields: ['paymentDetail', 'createdAt'],
                 type: "Customer Interest",
                 category: "Payment In",
@@ -150,13 +150,13 @@ async function allTransactions(req, res) {
             })
         );
 
-        const validTransferTypes = ['Cash In Hand', 'Cash To Bank', 'Bank To Cash'];
+        const validTransferTypes = ['Adjustment', 'Cash To Bank', 'Bank To Cash'];
 
         const transfers = (await TransferModel.find({ company: companyId }) || [])
             .filter(e => validTransferTypes.includes(e.transferType))
             .map(e => {
                 const isPaymentIn =
-                    (e.transferType === 'Cash In Hand' && e.paymentDetails?.adjustmentType === 'Add Cash') ||
+                    (e.transferType === 'Adjustment' && e.paymentDetails?.adjustmentType === 'Add Cash') ||
                     e.transferType === 'Bank To Cash';
 
                 const commonFields = {
@@ -173,7 +173,7 @@ async function allTransactions(req, res) {
                             ? 'Bank to cash transfer'
                             : 'Add cash amount for adjustment',
                         detail: e.transferType === 'Bank To Cash'
-                            ? `Received from (${e.paymentDetails?.from?.bankName})`
+                            ? `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) To cash`
                             : 'Add Cash for Adjustment',
                     };
                 } else {
@@ -184,7 +184,7 @@ async function allTransactions(req, res) {
                             ? 'Cash to Bank transfer'
                             : 'Add Bank amount for adjustment',
                         detail: e.transferType === 'Cash To Bank'
-                            ? `Add Cash to (${e.paymentDetails?.to?.bankName})`
+                            ? `Cash deposit to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`
                             : `Reduce Cash for Adjustment`,
                     };
                 }
@@ -418,40 +418,71 @@ async function allBankTransactions(req, res) {
 
         const transfers = (await TransferModel.find({ company: companyId }) || [])
             .filter(e => validTransferTypes.includes(e.transferType))
-            .map(e => {
-                const isPaymentIn =
-                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Add Adjust Balance') ||
-                    e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank' ;
+            .flatMap(e => {
 
                 const commonFields = {
-                    status: e.transferType,
                     date: e.transferDate,
                     amount: e.paymentDetails?.amount ?? 0,
                 };
 
+                if (e.transferType === 'Bank To Bank') {
+                    return [
+                        {
+                            ...commonFields,
+                            _id: e._id,
+                            status: e.transferType,
+                            category: 'Payment Out',
+                            ref: '',
+                            bankHolderName: e.paymentDetails?.from?.accountHolderName,
+                            bankName: `${e.paymentDetails?.from?.bankName}`,
+                            detail: `Transfer to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`,
+                        },
+                        {
+                            ...commonFields,
+                            _id: e._id,
+                            status: e.transferType,
+                            category: 'Payment In',
+                            ref: '',
+                            bankHolderName: e.paymentDetails?.to?.accountHolderName,
+                            bankName: `${e.paymentDetails?.to?.bankName}`,
+                            detail: `Received from ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
+                        }
+                    ];
+                }
+
+                const isPaymentIn =
+                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Add Adjust Balance') ||
+                    e.transferType === 'Cash To Bank';
+
                 if (isPaymentIn) {
                     return {
                         ...commonFields,
+                        _id: e._id,
+                        status: e.transferType,
                         category: 'Payment In',
                         ref: '',
-                        // ref: (e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank')
-                        //     ? e.transferType === 'Cash To Bank' ? `Add Cash in (${e.paymentDetails?.to?.bankName})` : `Transfer amount to (${e.paymentDetails?.to?.bankName}) from (${e.paymentDetails?.from?.bankName})`
-                        //     : `Add amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
-                        detail: (e.transferType === 'Cash To Bank' || e.transferType === 'Bank To Bank')
-                            ? e.transferType === 'Cash To Bank' ? `Add Cash in (${e.paymentDetails?.to?.bankName})` : `Transfer amount to (${e.paymentDetails?.to?.bankName}) from (${e.paymentDetails?.from?.bankName})`
-                            : `Add amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                        bankName: (e.transferType === 'Cash To Bank')
+                            ? `${e.paymentDetails?.to?.bankName}`
+                            : `${e.paymentDetails?.from?.bankName}`,
+                        bankHolderName: (e.transferType === 'Cash To Bank')
+                            ? e.paymentDetails?.to?.accountHolderName
+                            : e.paymentDetails?.from?.accountHolderName,
+                        detail: (e.transferType === 'Cash To Bank')
+                            ? `Cash deposit to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`
+                            : `Add adjustment ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
                     };
                 } else {
                     return {
                         ...commonFields,
+                        _id: e._id,
+                        status: e.transferType,
                         category: 'Payment Out',
                         ref: '',
-                        // ref: (e.transferType === 'Bank To Cash' || e.transferType === 'Bank To Bank' )
-                        //     ? e.transferType === 'Bank To Cash' ? `Transfer Amount from Bank (${e.paymentDetails?.from?.bankName}) to Cash ` : `Transfer amount from (${e.paymentDetails?.from?.bankName}) to (${e.paymentDetails?.to?.bankName})`
-                        //     : `Reduce Amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
-                        detail: (e.transferType === 'Bank To Cash' || e.transferType === 'Bank To Bank')
-                            ? e.transferType === 'Bank To Cash' ? `Transfer Amount from Bank (${e.paymentDetails?.from?.bankName}) to Cash` : `Transfer amount from (${e.paymentDetails?.from?.bankName}) to (${e.paymentDetails?.to?.bankName})`
-                            : `Reduce Amount in (${e.paymentDetails?.from?.bankName}) for adjustment`,
+                        bankName: `${e.paymentDetails?.from?.bankName}`,
+                        bankHolderName: e.paymentDetails?.from?.accountHolderName,
+                        detail: (e.transferType === 'Bank To Cash')
+                            ? `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) To Cash Withdrawal`
+                            : `Reduce adjustment ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
                     };
                 }
             });
