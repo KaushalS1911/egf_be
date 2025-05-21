@@ -63,7 +63,6 @@ async function getTransferById(req, res) {
 
         const transfer = await Transfer.findOne({_id: id, company: companyId, deleted_at: null})
             .populate('company')
-            .populate('brand');
 
         if (!transfer) {
             return res.status(404).json({status: 404, message: "Transfer not found"});
