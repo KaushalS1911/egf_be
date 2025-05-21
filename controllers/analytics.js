@@ -208,7 +208,7 @@ async function allBankTransactions(req, res) {
         const models = [
             {
                 model: IssuedLoanModel,
-                query: { deleted_at: null, company: companyId },
+                query: {deleted_at: null, company: companyId},
                 fields: ['bankAmount', 'issueDate', 'companyBankDetail', 'loanNo'],
                 type: "Loan issued",
                 category: "Payment Out",
@@ -222,8 +222,14 @@ async function allBankTransactions(req, res) {
                 type: "Customer Interest",
                 category: "Payment In",
                 dateField: 'createdAt',
-                populate: {path: 'loan', populate: 'customer company'},
-                filter: item => item?.loan?.company?.toString() === companyId
+                populate: {
+                    path: 'loan',
+                    populate: [
+                        {path: 'customer'},
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.loan?.company?._id?.toString() === companyId
             },
             {
                 model: PartReleaseModel,
@@ -232,8 +238,14 @@ async function allBankTransactions(req, res) {
                 type: "Part Release",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer company'},
-                filter: item => item?.loan?.company?.toString() === companyId
+                populate: {
+                    path: 'loan',
+                    populate: [
+                        {path: 'customer'},
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.loan?.company?._id?.toString() === companyId
             },
             {
                 model: PartPaymentModel,
@@ -242,8 +254,14 @@ async function allBankTransactions(req, res) {
                 type: "Loan Part Payment",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer company'},
-                filter: item => item?.loan?.company?.toString() === companyId
+                populate: {
+                    path: 'loan',
+                    populate: [
+                        {path: 'customer'},
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.loan?.company?._id?.toString() === companyId
             },
             {
                 model: UchakInterestModel,
@@ -252,8 +270,14 @@ async function allBankTransactions(req, res) {
                 type: "Uchak Interest",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer company'},
-                filter: item => item?.loan?.company?.toString() === companyId
+                populate: {
+                    path: 'loan',
+                    populate: [
+                        {path: 'customer'},
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.loan?.company?._id?.toString() === companyId
             },
             {
                 model: ClosedLoanModel,
@@ -262,12 +286,18 @@ async function allBankTransactions(req, res) {
                 type: "Customer Loan Close",
                 category: "Payment In",
                 dateField: 'date',
-                populate: {path: 'loan', populate: 'customer company'},
-                filter: item => item?.loan?.company?.toString() === companyId
+                populate: {
+                    path: 'loan',
+                    populate: [
+                        {path: 'customer'},
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.loan?.company?._id?.toString() === companyId
             },
             {
                 model: OtherIssuedLoanModel,
-                query: { deleted_at: null, company: companyId },
+                query: {deleted_at: null, company: companyId},
                 fields: ['bankAmount', 'date', 'otherNumber', 'loan', 'bankDetails', 'otherName'],
                 type: "Other Loan Issued",
                 category: "Payment In",
@@ -281,22 +311,32 @@ async function allBankTransactions(req, res) {
                 type: "Other Loan Interest",
                 category: "Payment Out",
                 dateField: 'payDate',
-                populate: {path: 'otherLoan', populate: 'company'},
-                filter: item => item?.otherLoan?.company?.toString() === companyId
+                populate: {
+                    path: 'otherLoan',
+                    populate: [
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.otherLoan?.company?._id?.toString() === companyId
             },
             {
                 model: ClosedOtherLoanModel,
-                query: { },
+                query: {},
                 fields: ['paymentDetail', 'payDate', 'otherLoan'],
                 type: "Other Loan Close",
                 category: "Payment Out",
                 dateField: 'payDate',
-                populate: {path: 'otherLoan', populate: 'company'},
-                filter: item => item?.otherLoan?.company?.toString() === companyId
+                populate: {
+                    path: 'otherLoan',
+                    populate: [
+                        {path: 'company'}
+                    ]
+                },
+                filter: item => item?.otherLoan?.company?._id?.toString() === companyId
             },
             {
                 model: ExpenseModel,
-                query: { company: companyId },
+                query: {company: companyId},
                 fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
@@ -305,7 +345,7 @@ async function allBankTransactions(req, res) {
             },
             {
                 model: OtherIncomeModel,
-                query: { company: companyId },
+                query: {company: companyId},
                 fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
@@ -342,7 +382,7 @@ async function allBankTransactions(req, res) {
         );
 
         function getAccountHolderName(bankAccs, bankName) {
-            const Account = bankAccs.find((e) => e.bankName === bankName);
+            const Account = bankName && bankAccs && bankAccs.find((e) => e.bankName === bankName);
             return Account?.accountHolderName
         }
 
@@ -354,7 +394,7 @@ async function allBankTransactions(req, res) {
                     entry?.loan?.loanNo ??
                     entry?.otherLoan?.otherNumber ??
                     entry?.description ?? '',
-                company: entry.company ?? entry.loan.company ?? entry.otherLoan.company ?? {},
+                company: entry?.company ?? entry?.loan?.company ?? entry?.otherLoan?.company ?? {},
                 detail: `${entry?.customer?.firstName ??
                 entry?.party?.name ??
                 entry?.loan?.customer?.firstName ??
@@ -373,8 +413,14 @@ async function allBankTransactions(req, res) {
                     entry?.paymentDetail?.bankName ??
                     entry?.bankDetails?.bankName ??
                     null,
-                bankHolderName: getAccountHolderName(entry.company.bankAccounts, entry?.companyBankDetail?.account?.bankName) ??
-                    getAccountHolderName(entry.company.bankAccounts, entry?.bankDetails?.account?.bankName) ??
+                bankHolderName: getAccountHolderName(entry?.company?.bankAccounts, entry?.companyBankDetail?.account?.bankName) ??
+                    getAccountHolderName(entry?.company?.bankAccounts, entry?.bankDetails?.account?.bankName) ??
+                    getAccountHolderName(entry?.company?.bankAccounts, entry?.paymentDetails?.account?.bankName) ??
+                    getAccountHolderName(entry?.company?.bankAccounts, entry?.paymentDetails?.companyBankDetail?.account?.bankName) ??
+                    getAccountHolderName(entry?.company?.bankAccounts, entry?.paymentDetail?.bankName) ??
+                    getAccountHolderName(entry?.otherLoan?.company?.bankAccounts, entry?.paymentDetail?.bankName) ??
+                    getAccountHolderName(entry?.loan?.company?.bankAccounts, entry?.paymentDetail?.account?.bankName) ??
+                    getAccountHolderName(entry?.loan?.company?.bankAccounts, entry?.paymentDetail?.bankName) ??
                     entry?.companyBankDetail?.account?.accountHolderName ??
                     entry?.paymentDetail?.account?.accountHolderName ??
                     entry?.paymentDetails?.account?.accountHolderName ??
