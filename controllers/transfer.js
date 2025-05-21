@@ -41,7 +41,6 @@ async function getAllTransfers(req, res) {
 
         const transfers = await Transfer.find({company: companyId, deleted_at: null})
             .populate('company')
-            .populate('brand');
 
         return res.status(200).json({
             status: 200,
