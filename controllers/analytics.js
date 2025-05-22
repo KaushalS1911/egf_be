@@ -172,7 +172,7 @@ async function allTransactions(req, res) {
                         category: 'Payment In',
                         ref: e.transferType === 'Bank To Cash'
                             ? 'Bank to cash transfer'
-                            : 'Add cash amount for adjustment',
+                            : e.desc,
                         detail: e.transferType === 'Bank To Cash'
                             ? `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) To cash`
                             : 'Add Cash for Adjustment',
@@ -184,7 +184,7 @@ async function allTransactions(req, res) {
                         category: 'Payment Out',
                         ref: e.transferType === 'Cash To Bank'
                             ? 'Cash to Bank transfer'
-                            : 'Add Bank amount for adjustment',
+                            : e.desc,
                         detail: e.transferType === 'Cash To Bank'
                             ? `Cash deposit to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`
                             : `Reduce Cash for Adjustment`,
