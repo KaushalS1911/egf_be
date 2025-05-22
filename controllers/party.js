@@ -27,7 +27,7 @@ async function getAllParties(req, res) {
             .populate('branch');
 
         for (let party of parties) {
-            const payments = await PaymentInOutModel.find({party: party._id});
+            const payments = await PaymentInOutModel.find({party: party._id, deleted_at: null});
 
             let balance = 0;
             for (const payment of payments) {
