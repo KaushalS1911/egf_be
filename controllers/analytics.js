@@ -455,7 +455,7 @@ async function allBankTransactions(req, res) {
                 }
 
                 const isPaymentIn =
-                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Add Adjust Balance') ||
+                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Increase balance') ||
                     e.transferType === 'Cash To Bank';
 
                 if (isPaymentIn) {
