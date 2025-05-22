@@ -217,12 +217,14 @@ async function allTransactions(req, res) {
             }))
         );
 
-        [...transactions, ...transfers].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const allData = [...transactions, ...transfers]
+            .filter(e => e?.amount !== 0)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
-            data: [...transactions, ...transfers].filter((e) => e?.amount !== 0)
+            data: allData
         });
 
     } catch (error) {
@@ -549,13 +551,13 @@ async function allBankTransactions(req, res) {
             balance: sumByBank(bank?.bankName, 'Payment In') - sumByBank(bank?.bankName, 'Payment Out')
         }));
 
-        [...transactions, ...transfers].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedTransactions = [...transactions, ...transfers].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.status(200).json({
             status: 200,
             message: "All transactions fetched successfully",
             data: {
-                transactions: [...transactions, ...transfers],
+                transactions: sortedTransactions,
                 bankBalances
             }
         });

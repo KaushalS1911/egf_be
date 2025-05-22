@@ -12,7 +12,7 @@ const transferSchema = new mongoose.Schema({
     branch: {type: String, ref: "Branch", required: true},
     transferType: {type: String, required: true},
     transferDate: {type: Date, default: Date.now},
-    desc: {type: String,},
+    desc: {type: String},
     paymentDetails: {type: paymentDetailsSchema, required: true,},
     deleted_at: {type: Date, default: null},
 }, {
