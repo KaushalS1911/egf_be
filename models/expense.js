@@ -8,7 +8,8 @@ const expenseSchema = new mongoose.Schema({
     description: String,
     category: String,
     date: Date,
-    paymentDetails: Object
+    paymentDetails: Object,
+    deleted_at: {type: Date, default: null},
 },{timestamps: true});
 
 module.exports = mongoose.model('Expense', expenseSchema)

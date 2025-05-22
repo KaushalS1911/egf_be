@@ -8,7 +8,8 @@ const chargeInOutSchema = new mongoose.Schema({
     category: String,
     date: Date,
     paymentDetails: Object,
-    status: {type: String}
+    status: {type: String},
+    deleted_at: {type: Date, default: null},
 }, {timestamps: true});
 
 module.exports = mongoose.model('ChargeInOut', chargeInOutSchema);

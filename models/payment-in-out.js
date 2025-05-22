@@ -9,7 +9,8 @@ const paymentInOutSchema = new mongoose.Schema({
     date: { type: Date },
     description: { type: String },
     status: { type: String },
-    paymentDetails: Object
+    paymentDetails: Object,
+    deleted_at: {type: Date, default: null},
 }, { timestamps: true });
 
 module.exports = mongoose.model('PaymentInOut', paymentInOutSchema);
