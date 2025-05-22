@@ -437,7 +437,7 @@ async function allBankTransactions(req, res) {
                             ref: '',
                             bankHolderName: e.paymentDetails?.from?.accountHolderName,
                             bankName: `${e.paymentDetails?.from?.bankName}`,
-                            detail: `Transfer to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`,
+                            detail: `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`,
                         },
                         {
                             ...commonFields,
@@ -447,7 +447,7 @@ async function allBankTransactions(req, res) {
                             ref: '',
                             bankHolderName: e.paymentDetails?.to?.accountHolderName,
                             bankName: `${e.paymentDetails?.to?.bankName}`,
-                            detail: `Received from ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
+                            detail: `${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName}) to ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
                         }
                     ];
                 }
