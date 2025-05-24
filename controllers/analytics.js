@@ -163,6 +163,7 @@ async function allTransactions(req, res) {
                     status: e.transferType,
                     date: e.transferDate,
                     amount: e.paymentDetails?.amount ?? 0,
+                    paymentDetails: e.paymentDetails
                 };
 
                 if (isPaymentIn) {
@@ -213,6 +214,7 @@ async function allTransactions(req, res) {
                     null,
                 amount: Number(entry?.cashAmount ??
                     entry?.paymentDetail?.cashAmount ??
+                    entry?.paymentDetails?.chargeCashAmount ??
                     entry?.paymentDetails?.cashAmount ?? 0),
             }))
         );
@@ -220,6 +222,7 @@ async function allTransactions(req, res) {
         const allData = [...transactions, ...transfers]
             .filter(e => e?.amount !== 0)
             .sort((a, b) => new Date(b.date) - new Date(a.date));
+
 
         res.status(200).json({
             status: 200,
@@ -427,6 +430,7 @@ async function allBankTransactions(req, res) {
                 const commonFields = {
                     date: e.transferDate,
                     amount: e.paymentDetails?.amount ?? 0,
+                    paymentDetails: e.paymentDetails
                 };
 
                 if (e.transferType === 'Bank To Bank') {
@@ -515,6 +519,7 @@ async function allBankTransactions(req, res) {
                 bankName: entry?.companyBankDetail?.account?.bankName ??
                     entry?.paymentDetail?.account?.bankName ??
                     entry?.paymentDetails?.account?.bankName ??
+                    entry?.paymentDetails?.chargeAccount?.bankName ??
                     entry?.paymentDetail?.bankName ??
                     entry?.bankDetails?.bankName ??
                     null,
@@ -526,6 +531,7 @@ async function allBankTransactions(req, res) {
                     getAccountHolderName(entry?.otherLoan?.company?.bankAccounts, entry?.paymentDetail?.bankName) ??
                     getAccountHolderName(entry?.loan?.company?.bankAccounts, entry?.paymentDetail?.account?.bankName) ??
                     getAccountHolderName(entry?.loan?.company?.bankAccounts, entry?.paymentDetail?.bankName) ??
+                    getAccountHolderName(entry?.company?.bankAccounts, entry?.paymentDetails?.chargeAccount?.bankName) ??
                     entry?.companyBankDetail?.account?.accountHolderName ??
                     entry?.paymentDetail?.account?.accountHolderName ??
                     entry?.paymentDetails?.account?.accountHolderName ??
@@ -535,6 +541,7 @@ async function allBankTransactions(req, res) {
                 amount: Number(entry?.bankAmount ??
                     entry?.paymentDetails?.bankAmount ??
                     entry?.paymentDetail?.bankAmount ??
+                    entry?.paymentDetails?.chargeCashAmount ??
                     entry?.bankDetails?.bankAmount ?? 0),
             }))
         ).filter(t => t?.amount !== 0);
