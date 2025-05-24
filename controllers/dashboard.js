@@ -12,6 +12,8 @@ const OtherLoanInterestPayment = require("../models/other-loan-interest-payment"
 const ChargeInOut = require('../models/charge-in-out');
 const Expense = require('../models/expense');
 const PaymentInOut = require('../models/payment-in-out');
+const PartPayment = require("../models/loan-part-payment");
+const PartRelease = require("../models/part-release");
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -598,11 +600,31 @@ const getCompanyPortfolioSummary = async (req, res) => {
             loan: {$in: loanIds}
         });
 
-        const totalClosedLoanAmount = closedLoans.reduce((sum, item) => {
+        const totalClosedLoanAmountFromClosures = closedLoans.reduce((sum, item) => {
             const closeCharge = Number(item?.closingCharge || 0);
             const netAmount = Number(item?.netAmount || 0);
             return sum + (netAmount - closeCharge);
         }, 0);
+
+        const partPayments = await PartPayment.find({
+            deleted_at: null,
+            loan: {$in: loanIds}
+        });
+
+        const totalPartPaymentAmount = partPayments.reduce((sum, item) => {
+            return sum + (Number(item.amountPaid) || 0);
+        }, 0);
+
+        const partReleases = await PartRelease.find({
+            deleted_at: null,
+            loan: {$in: loanIds}
+        });
+
+        const totalPartReleaseAmount = partReleases.reduce((sum, item) => {
+            return sum + (Number(item.amountPaid) || 0);
+        }, 0);
+
+        const totalClosedLoanAmount = totalClosedLoanAmountFromClosures + totalPartPaymentAmount + totalPartReleaseAmount;
 
         res.json({
             success: true,
@@ -827,12 +849,12 @@ const getPaymentInOutSummary = async (req, res) => {
         }
 
         const {start, end} = getDateRange(timeRange, company.createdAt);
-
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
         const baseMatch = {
             company: companyId,
-            date: {$gte: start, $lte: end}
+            date: {$gte: start, $lte: end},
+            deleted_at: null
         };
 
         if (branchId) baseMatch.branch = branchId;
@@ -872,7 +894,9 @@ const getPaymentInOutSummary = async (req, res) => {
 
         let totalExpense = 0;
         if (includeAll || requestedFields.includes('totalexpense')) {
-            const expenseMatch = {...baseMatch};
+            const expenseMatch = {
+                ...baseMatch
+            };
 
             const expenses = await Expense.aggregate([
                 {$match: expenseMatch},
