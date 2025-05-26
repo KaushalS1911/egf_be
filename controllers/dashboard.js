@@ -37,32 +37,35 @@ const getDateRange = (filter, companyCreatedAt = null) => {
             break;
 
         case 'this_week':
-            const day = now.getDay();
-            start.setDate(now.getDate() - day);
+            start.setDate(now.getDate() - 6);
             start.setHours(0, 0, 0, 0);
-            end.setDate(start.getDate() + 6);
+            end.setTime(now.getTime());
             end.setHours(23, 59, 59, 999);
             break;
 
         case 'last_month':
             start.setMonth(now.getMonth() - 1, 1);
             start.setHours(0, 0, 0, 0);
-            end.setMonth(start.getMonth() + 1, 0);
+            end.setMonth(now.getMonth(), 0);
             end.setHours(23, 59, 59, 999);
             break;
 
         case 'last_3_months':
-            start.setMonth(now.getMonth() - 3);
-            start.setDate(1);
+            const last3 = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            const last3End = new Date(now.getFullYear(), now.getMonth(), 0);
+            start.setTime(last3.getTime());
             start.setHours(0, 0, 0, 0);
-            end.setTime(now.getTime());
+            end.setTime(last3End.getTime());
+            end.setHours(23, 59, 59, 999);
             break;
 
         case 'last_6_months':
-            start.setMonth(now.getMonth() - 6);
-            start.setDate(1);
+            const last6 = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            const last6End = new Date(now.getFullYear(), now.getMonth(), 0);
+            start.setTime(last6.getTime());
             start.setHours(0, 0, 0, 0);
-            end.setTime(now.getTime());
+            end.setTime(last6End.getTime());
+            end.setHours(23, 59, 59, 999);
             break;
 
         case 'last_year':
@@ -80,16 +83,17 @@ const getDateRange = (filter, companyCreatedAt = null) => {
             break;
 
         case 'this_year':
-            start.setMonth(0, 1);
+            start.setFullYear(now.getFullYear(), 0, 1);
             start.setHours(0, 0, 0, 0);
             end.setTime(now.getTime());
+            end.setHours(23, 59, 59, 999);
             break;
 
         case 'this_month':
         default:
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
-            end.setMonth(now.getMonth() + 1, 0);
+            end.setTime(now.getTime());
             end.setHours(23, 59, 59, 999);
             break;
     }
@@ -849,7 +853,7 @@ const getPaymentInOutSummary = async (req, res) => {
         }
 
         const {start, end} = getDateRange(timeRange, company.createdAt);
-        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
 
         const baseMatch = {
             company: companyId,
@@ -929,15 +933,22 @@ const getPaymentInOutSummary = async (req, res) => {
 
         if (includeAll || requestedFields.includes('paymentintotal')) {
             responseData.paymentInTotal = paymentInTotal;
+            responseData.avgPaymentInPerDay = +(paymentInTotal / days).toFixed(2);
         }
+
         if (includeAll || requestedFields.includes('paymentouttotal')) {
             responseData.paymentOutTotal = paymentOutTotal;
+            responseData.avgPaymentOutPerDay = +(paymentOutTotal / days).toFixed(2);
         }
+
         if (includeAll || requestedFields.includes('difference')) {
             responseData.difference = difference;
+            responseData.avgDifferencePerDay = +(difference / days).toFixed(2);
         }
+
         if (includeAll || requestedFields.includes('totalexpense')) {
             responseData.totalExpense = totalExpense;
+            responseData.avgExpensePerDay = +(totalExpense / days).toFixed(2);
         }
 
         res.status(200).json({
