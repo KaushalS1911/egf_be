@@ -502,7 +502,9 @@ async function allBankTransactions(req, res) {
                     entry?.loanNo ??
                     entry?.loan?.loanNo ??
                     entry?.otherLoan?.otherNumber ??
-                    entry?.description ?? '',
+                    entry?.description ??
+                    entry?.category ??
+                    '',
                 company: entry?.company ?? entry?.loan?.company ?? entry?.otherLoan?.company ?? {},
                 detail: `${entry?.customer?.firstName ??
                 entry?.party?.name ??

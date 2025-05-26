@@ -588,52 +588,29 @@ const getCompanyPortfolioSummary = async (req, res) => {
             deleted_at: null
         });
 
-        const loanIds = issuedLoans.map(loan => loan._id.toString());
+        const totalLoanPortfolio = issuedLoans.reduce((sum, loan) => {
+            return sum + (Number(loan.loanAmount) || 0);
+        }, 0);
 
-        const totalLoanPortfolio = issuedLoans.reduce((sum, loan) => sum + (loan.loanAmount || 0), 0);
+        const interestLoanAmount = issuedLoans.reduce((sum, loan) => {
+            return sum + (Number(loan.interestLoanAmount) || 0);
+        }, 0);
+
+        const totalClosedLoanAmount = totalLoanPortfolio - interestLoanAmount;
 
         const now = new Date();
-        const totalMonths = (now.getFullYear() - companyStartDate.getFullYear()) * 12 + (now.getMonth() - companyStartDate.getMonth()) + 1;
+        const totalMonths = (now.getFullYear() - companyStartDate.getFullYear()) * 12 +
+            (now.getMonth() - companyStartDate.getMonth()) + 1;
 
         const monthlyAveragePortfolio = totalMonths > 0
             ? totalLoanPortfolio / totalMonths
             : totalLoanPortfolio;
 
-        const closedLoans = await LoanClose.find({
-            deleted_at: null,
-            loan: {$in: loanIds}
-        });
-
-        const totalClosedLoanAmountFromClosures = closedLoans.reduce((sum, item) => {
-            const closeCharge = Number(item?.closingCharge || 0);
-            const netAmount = Number(item?.netAmount || 0);
-            return sum + (netAmount - closeCharge);
-        }, 0);
-
-        const partPayments = await PartPayment.find({
-            deleted_at: null,
-            loan: {$in: loanIds}
-        });
-
-        const totalPartPaymentAmount = partPayments.reduce((sum, item) => {
-            return sum + (Number(item.amountPaid) || 0);
-        }, 0);
-
-        const partReleases = await PartRelease.find({
-            deleted_at: null,
-            loan: {$in: loanIds}
-        });
-
-        const totalPartReleaseAmount = partReleases.reduce((sum, item) => {
-            return sum + (Number(item.amountPaid) || 0);
-        }, 0);
-
-        const totalClosedLoanAmount = totalClosedLoanAmountFromClosures + totalPartPaymentAmount + totalPartReleaseAmount;
-
         res.json({
             success: true,
             data: {
-                totalLoanPortfolio,
+                totalLoanPortfolio: Number(totalLoanPortfolio.toFixed(2)),
+                interestLoanAmount: Number(interestLoanAmount.toFixed(2)),
                 totalClosedLoanAmount: Number(totalClosedLoanAmount.toFixed(2)),
                 monthlyAveragePortfolio: Number(monthlyAveragePortfolio.toFixed(2)),
                 totalMonthsTracked: totalMonths,
