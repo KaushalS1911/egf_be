@@ -541,7 +541,7 @@ async function allBankTransactions(req, res) {
                 amount: Number(entry?.bankAmount ??
                     entry?.paymentDetails?.bankAmount ??
                     entry?.paymentDetail?.bankAmount ??
-                    entry?.paymentDetails?.chargeCashAmount ??
+                    entry?.paymentDetails?.chargeBankAmount ??
                     entry?.bankDetails?.bankAmount ?? 0),
             }))
         ).filter(t => t?.amount !== 0);
