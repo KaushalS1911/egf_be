@@ -895,10 +895,13 @@ const getPaymentInOutSummary = async (req, res) => {
         let totalExpense = 0;
         if (includeAll || requestedFields.includes('totalexpense')) {
             const expenseMatch = {
-                ...baseMatch
+                company: companyId,
+                date: {$gte: start, $lte: end},
+                deleted_at: null
             };
+            if (branchId) expenseMatch.branch = branchId;
 
-            const expenses = await Expense.aggregate([
+            const expenseResult = await Expense.aggregate([
                 {$match: expenseMatch},
                 {
                     $group: {
@@ -917,14 +920,12 @@ const getPaymentInOutSummary = async (req, res) => {
                 }
             ]);
 
-            if (expenses.length > 0) {
-                totalExpense = expenses[0].totalCash + expenses[0].totalBank;
+            if (expenseResult.length > 0) {
+                totalExpense = expenseResult[0].totalCash + expenseResult[0].totalBank;
             }
         }
 
-        const responseData = {
-            days
-        };
+        const responseData = {days};
 
         if (includeAll || requestedFields.includes('paymentintotal')) {
             responseData.paymentInTotal = paymentInTotal;
