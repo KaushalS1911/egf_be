@@ -431,41 +431,10 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         const customers = await Customer.find(customerFilter).select('_id');
         const customerIds = customers.map(c => c._id.toString());
 
-        const issuedLoans = await IssuedLoan.find({
-            company: companyId,
-            deleted_at: null,
-            createdAt: {$gte: start, $lte: end},
-            customer: {$in: customerIds}
-        });
-
-        const approvalCharge = issuedLoans.reduce((sum, loan) => sum + (loan.approvalCharge || 0), 0);
-
-        const loanCloses = await LoanClose.find({
-            deleted_at: null,
-            date: {$gte: start, $lte: end}
-        }).populate("loan");
-
-        const filteredLoanCloses = loanCloses.filter(cl =>
-            cl.loan &&
-            cl.loan.company?.toString() === companyId &&
-            cl.loan.customer &&
-            customerIds.includes(cl.loan.customer.toString())
-        );
-
-        const closingChargeOutMain = filteredLoanCloses.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
-
-        const otherIssuedLoans = await OtherIssuedLoan.find({
-            company: companyId,
-            deleted_at: null,
-            createdAt: {$gte: start, $lte: end},
-        });
-
-        const closingChargeOutOther = otherIssuedLoans.reduce((sum, cl) => sum + (cl.closingCharge || 0), 0);
-        const otherCharge = otherIssuedLoans.reduce((sum, loan) => sum + (loan.otherCharge || 0), 0);
-
         const chargeQuery = {
             company: companyId,
-            date: {$gte: start, $lte: end}
+            date: {$gte: start, $lte: end},
+            deleted_at: null,
         };
         if (branchId) chargeQuery.branch = branchId;
 
@@ -487,8 +456,8 @@ const getAllLoanStatsWithCharges = async (req, res) => {
             }
         }
 
-        const chargeIn = chargeInFromModule + approvalCharge + closingChargeOutMain;
-        const chargeOut = chargeOutFromModule + otherCharge + closingChargeOutOther;
+        const chargeIn = chargeInFromModule;
+        const chargeOut = chargeOutFromModule;
         const chargeDifference = chargeIn - chargeOut;
 
         const interestsMain = await Interest.find({

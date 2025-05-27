@@ -367,29 +367,27 @@ const otherLoanSummary = async (req, res) => {
             })
 
         const result = await Promise.all(loans.map(async (loan) => {
-
             loan = loan.toObject();
 
-            // Fetch Interest and Part Payments
-            const [interests] = await Promise.all([
-                OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1}),
-            ]);
+            const interestPayments = await OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1});
 
+            loan.totalInterestAmt = interestPayments.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
 
-            loan.totalInterestAmt = interests.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
-            // Interest & Penalty Calculation
+            loan.totalCharge = interestPayments.reduce((sum, entry) => sum + (entry.charge || 0), 0);
+
             const today = moment();
-            const lastInstallmentDate = interests.length !== 0 ? moment(interests[0].to) : moment(loan.date);
+            const lastInstallmentDate = interestPayments.length !== 0 ? moment(interestPayments[0].to) : moment(loan.date);
             const daysDiff = today.diff(lastInstallmentDate, 'days') + 1;
 
-            loan.day = interests.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
-            loan.pendingDay = loan.status === 'Closed' ? 0 : daysDiff
-            const interestRate = loan.percentage
+            loan.day = interestPayments.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
+            loan.pendingDay = loan.status === 'Closed' ? 0 : daysDiff;
 
-            loan.pendingInterest = loan.status === 'Closed' ? 0 : ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
+            const interestRate = loan.percentage;
+            loan.pendingInterest = loan.status === 'Closed'
+                ? 0
+                : ((loan.amount * (interestRate / 100)) * 12 * daysDiff) / 365;
 
             return loan;
-
         }));
 
         return res.status(200).json({
@@ -405,7 +403,6 @@ const otherLoanSummary = async (req, res) => {
         });
     }
 };
-
 
 const loanDetail = async (req, res) => {
     try {
