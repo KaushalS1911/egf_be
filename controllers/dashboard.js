@@ -12,8 +12,7 @@ const OtherLoanInterestPayment = require("../models/other-loan-interest-payment"
 const ChargeInOut = require('../models/charge-in-out');
 const Expense = require('../models/expense');
 const PaymentInOut = require('../models/payment-in-out');
-const PartPayment = require("../models/loan-part-payment");
-const PartRelease = require("../models/part-release");
+const Party = require("../models/party");
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -837,7 +836,6 @@ const getPaymentInOutSummary = async (req, res) => {
             date: {$gte: start, $lte: end},
             deleted_at: null
         };
-
         if (branchId) baseMatch.branch = branchId;
 
         const payments = await PaymentInOut.aggregate([
@@ -846,14 +844,10 @@ const getPaymentInOutSummary = async (req, res) => {
                 $group: {
                     _id: "$status",
                     totalCash: {
-                        $sum: {
-                            $toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}
-                        }
+                        $sum: {$toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}}
                     },
                     totalBank: {
-                        $sum: {
-                            $toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}
-                        }
+                        $sum: {$toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}}
                     }
                 }
             }
@@ -875,36 +869,53 @@ const getPaymentInOutSummary = async (req, res) => {
 
         let totalExpense = 0;
         if (includeAll || requestedFields.includes('totalexpense')) {
-            const expenseMatch = {
-                company: companyId,
-                date: {$gte: start, $lte: end},
-                deleted_at: null
-            };
-            if (branchId) expenseMatch.branch = branchId;
-
             const expenseResult = await Expense.aggregate([
-                {$match: expenseMatch},
+                {$match: baseMatch},
                 {
                     $group: {
                         _id: null,
                         totalCash: {
-                            $sum: {
-                                $toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}
-                            }
+                            $sum: {$toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}}
                         },
                         totalBank: {
-                            $sum: {
-                                $toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}
-                            }
+                            $sum: {$toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}}
                         }
                     }
                 }
             ]);
-
             if (expenseResult.length > 0) {
                 totalExpense = expenseResult[0].totalCash + expenseResult[0].totalBank;
             }
         }
+
+        let receivableAmt = 0;
+        let payableAmt = 0;
+
+        if (
+            includeAll ||
+            requestedFields.includes('receivableamt') ||
+            requestedFields.includes('payableamt') ||
+            requestedFields.includes('receivablepayabledifference')
+        ) {
+            const partyMatch = {
+                company: companyId,
+                ...(branchId && {branch: branchId})
+            };
+
+            const party = await Party.find(partyMatch).select('amount');
+
+            receivableAmt = party.reduce(
+                (prev, next) => next.amount < 0 ? prev + Math.abs(next.amount) : prev,
+                0
+            );
+
+            payableAmt = party.reduce(
+                (prev, next) => next.amount > 0 ? prev + next.amount : prev,
+                0
+            );
+        }
+
+        const receivablePayableDifference = receivableAmt - payableAmt;
 
         const responseData = {days};
 
@@ -926,6 +937,21 @@ const getPaymentInOutSummary = async (req, res) => {
         if (includeAll || requestedFields.includes('totalexpense')) {
             responseData.totalExpense = totalExpense;
             responseData.avgExpensePerDay = +(totalExpense / days).toFixed(2);
+        }
+
+        if (includeAll || requestedFields.includes('receivableamt')) {
+            responseData.receivableAmt = receivableAmt;
+            responseData.avgReceivablePerDay = +(receivableAmt / days).toFixed(2);
+        }
+
+        if (includeAll || requestedFields.includes('payableamt')) {
+            responseData.payableAmt = payableAmt;
+            responseData.avgPayablePerDay = +(payableAmt / days).toFixed(2);
+        }
+
+        if (includeAll || requestedFields.includes('receivablepayabledifference')) {
+            responseData.receivablePayableDifference = receivablePayableDifference;
+            responseData.avgReceivablePayablePerDay = +(receivablePayableDifference / days).toFixed(2);
         }
 
         res.status(200).json({
