@@ -7,7 +7,7 @@ const incomeSchema = new mongoose.Schema({
     description: String,
     category: String,
     date: Date,
-    paymentDetails: Object
+    paymentDetail: Object
 },{timestamps: true});
 
 module.exports = mongoose.model('Other income', incomeSchema)

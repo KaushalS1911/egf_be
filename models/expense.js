@@ -8,7 +8,7 @@ const expenseSchema = new mongoose.Schema({
     description: String,
     category: String,
     date: Date,
-    paymentDetails: Object,
+    paymentDetail: Object,
     deleted_at: {type: Date, default: null},
 },{timestamps: true});
 

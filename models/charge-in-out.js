@@ -7,7 +7,7 @@ const chargeInOutSchema = new mongoose.Schema({
     description: String,
     category: String,
     date: Date,
-    paymentDetails: Object,
+    paymentDetail: Object,
     status: {type: String},
     deleted_at: {type: Date, default: null},
 }, {timestamps: true});

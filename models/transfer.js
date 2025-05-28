@@ -13,7 +13,7 @@ const transferSchema = new mongoose.Schema({
     transferType: {type: String, required: true},
     transferDate: {type: Date, default: Date.now},
     desc: {type: String},
-    paymentDetails: {type: paymentDetailsSchema, required: true,},
+    paymentDetail: {type: paymentDetailsSchema, required: true,},
     deleted_at: {type: Date, default: null},
 }, {
     timestamps: true,
