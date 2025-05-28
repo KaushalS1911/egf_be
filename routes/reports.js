@@ -9,7 +9,8 @@ const {
     otherLoanSummary,
     dailyOtherLoanReport,
     allInOutReport,
-    interestEntryReport
+    interestEntryReport,
+    interestEntryReportForOtherLoan
 } = require('../controllers/report')
 
 router.get('/:companyId/daily-report', dailyReport);
@@ -21,5 +22,6 @@ router.get('/:companyId/customer-statement/:customerId', customerStatement);
 router.get('/:companyId/issued-loan-detail', initialLoanDetail);
 router.get('/:companyId/all-in-out-report', allInOutReport);
 router.get('/:companyId/interest-entry-report', interestEntryReport);
+router.get('/:companyId/other-interest-entry-report', interestEntryReportForOtherLoan);
 
 module.exports = router;

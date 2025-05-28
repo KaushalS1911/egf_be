@@ -261,7 +261,7 @@ const loanSummary = async (req, res) => {
             }).populate("issuedBy").populate("scheme").populate("closedBy")
 
         const result = await Promise.all(loans.map(async (loan) => {
-            loan = loan.toObject(); // Convert Mongoose document to a plain object
+            loan = loan.toObject();
 
             loan.closedDate = null;
             loan.closeAmt = 0;
@@ -278,7 +278,7 @@ const loanSummary = async (req, res) => {
                 }
             }
 
-            // Fetch Interest and Part Payments
+
             const [interests, partPayments, partReleases] = await Promise.all([
                 InterestModel.find({loan: loan._id}).sort({createdAt: -1}),
                 PartPaymentModel.find({loan: loan._id}).sort({createdAt: -1}).limit(1),
@@ -288,13 +288,12 @@ const loanSummary = async (req, res) => {
             const lastInterestEntry = interests[0] || {};
             const oldCrDr = lastInterestEntry.cr_dr ?? 0;
             const totalPaidInterest = interests.reduce((sum, entry) => sum + (entry.amountPaid || 0), 0);
-            // Determine Last Payment Date
+
             const lastAmtPayDate = Math.max(
                 partPayments[0]?.createdAt || 0,
                 partReleases[0]?.createdAt || 0
             ) || null;
 
-            // Uchak Interest Calculation
             let uchakInterest = 0;
             if (lastInterestEntry.createdAt) {
                 const uchakInterestData = await UchakInterestModel.aggregate([
@@ -304,7 +303,6 @@ const loanSummary = async (req, res) => {
                 uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
             }
 
-            // Interest & Penalty Calculation
             const today = moment().startOf('day');
             const lastInstallmentDate = interests?.length !== 0 ? moment(loan.lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
             const daysDiff = interests?.length !== 0 ? today.diff(lastInstallmentDate, 'days') : today.diff(lastInstallmentDate, 'days') + 1;
@@ -456,7 +454,6 @@ const customerStatement = async (req, res) => {
 
         const issuedLoan =  await IssuedLoanModel.findById(loan).select('loanNo loanAmount issueDate')
 
-        // Fetch all relevant details in parallel
         const loanDetails = await Promise.all([
             fetchPartPaymentDetails(query, companyId, null),
             fetchPartReleaseDetails(query, companyId, null),
@@ -519,7 +516,6 @@ const customerStatement = async (req, res) => {
         return res.status(500).json({status: 500, message: "Internal server error"});
     }
 };
-
 
 const initialLoanDetail = async (req, res) => {
 
@@ -590,7 +586,6 @@ const allInOutReport = async (req, res) => {
 
             return loan;
         }));
-
 
         const resultMap = new Map();
 
@@ -686,6 +681,33 @@ const interestEntryReport = async (req, res) => {
     }
 };
 
+const interestEntryReportForOtherLoan = async (req, res) => {
+    const {companyId} = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+        return res.status(400).json({success: false, message: "Invalid company ID"});
+    }
+
+    try {
+        const entries = await OtherLoanInterestModel.find()
+            .populate({
+                path: "otherLoan",
+                match: {company: companyId},
+                populate: [
+                    {path: "company"},
+                ]
+            })
+            .exec();
+
+        const filteredEntries = entries.filter(entry => entry.otherLoan !== null);
+
+        res.status(200).json({success: true, data: filteredEntries});
+    } catch (error) {
+        console.error("Error fetching other loan interest entries:", error);
+        res.status(500).json({success: false, message: "Server error"});
+    }
+};
+
 module.exports = {
     dailyReport,
     loanSummary,
@@ -695,5 +717,6 @@ module.exports = {
     otherLoanSummary,
     dailyOtherLoanReport,
     allInOutReport,
-    interestEntryReport
+    interestEntryReport,
+    interestEntryReportForOtherLoan
 }
