@@ -13,6 +13,8 @@ const ChargeInOut = require('../models/charge-in-out');
 const Expense = require('../models/expense');
 const PaymentInOut = require('../models/payment-in-out');
 const Party = require("../models/party");
+const PartPayment = require("../models/loan-part-payment");
+const PartRelease = require("../models/part-release");
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -444,7 +446,7 @@ const getAllLoanStatsWithCharges = async (req, res) => {
         let chargeOutFromModule = 0;
 
         for (const entry of chargeEntries) {
-            const payment = entry.paymentDetails || {};
+            const payment = entry.paymentDetail || {};
             const cash = Number(payment.cashAmount) || 0;
             const bank = Number(payment.bankAmount) || 0;
             const total = cash + bank;
@@ -813,10 +815,10 @@ const getPaymentInOutSummary = async (req, res) => {
                 $group: {
                     _id: "$status",
                     totalCash: {
-                        $sum: {$toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}}
+                        $sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}
                     },
                     totalBank: {
-                        $sum: {$toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}}
+                        $sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}
                     }
                 }
             }
@@ -844,10 +846,10 @@ const getPaymentInOutSummary = async (req, res) => {
                     $group: {
                         _id: null,
                         totalCash: {
-                            $sum: {$toDouble: {$ifNull: ["$paymentDetails.cashAmount", 0]}}
+                            $sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}
                         },
                         totalBank: {
-                            $sum: {$toDouble: {$ifNull: ["$paymentDetails.bankAmount", 0]}}
+                            $sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}
                         }
                     }
                 }
@@ -934,6 +936,111 @@ const getPaymentInOutSummary = async (req, res) => {
     }
 };
 
+const getTotalInOutAmount = async (req, res) => {
+    const {companyId} = req.params;
+    const {branchId} = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+        return res.status(400).json({success: false, message: "Invalid company ID"});
+    }
+    if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
+        return res.status(400).json({success: false, message: "Invalid branch ID"});
+    }
+
+    try {
+        const company = await Company.findById(companyId).select('createdAt');
+        if (!company) {
+            return res.status(404).json({success: false, message: "Company not found"});
+        }
+
+        const branchFilter = branchId ? {branch: branchId} : {};
+        const commonFilter = {company: companyId, deleted_at: null, ...branchFilter};
+
+        const issuedLoanIds = (await IssuedLoan.find(commonFilter).distinct('_id')).map(String);
+        const otherLoanIds = (await OtherIssuedLoan.find(commonFilter).distinct('_id')).map(String);
+
+        const sumFromCollection = async (Model, matchFilter, sumField) => {
+            const result = await Model.aggregate([
+                {$match: matchFilter},
+                {$group: {_id: null, total: {$sum: `$${sumField}`}}}
+            ]);
+            return result[0]?.total || 0;
+        };
+
+        const [
+            interestAmount,
+            partPayment,
+            otherLoan,
+            otherLoanClose,
+            loanPaymentAmount
+        ] = await Promise.all([
+            sumFromCollection(Interest, {loan: {$in: issuedLoanIds}, deleted_at: null}, 'amountPaid'),
+            sumFromCollection(PartPayment, {loan: {$in: issuedLoanIds}, deleted_at: null}, 'amountPaid'),
+            sumFromCollection(OtherIssuedLoan, commonFilter, 'amount'),
+            sumFromCollection(OtherLoanClose, {otherLoan: {$in: otherLoanIds}, deleted_at: null}, 'paidLoanAmount'),
+            sumFromCollection(IssuedLoan, commonFilter, 'interestLoanAmount')
+        ]);
+
+        const reduceCashBank = (items, filterFn = () => true) => {
+            return items.reduce((acc, item) => {
+                if (filterFn(item)) {
+                    const cash = Number(item?.paymentDetail?.cashAmount || 0);
+                    const bank = Number(item?.paymentDetail?.bankAmount || 0);
+                    acc.cash += cash;
+                    acc.bank += bank;
+                }
+                return acc;
+            }, {cash: 0, bank: 0});
+        };
+
+        const partReleases = await PartRelease.find({loan: {$in: issuedLoanIds}, deleted_at: null});
+        const partReleaseAmounts = reduceCashBank(partReleases);
+        const partRelease = partReleaseAmounts.cash + partReleaseAmounts.bank;
+
+        const loanCloseList = await LoanClose.find({loan: {$in: issuedLoanIds}, deleted_at: null});
+        const loanCloseAmounts = reduceCashBank(loanCloseList);
+        const loanCloseTotal = loanCloseAmounts.cash + loanCloseAmounts.bank;
+
+        const chargeInOutAll = await ChargeInOut.find(commonFilter);
+        const chargeReceivable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment In');
+        const chargeOutPayable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment Out');
+        const chargeReceivableTotal = chargeReceivable.cash + chargeReceivable.bank;
+        const chargeOutPayableTotal = chargeOutPayable.cash + chargeOutPayable.bank;
+
+        const partyList = await Party.find({company: companyId, ...branchFilter}).select('amount');
+        const partyReceivable = partyList.reduce((acc, p) => p.amount < 0 ? acc + Math.abs(p.amount) : acc, 0);
+        const partyPayable = partyList.reduce((acc, p) => p.amount >= 0 ? acc + p.amount : acc, 0);
+
+        const expenses = await Expense.find(commonFilter);
+        const expenseAmounts = reduceCashBank(expenses);
+        const expenseTotal = expenseAmounts.cash + expenseAmounts.bank;
+
+        const otherLoanInterestList = await OtherLoanInterestPayment.find({
+            otherLoan: {$in: otherLoanIds},
+            deleted_at: null
+        });
+        const otherLoanInterestAmounts = reduceCashBank(otherLoanInterestList);
+        const otherLoanInterest = otherLoanInterestAmounts.cash + otherLoanInterestAmounts.bank;
+
+        const allInAmount = interestAmount + partPayment + partRelease + loanCloseTotal + otherLoan + chargeReceivableTotal + partyReceivable;
+        const allOutAmount = loanPaymentAmount + otherLoanInterest + otherLoanClose + chargeOutPayableTotal + expenseTotal + partyPayable;
+        const netAmount = allInAmount - allOutAmount;
+
+        const toFixed2 = num => Number(num).toFixed(2);
+
+        res.json({
+            success: true,
+            allInAmount: toFixed2(allInAmount),
+            allOutAmount: toFixed2(allOutAmount),
+            netAmount: toFixed2(netAmount),
+        });
+
+    } catch (err) {
+        console.error('Error in getTotalInOutAmount:', err);
+        res.status(500).json({success: false, message: "Server error"});
+    }
+};
+
 module.exports = {
     getAreaAndReferenceStats,
     getInquiryStatusSummary,
@@ -942,5 +1049,6 @@ module.exports = {
     getCompanyPortfolioSummary,
     getOtherLoanChart,
     getLoanChartData,
-    getPaymentInOutSummary
+    getPaymentInOutSummary,
+    getTotalInOutAmount
 };

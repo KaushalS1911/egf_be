@@ -10,6 +10,7 @@ const {
     getOtherLoanChart,
     getLoanChartData,
     getPaymentInOutSummary,
+    getTotalInOutAmount,
 } = require("../controllers/dashboard");
 
 router.get('/:companyId/dashboard/reference-area-summary', getAreaAndReferenceStats);
@@ -20,5 +21,6 @@ router.get("/:companyId/dashboard/portfolio-summary", getCompanyPortfolioSummary
 router.get("/:companyId/dashboard/other-loan-chart", getOtherLoanChart);
 router.get("/:companyId/dashboard/loan-chart", getLoanChartData);
 router.get("/:companyId/dashboard/payment-in-out-summary", getPaymentInOutSummary);
+router.get("/:companyId/dashboard/total-in-out", getTotalInOutAmount);
 
 module.exports = router;
