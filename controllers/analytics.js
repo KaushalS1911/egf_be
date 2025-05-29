@@ -374,7 +374,7 @@ async function allBankTransactions(req, res) {
             {
                 model: ExpenseModel,
                 query: {company: companyId, deleted_at: null},
-                fields: ['paymentDetails', 'date', 'expenseType', 'category', 'description'],
+                fields: ['paymentDetail', 'date', 'expenseType', 'category', 'description'],
                 type: "Expense",
                 category: "Payment Out",
                 dateField: 'date',
@@ -383,7 +383,7 @@ async function allBankTransactions(req, res) {
             {
                 model: OtherIncomeModel,
                 query: {company: companyId, deleted_at: null},
-                fields: ['paymentDetails', 'date', 'incomeType', 'category', 'description'],
+                fields: ['paymentDetail', 'date', 'incomeType', 'category', 'description'],
                 type: "Other Income",
                 category: "Payment In",
                 dateField: 'date',
@@ -392,7 +392,7 @@ async function allBankTransactions(req, res) {
             {
                 model: ChargeInOutModel,
                 query: {company: companyId, deleted_at: null},
-                fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetails'],
+                fields: ['chargeType', 'status', 'description', 'category', 'date', 'paymentDetail'],
                 type: 'Charge In/Out',
                 categoryField: 'status',
                 dateField: 'date',
@@ -401,7 +401,7 @@ async function allBankTransactions(req, res) {
             {
                 model: PaymentInOutModel,
                 query: {company: companyId, deleted_at: null},
-                fields: ['party', 'status', 'description', 'date', 'paymentDetails'],
+                fields: ['party', 'status', 'description', 'date', 'paymentDetail'],
                 type: 'Payment In/Out',
                 categoryField: 'status',
                 dateField: 'date',
