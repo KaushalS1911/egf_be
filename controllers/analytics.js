@@ -156,14 +156,14 @@ async function allTransactions(req, res) {
             .filter(e => validTransferTypes.includes(e.transferType))
             .map(e => {
                 const isPaymentIn =
-                    (e.transferType === 'Adjustment' && e.paymentDetails?.adjustmentType === 'Add Cash') ||
+                    (e.transferType === 'Adjustment' && e.paymentDetail?.adjustmentType === 'Add Cash') ||
                     e.transferType === 'Bank To Cash';
 
                 const commonFields = {
                     status: e.transferType,
                     date: e.transferDate,
-                    amount: e.paymentDetails?.amount ?? 0,
-                    paymentDetails: e.paymentDetails
+                    amount: e.paymentDetail?.amount ?? 0,
+                    paymentDetail: e.paymentDetail
                 };
 
                 if (isPaymentIn) {
@@ -175,7 +175,7 @@ async function allTransactions(req, res) {
                             ? 'Bank to cash transfer'
                             : e.desc,
                         detail: e.transferType === 'Bank To Cash'
-                            ? `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) To cash`
+                            ? `${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName}) To cash`
                             : 'Add Cash for Adjustment',
                     };
                 } else {
@@ -187,7 +187,7 @@ async function allTransactions(req, res) {
                             ? 'Cash to Bank transfer'
                             : e.desc,
                         detail: e.transferType === 'Cash To Bank'
-                            ? `Cash deposit to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`
+                            ? `Cash deposit to ${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName})`
                             : `Reduce Cash for Adjustment`,
                     };
                 }
@@ -216,6 +216,8 @@ async function allTransactions(req, res) {
                     entry?.paymentDetail?.cashAmount ??
                     entry?.paymentDetails?.chargeCashAmount ??
                     entry?.paymentDetails?.cashAmount ?? 0),
+                paymentDetail: entry?.paymentDetail ??
+                    entry?.paymentDetails ?? {},
             }))
         );
 
@@ -429,8 +431,8 @@ async function allBankTransactions(req, res) {
 
                 const commonFields = {
                     date: e.transferDate,
-                    amount: e.paymentDetails?.amount ?? 0,
-                    paymentDetails: e.paymentDetails
+                    amount: e.paymentDetail?.amount ?? 0,
+                    paymentDetails: e.paymentDetail
                 };
 
                 if (e.transferType === 'Bank To Bank') {
@@ -441,9 +443,9 @@ async function allBankTransactions(req, res) {
                             status: e.transferType,
                             category: 'Payment Out',
                             ref: '',
-                            bankHolderName: e.paymentDetails?.from?.accountHolderName,
-                            bankName: `${e.paymentDetails?.from?.bankName}`,
-                            detail: `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`,
+                            bankHolderName: e.paymentDetail?.from?.accountHolderName,
+                            bankName: `${e.paymentDetail?.from?.bankName}`,
+                            detail: `${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName}) to ${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName})`,
                         },
                         {
                             ...commonFields,
@@ -451,15 +453,15 @@ async function allBankTransactions(req, res) {
                             status: e.transferType,
                             category: 'Payment In',
                             ref: '',
-                            bankHolderName: e.paymentDetails?.to?.accountHolderName,
-                            bankName: `${e.paymentDetails?.to?.bankName}`,
-                            detail: `${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName}) to ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
+                            bankHolderName: e.paymentDetail?.to?.accountHolderName,
+                            bankName: `${e.paymentDetail?.to?.bankName}`,
+                            detail: `${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName}) to ${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName})`,
                         }
                     ];
                 }
 
                 const isPaymentIn =
-                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetails?.adjustmentType === 'Increase balance') ||
+                    (e.transferType === 'Adjust Bank Balance' && e.paymentDetail?.adjustmentType === 'Increase balance') ||
                     e.transferType === 'Cash To Bank';
 
                 if (isPaymentIn) {
@@ -470,14 +472,14 @@ async function allBankTransactions(req, res) {
                         category: 'Payment In',
                         ref: '',
                         bankName: (e.transferType === 'Cash To Bank')
-                            ? `${e.paymentDetails?.to?.bankName}`
-                            : `${e.paymentDetails?.from?.bankName}`,
+                            ? `${e.paymentDetail?.to?.bankName}`
+                            : `${e.paymentDetail?.from?.bankName}`,
                         bankHolderName: (e.transferType === 'Cash To Bank')
-                            ? e.paymentDetails?.to?.accountHolderName
-                            : e.paymentDetails?.from?.accountHolderName,
+                            ? e.paymentDetail?.to?.accountHolderName
+                            : e.paymentDetail?.from?.accountHolderName,
                         detail: (e.transferType === 'Cash To Bank')
-                            ? `Cash deposit to ${e.paymentDetails?.to?.bankName}(${e.paymentDetails?.to?.accountHolderName})`
-                            : `Add adjustment ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
+                            ? `Cash deposit to ${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName})`
+                            : `Add adjustment ${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName})`,
                     };
                 } else {
                     return {
@@ -486,11 +488,11 @@ async function allBankTransactions(req, res) {
                         status: e.transferType,
                         category: 'Payment Out',
                         ref: '',
-                        bankName: `${e.paymentDetails?.from?.bankName}`,
-                        bankHolderName: e.paymentDetails?.from?.accountHolderName,
+                        bankName: `${e.paymentDetail?.from?.bankName}`,
+                        bankHolderName: e.paymentDetail?.from?.accountHolderName,
                         detail: (e.transferType === 'Bank To Cash')
-                            ? `${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName}) To Cash Withdrawal`
-                            : `Reduce adjustment ${e.paymentDetails?.from?.bankName}(${e.paymentDetails?.from?.accountHolderName})`,
+                            ? `${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName}) To Cash Withdrawal`
+                            : `Reduce adjustment ${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName})`,
                     };
                 }
             });
@@ -545,6 +547,9 @@ async function allBankTransactions(req, res) {
                     entry?.paymentDetail?.bankAmount ??
                     entry?.paymentDetails?.chargeBankAmount ??
                     entry?.bankDetails?.bankAmount ?? 0),
+                paymentDetail: entry?.paymentDetail ??
+                    entry?.paymentDetails ??
+                    entry?.bankDetails ?? {},
             }))
         ).filter(t => t?.amount !== 0);
 
