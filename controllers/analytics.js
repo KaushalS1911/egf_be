@@ -344,10 +344,10 @@ async function allBankTransactions(req, res) {
             {
                 model: OtherLoanInterestModel,
                 query: {deleted_at: null},
-                fields: ['paymentDetail', 'payDate', 'otherLoan'],
+                fields: ['paymentDetail', 'to', 'payDate', 'otherLoan'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
-                dateField: 'payDate',
+                dateField: 'to',
                 populate: {
                     path: 'otherLoan',
                     populate: [
@@ -498,7 +498,7 @@ async function allBankTransactions(req, res) {
             });
 
         const transactions = results.flatMap((data, index) =>
-            (Array.isArray(data) ? data : []).map(entry => ({
+            (Array.isArray(data) ? data : []).map(entry => (console.log(entry), {
                 category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
                 ref: entry?.otherNumber ??
                     entry?.loanNo ??
