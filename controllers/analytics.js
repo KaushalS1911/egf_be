@@ -344,7 +344,7 @@ async function allBankTransactions(req, res) {
             {
                 model: OtherLoanInterestModel,
                 query: {deleted_at: null},
-                fields: ['paymentDetail', 'to', 'payDate', 'otherLoan'],
+                fields: ['paymentDetail', 'to', 'payDate', 'otherLoan', 'charge'],
                 type: "Other Loan Interest",
                 category: "Payment Out",
                 dateField: 'to',
@@ -542,11 +542,13 @@ async function allBankTransactions(req, res) {
                     entry?.paymentDetail?.accountHolderName ??
                     entry?.bankDetails?.accountHolderName ??
                     null,
-                amount: Number(entry?.bankAmount ??
-                    entry?.paymentDetails?.bankAmount ??
-                    entry?.paymentDetail?.bankAmount ??
-                    entry?.paymentDetails?.chargeBankAmount ??
-                    entry?.bankDetails?.bankAmount ?? 0),
+                amount: models[index]?.type === "Other Loan Interest"
+                    ? Number((entry?.paymentDetail?.bankAmount ?? 0) - (entry?.charge ?? 0))
+                    : Number(entry?.bankAmount ??
+                        entry?.paymentDetails?.bankAmount ??
+                        entry?.paymentDetail?.bankAmount ??
+                        entry?.paymentDetails?.chargeBankAmount ??
+                        entry?.bankDetails?.bankAmount ?? 0),
                 paymentDetail: entry?.paymentDetail ??
                     entry?.paymentDetails ??
                     entry?.bankDetails ?? {},
