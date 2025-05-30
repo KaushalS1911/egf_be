@@ -498,7 +498,7 @@ async function allBankTransactions(req, res) {
             });
 
         const transactions = results.flatMap((data, index) =>
-            (Array.isArray(data) ? data : []).map(entry => (console.log(entry), {
+            (Array.isArray(data) ? data : []).map(entry => ({
                 category: models[index]?.categoryField ? entry[models[index].categoryField] : (models[index]?.category ?? 'Unknown'),
                 ref: entry?.otherNumber ??
                     entry?.loanNo ??
