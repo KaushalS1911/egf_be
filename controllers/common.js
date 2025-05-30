@@ -127,10 +127,11 @@ async function updateOverdueLoans() {
 async function interestReminders() {
     try {
         const today = moment().startOf('day');
+        const endOfMonthDate = moment().endOf('month').startOf('day');
         const fromDate = moment().add(3, 'days').startOf('day');
 
         const loans = await IssuedLoanModel.find({
-            nextInstallmentDate: { $gte: today.toDate(), $lt: fromDate.toDate() },
+            nextInstallmentDate: {$lt: fromDate.toDate()},
             status: { $nin: ["Closed",'Issued'] },
             deleted_at: null,
         }).populate([
@@ -144,20 +145,19 @@ async function interestReminders() {
                 InterestModel.find({ loan: loan._id }).sort({ createdAt: -1 }),
             ]);
 
-            let uchakInterest = 0;
-            if (interests.length > 0) {
-                const lastInterest = interests[0];
-                const uchakInterestData = await UchakInterestModel.aggregate([
-                    { $match: { loan: loan._id, date: { $gte: lastInterest.createdAt } } },
-                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
-                ]);
-                uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
-            }
+            const lastInterest = interests.length > 0 ? interests[0]?.createdAt : loan.issueDate;
 
-            const lastInstallmentDate = loan.lastInstallmentDate ? moment(loan.lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
-            const nextInstallmentDate = moment(loan.nextInstallmentDate).startOf('day');
-            const daysDiff = nextInstallmentDate.diff(lastInstallmentDate, 'days');
-            const penaltyDayDiff = nextInstallmentDate.diff(moment(interests.length ? loan.lastInstallmentDate : loan.nextInstallmentDate), 'days');
+            const uchakInterestData = await UchakInterestModel.aggregate([
+                {$match: {loan: String(loan._id), date: {$gte: lastInterest}}},
+                    { $group: { _id: null, totalInterest: { $sum: "$amountPaid" } } }
+            ]);
+
+            const uchakInterest = uchakInterestData.length > 0 ? uchakInterestData[0].totalInterest : 0;
+
+            const lastInstallmentDate = loan.lastInstallmentDate ? moment(loan.lastInstallmentDate) : moment(loan.issueDate).startOf('day');
+            const daysDiff = endOfMonthDate.diff(lastInstallmentDate, 'days') + 1;
+            const penaltyDayDiff = (loan.nextInstallmentDate < today) ? endOfMonthDate.diff(moment(interests.length ? loan.lastInstallmentDate : loan.issueDate), 'days') : 0;
+
 
             const interestRate = loan.scheme?.interestRate ?? 0;
             const interestAmount = ((loan.interestLoanAmount * (interestRate / 100)) * 12 * daysDiff) / 365;
@@ -186,9 +186,9 @@ async function interestReminders() {
                 lastName: loan.customer.lastName,
                 contact: loan.customer.contact,
                 loanNumber: loan.loanNo,
-                loanAmount: loan.loanAmount,
-                interestAmount: pendingInterest,
-                nextInstallmentDate: moment(loan.nextInstallmentDate, 'DD-MM-YYYY').format(),
+                loanAmount: Number(loan.loanAmount).toFixed(2),
+                interestAmount: Number(pendingInterest).toFixed(2),
+                nextInstallmentDate: moment(endOfMonthDate, 'DD-MM-YYYY').format(),
                 branchContact: loan.customer.branch.contact,
                 companyContact: loan.company.contact,
                 companyEmail: loan.company.email,
