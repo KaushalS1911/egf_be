@@ -31,8 +31,8 @@ async function getAllParties(req, res) {
 
             let balance = 0;
             for (const payment of payments) {
-                const cashAmount = Number(payment.paymentDetails?.cashAmount || 0);
-                const bankAmount = Number(payment.paymentDetails?.bankAmount || 0);
+                const cashAmount = Number(payment.paymentDetail?.cashAmount || 0);
+                const bankAmount = Number(payment.paymentDetail?.bankAmount || 0);
                 const totalAmount = cashAmount + bankAmount;
 
                 if (payment.status === "Payment In") {
