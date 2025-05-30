@@ -976,9 +976,9 @@ const getTotalInOutAmount = async (req, res) => {
         ] = await Promise.all([
             sumFromCollection(Interest, {loan: {$in: issuedLoanIds}, deleted_at: null}, 'amountPaid'),
             sumFromCollection(PartPayment, {loan: {$in: issuedLoanIds}, deleted_at: null}, 'amountPaid'),
-            sumFromCollection(OtherIssuedLoan, commonFilter, 'amount'),
+            sumFromCollection(OtherIssuedLoan, commonFilter, 'otherLoanAmount'),
             sumFromCollection(OtherLoanClose, {otherLoan: {$in: otherLoanIds}, deleted_at: null}, 'paidLoanAmount'),
-            sumFromCollection(IssuedLoan, commonFilter, 'interestLoanAmount')
+            sumFromCollection(IssuedLoan, commonFilter, 'loanAmount')
         ]);
 
         const reduceCashBank = (items, filterFn = () => true) => {
@@ -1019,8 +1019,15 @@ const getTotalInOutAmount = async (req, res) => {
             otherLoan: {$in: otherLoanIds},
             deleted_at: null
         });
-        const otherLoanInterestAmounts = reduceCashBank(otherLoanInterestList);
-        const otherLoanInterest = otherLoanInterestAmounts.cash + otherLoanInterestAmounts.bank;
+
+        const adjustedInterest = otherLoanInterestList.reduce((acc, item) => {
+            const cash = Number(item?.paymentDetail?.cashAmount || 0);
+            const bank = Number(item?.paymentDetail?.bankAmount || 0);
+            const charge = Number(item?.charge || 0);
+            return acc + (cash + bank - charge);
+        }, 0);
+
+        const otherLoanInterest = adjustedInterest;
 
         const allInAmount = interestAmount + partPayment + partRelease + loanCloseTotal + otherLoan + chargeReceivableTotal + partyReceivable;
         const allOutAmount = loanPaymentAmount + otherLoanInterest + otherLoanClose + chargeOutPayableTotal + expenseTotal + partyPayable;

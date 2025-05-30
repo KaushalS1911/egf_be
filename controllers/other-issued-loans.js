@@ -64,7 +64,10 @@ async function updateOtherLoan(req, res) {
 
         let payload = req.body
 
-        const updatedLoan = await OtherIssuedLoanModel.findByIdAndUpdate(loanId, payload, {new: true});
+        const updatedLoan = await OtherIssuedLoanModel.findByIdAndUpdate(loanId, {
+            ...payload,
+            otherLoanAmount: payload?.amount
+        }, {new: true});
 
         if (!updatedLoan) {
             return res.status(404).json({status: 404, message: "Other Loan details not found."});
