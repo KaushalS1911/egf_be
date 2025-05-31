@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 
 const schemeSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
+    branch: {type: String, ref: 'Branch', required: true},
     name: String,
     interestRate: Number,
     interestPeriod: {type: String, default: null},

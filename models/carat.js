@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 
 const caratSchema = new mongoose.Schema({
     company: {type: String, ref: "Company", required: true},
+    branch: {type: String, ref: 'Branch', required: true},
     name: String,
     caratPercentage: String,
     remark: String,

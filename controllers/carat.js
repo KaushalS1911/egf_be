@@ -2,11 +2,12 @@ const CaratModel = require("../models/carat");
 
 async function addCarat(req, res) {
     const { companyId } = req.params;
-    const { name, caratPercentage, remark } = req.body;
+    const {name, caratPercentage, remark, branch} = req.body;
 
     try {
         const isCaratExist = await CaratModel.exists({
             company: companyId,
+            branch,
             name,
             deleted_at: null,
         });
@@ -17,6 +18,7 @@ async function addCarat(req, res) {
 
         const carat = await CaratModel.create({
             company: companyId,
+            branch,
             name,
             caratPercentage,
             remark,
@@ -31,12 +33,22 @@ async function addCarat(req, res) {
 
 async function getAllCarats(req, res) {
     const { companyId } = req.params;
+    const {branchId} = req.query;
 
     try {
-        const carats = await CaratModel.find({
+        const query = {
             company: companyId,
-            deleted_at: null,
-        }).populate("company").sort({name: 1});
+            deleted_at: null
+        };
+
+        if (branchId) {
+            query.branch = branchId;
+        }
+
+        const carats = await CaratModel.find(query)
+            .populate("company")
+            .populate("branch")
+            .sort({name: 1});
 
         return res.status(200).json({ status: 200, data: carats });
     } catch (err) {
@@ -47,8 +59,21 @@ async function getAllCarats(req, res) {
 
 async function updateCarat(req, res) {
     const { caratId } = req.params;
+    const {name, caratPercentage, remark, branch, company} = req.body;
 
     try {
+        const isCaratExist = await CaratModel.exists({
+            _id: {$ne: caratId},
+            company,
+            branch,
+            name,
+            deleted_at: null,
+        });
+
+        if (isCaratExist) {
+            return res.status(400).json({status: 400, message: "Carat details already exist"});
+        }
+
         const updatedCarat = await CaratModel.findByIdAndUpdate(caratId, req.body, { new: true });
 
         if (!updatedCarat) {

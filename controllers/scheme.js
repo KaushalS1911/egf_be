@@ -4,12 +4,15 @@ const SchemeModel = require("../models/scheme");
 async function addScheme(req, res) {
     const { companyId } = req.params;
     const {
-        name, interestRate, interestPeriod, schemeType, valuation, renewalTime, minLoanTime, ratePerGram, remark
+        name, interestRate, interestPeriod, schemeType,
+        valuation, renewalTime, minLoanTime,
+        ratePerGram, remark, branch
     } = req.body;
 
     try {
         const isSchemeExist = await SchemeModel.exists({
             company: companyId,
+            branch,
             interestRate,
             name,
             deleted_at: null
@@ -21,6 +24,7 @@ async function addScheme(req, res) {
 
         const scheme = await SchemeModel.create({
             company: companyId,
+            branch,
             name,
             interestRate,
             interestPeriod,
@@ -41,17 +45,26 @@ async function addScheme(req, res) {
 
 async function getAllSchemes(req, res) {
     const { companyId } = req.params;
+    const {branchId} = req.query;
 
     try {
-        const schemes = await SchemeModel.find({
+        const query = {
             company: companyId,
-            deleted_at: null
-        })
+            deleted_at: null,
+        };
+
+        if (branchId) {
+            query.branch = branchId;
+        }
+
+        const schemes = await SchemeModel.find(query)
             .populate("company")
+            .populate("branch")
             .sort([
                 ['isActive', -1],
                 ['interestRate', 1]
             ]);
+
         return res.status(200).json({ status: 200, data: schemes });
     } catch (err) {
         console.error("Error fetching schemes:", err.message);
@@ -61,12 +74,14 @@ async function getAllSchemes(req, res) {
 
 async function updateScheme(req, res) {
     const { companyId, schemeId } = req.params;
+    const {name, interestRate, branch} = req.body;
 
     try {
         const isSchemeExist = await SchemeModel.exists({
             company: companyId,
-            interestRate: req.body.interestRate,
-            name: req.body.name,
+            branch,
+            interestRate,
+            name,
             deleted_at: null,
             _id: { $ne: schemeId }
         });
