@@ -10,7 +10,6 @@ async function validateCompany(companyId) {
 async function addExpense(req, res) {
     try {
         const {companyId} = req.params;
-        const {branch} = req.query;
 
         const company = await validateCompany(companyId);
         if (!company) {
@@ -21,12 +20,13 @@ async function addExpense(req, res) {
             ? await uploadFile(req.file.buffer, uploadDir.EXPENSES, req.file.originalname)
             : null;
 
-        const expense = await ExpenseModel.create({
+        const payload = {
             ...req.body,
             company: companyId,
-            branch,
             invoice: avatar ?? ''
-        });
+        };
+
+        const expense = await ExpenseModel.create(payload);
 
         return res.status(201).json({
             status: 201,
