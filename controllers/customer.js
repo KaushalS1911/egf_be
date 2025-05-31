@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const CustomerModel = require("../models/customer");
 const CompanyModel = require("../models/company");
 const BranchModel = require("../models/branch");
+const IssuedLoanModel = require("../models/issued-loan");
 const {uploadFile} = require("../helpers/avatar");
 const {sendWhatsAppMessage} = require("./common");
 const {uploadDir} = require("../constant");
@@ -114,7 +115,6 @@ const sendWhatsAppNotification = async ({
     await sendWhatsAppMessage(formData);
 };
 
-
 async function getAllCustomers(req, res) {
     const {companyId} = req.params;
     const {branch} = req.query;
@@ -131,10 +131,21 @@ async function getAllCustomers(req, res) {
 
         const customers = await CustomerModel.find(query)
             .populate("company")
-            .populate("branch")
+            .populate("branch");
 
+        const updatedCustomers = await Promise.all(customers.map(async (customer) => {
+            const hasActiveLoan = await IssuedLoanModel.exists({
+                customer: customer._id,
+                status: {$ne: "Closed"},
+                deleted_at: null,
+            });
 
-        return res.status(200).json({status: 200, data: customers});
+            customer = customer.toObject();
+            customer.isLoan = !!hasActiveLoan;
+            return customer;
+        }));
+
+        return res.status(200).json({status: 200, data: updatedCustomers});
     } catch (err) {
         console.error("Error fetching customers:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});

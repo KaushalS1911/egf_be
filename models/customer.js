@@ -26,6 +26,7 @@ const customerSchema = new mongoose.Schema({
     permanentAddress: {type: addressSchema},
     temporaryAddress: {type: addressSchema},
     bankDetails: [],
+    isLoan: {type: Boolean, default: false},
     deleted_at: {type: Date, default: null},
 },{timestamps: true})
 
