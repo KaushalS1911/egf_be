@@ -666,10 +666,16 @@ const getOtherLoanChart = async (req, res) => {
             yearCategories.push(moment().subtract(i, 'years').format('YYYY'));
         }
 
+        const last2WeeksCategories = [];
+        for (let i = 13; i >= 0; i--) {
+            last2WeeksCategories.push(moment().subtract(i, 'days').format('DD MMM'));
+        }
+
         const series = [
             buildChartData('Week', 'ddd', weekCategories),
             buildChartData('Month', 'MMM', monthCategories),
-            buildChartData('Year', 'YYYY', yearCategories)
+            buildChartData('Year', 'YYYY', yearCategories),
+            buildChartData('Last 2 Weeks', 'DD MMM', last2WeeksCategories)
         ];
 
         return res.json({series});
@@ -693,10 +699,20 @@ const getLoanChartData = async (req, res) => {
             return res.status(404).json({success: false, message: "Company not found"});
         }
 
-        const today = moment();
         const series = [];
 
         const timeConfigs = [
+            {
+                type: "Last 2 Weeks",
+                start: moment().subtract(13, "days").startOf("day"),
+                end: moment().endOf("day"),
+                categories: Array.from({length: 14}, (_, i) =>
+                    moment().subtract(13 - i, "days").format("DD MMM")
+                ),
+                groupFormat: "DD MMM",
+                key: "issueDate",
+                closeKey: "date",
+            },
             {
                 type: "Week",
                 start: moment().startOf("week"),
@@ -736,7 +752,7 @@ const getLoanChartData = async (req, res) => {
                 company: companyId,
             });
 
-            const closedLoans = await LoanClose.find({
+            const loanCloses = await LoanClose.find({
                 [config.closeKey]: {$gte: config.start.toDate(), $lte: config.end.toDate()},
             }).populate({
                 path: "loan",
@@ -744,7 +760,29 @@ const getLoanChartData = async (req, res) => {
                 select: "company loanAmount",
             });
 
-            const filteredClosedLoans = closedLoans.filter((item) => item.loan != null);
+            const filteredLoanCloses = loanCloses.filter(item => item.loan != null);
+
+            const partPayments = await PartPayment.find({
+                date: {$gte: config.start.toDate(), $lte: config.end.toDate()},
+                deleted_at: null,
+            }).populate({
+                path: "loan",
+                match: {company: companyId},
+                select: "company",
+            });
+
+            const validPartPayments = partPayments.filter(item => item.loan != null);
+
+            const partReleases = await PartRelease.find({
+                date: {$gte: config.start.toDate(), $lte: config.end.toDate()},
+                deleted_at: null,
+            }).populate({
+                path: "loan",
+                match: {company: companyId},
+                select: "company",
+            });
+
+            const validPartReleases = partReleases.filter(item => item.loan != null);
 
             const groupData = (items, key, amountField, format) => {
                 const grouped = {};
@@ -753,11 +791,18 @@ const getLoanChartData = async (req, res) => {
                     const amount = item[amountField] || 0;
                     grouped[label] = (grouped[label] || 0) + amount;
                 });
-                return config.categories.map((label) => grouped[label] || 0);
+                return config.categories.map(label => grouped[label] || 0);
             };
 
             const newLoanData = groupData(issuedLoans, config.key, "loanAmount", config.groupFormat);
-            const closeLoanData = groupData(filteredClosedLoans, config.closeKey, "netAmount", config.groupFormat);
+            const loanCloseData = groupData(filteredLoanCloses, config.closeKey, "netAmount", config.groupFormat);
+            const partPaymentData = groupData(validPartPayments, "date", "amountPaid", config.groupFormat);
+            const partReleaseData = groupData(validPartReleases, "date", "adjustedAmount", config.groupFormat);
+
+            const closeLoanData = config.categories.map((label, i) =>
+                (loanCloseData[i] || 0) + (partPaymentData[i] || 0) + (partReleaseData[i] || 0)
+            );
+
             const differenceData = newLoanData.map((v, i) => v - closeLoanData[i]);
 
             series.push({
