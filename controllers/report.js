@@ -443,74 +443,86 @@ const loanDetail = async (req, res) => {
     }
 }
 
-
 const customerStatement = async (req, res) => {
     try {
-        const {companyId} = req.params;
-        const {loan} = req.query
+        const {companyId, customerId} = req.params;
 
+        const issuedLoans = await IssuedLoanModel.find({customer: customerId, deleted_at: null})
+            .select('loanNo loanAmount issueDate _id');
 
-        const query = {loan: {$in: loan}, deleted_at: null};
+        const groupedStatements = {};
 
-        const issuedLoan =  await IssuedLoanModel.findById(loan).select('loanNo loanAmount issueDate')
+        for (const loan of issuedLoans) {
+            const loanId = String(loan._id);
+            const query = {loan: loanId, deleted_at: null};
 
-        const loanDetails = await Promise.all([
-            fetchPartPaymentDetails(query, companyId, null),
-            fetchPartReleaseDetails(query, companyId, null),
-            fetchLoanCloseDetails(query, companyId, null),
-        ]);
+            const [partPayments, partReleases, loanCloses] = await Promise.all([
+                fetchPartPaymentDetails(query, companyId, null),
+                fetchPartReleaseDetails(query, companyId, null),
+                fetchLoanCloseDetails(query, companyId, null),
+            ]);
 
-        const interestDetails = await Promise.all([
-            fetchInterestDetails(query, companyId, null),
-            fetchUchakInterestDetails(query, companyId, null),
-        ])
+            const [interestPayments, uchakInterestPayments] = await Promise.all([
+                fetchInterestDetails(query, companyId, null),
+                fetchUchakInterestDetails(query, companyId, null),
+            ]);
 
-        const intStatements = interestDetails.flatMap((ele, index) => ele).map((e, index) => {
-            return{
+            const intStatements = [...interestPayments, ...uchakInterestPayments].map(e => ({
                 date: e?.entryDate ?? e?.createdAt,
-                to: e?.to ?? null,
-                from: e?.from ?? null,
-                day: Number(e?.days),
                 detail: e.to ? 'Interest Payment' : 'Uchak Int Payment',
-                amount: e?.amountPaid
-            }
-        })
+                debit: e?.amountPaid,
+                credit: 0,
+                loanNo: loan.loanNo
+            }));
 
-        const types = [
-            "Loan Part Payment",
-            "Loan Part Release",
-            "Loan Close",
-        ];
+            const types = [
+                {label: "Loan Part Payment", data: partPayments},
+                {label: "Loan Part Release", data: partReleases},
+                {label: "Loan Close", data: loanCloses}
+            ];
 
-        const result = loanDetails.flatMap((ele, index) =>
-            ele?.map(entry => ({date: entry.date, debit: entry.amountPaid, loanNo: entry.loan.loanNo, detail: types[index]}))
-        );
+            const result = types.flatMap(type =>
+                type.data.map(entry => ({
+                    date: entry.date,
+                    debit: entry.amountPaid,
+                    credit: 0,
+                    loanNo: loan.loanNo,
+                    detail: type.label
+                }))
+            );
 
-        const sortedResults = result
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+            result.unshift({
+                date: loan.issueDate,
+                debit: 0,
+                credit: loan.loanAmount,
+                loanNo: loan.loanNo,
+                detail: "Loan Issued"
+            });
 
-        sortedResults.unshift({date: issuedLoan.issueDate, credit: issuedLoan.loanAmount, loanNo: issuedLoan.loanNo, detail: "Loan Issued", balance: issuedLoan.loanAmount})
+            const fullStatement = [...result, ...intStatements].sort(
+                (a, b) => new Date(a.date) - new Date(b.date)
+            );
 
-        let previousBalance = sortedResults[0]?.balance || 0;
+            let balance = 0;
+            const statementWithBalance = fullStatement.map(entry => {
+                balance += (entry.credit || 0) - (entry.debit || 0);
+                return {
+                    ...entry,
+                    balance
+                };
+            });
 
-        const loanStatement = sortedResults.map((e, index) => {
-            const currentDebit = e.debit ?? null;
-            const balance = index === 0
-                ? e.balance
-                : previousBalance - currentDebit;
-
-            const updated = {
-                ...e,
-                debit: currentDebit,
-                credit: e.credit ?? null,
-                balance,
+            groupedStatements[loanId] = {
+                loanNo: loan.loanNo,
+                statements: statementWithBalance
             };
+        }
 
-            previousBalance = balance;
-            return updated;
+        return res.status(200).json({
+            status: 200,
+            data: groupedStatements
         });
 
-        return res.status(200).json({status: 200, data: { loanStatement, interestDetail: intStatements}});
     } catch (err) {
         console.error("Error fetching customer statement report:", err.message);
         return res.status(500).json({status: 500, message: "Internal server error"});
