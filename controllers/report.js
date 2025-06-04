@@ -707,6 +707,7 @@ const interestEntryReportForOtherLoan = async (req, res) => {
                 match: {company: companyId},
                 populate: [
                     {path: "company"},
+                    {path: "loan"},
                 ]
             })
             .exec();
