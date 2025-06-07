@@ -218,6 +218,7 @@ async function allTransactions(req, res) {
                     entry?.paymentDetails?.cashAmount ?? 0),
                 paymentDetail: entry?.paymentDetail ??
                     entry?.paymentDetails ?? {},
+                allCategory: entry?.category ?? "",
             }))
         );
 
@@ -551,6 +552,7 @@ async function allBankTransactions(req, res) {
                 paymentDetail: entry?.paymentDetail ??
                     entry?.paymentDetails ??
                     entry?.bankDetails ?? {},
+                allCategory: entry?.category ?? "",
             }))
         ).filter(t => t?.amount !== 0);
 
