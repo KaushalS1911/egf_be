@@ -455,7 +455,7 @@ async function allBankTransactions(req, res) {
                             ref: '',
                             bankHolderName: e.paymentDetail?.to?.accountHolderName,
                             bankName: `${e.paymentDetail?.to?.bankName}`,
-                            detail: `${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName}) to ${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName})`,
+                            detail: `${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName}) to ${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName})`,
                         }
                     ];
                 }
