@@ -328,32 +328,33 @@ const getLoanAmountPerScheme = async (req, res) => {
     try {
         const {start, end} = getDateRange(timeRange, company.createdAt);
 
-        const schemeLoanStats = await IssuedLoan.aggregate([
-            {
-                $match: {
-                    company: companyId,
-                    deleted_at: null,
-                    createdAt: {$gte: start, $lte: end}
-                }
-            },
-            {
-                $group: {
-                    _id: "$scheme",
-                    totalInterestAmount: {$sum: "$interestLoanAmount"}
-                }
-            }
-        ]);
+        const allLoans = await IssuedLoan.find({
+            company: companyId,
+            deleted_at: null,
+            createdAt: {$gte: start, $lte: end}
+        }).populate('scheme');
 
-        const schemeIdsUsed = schemeLoanStats.map(stat => stat._id);
+        const schemeLoanMap = {};
+        for (const loan of allLoans) {
+            const schemeIdStr = loan?.scheme?._id?.toString();
+            if (!schemeIdStr) continue;
+
+            if (!schemeLoanMap[schemeIdStr]) {
+                schemeLoanMap[schemeIdStr] = [];
+            }
+            schemeLoanMap[schemeIdStr].push(loan);
+        }
+
+        const schemeIds = Object.keys(schemeLoanMap);
         const schemes = await Scheme.find({
-            _id: {$in: schemeIdsUsed},
+            _id: {$in: schemeIds},
             company: companyId,
             deleted_at: null
         });
 
         let globalLoanTotal = 0;
-        let totalInterestRate = 0;
-        let interestRateCount = 0;
+        let totalloans = 0;
+        let totalLoanInterestRate = 0;
 
         const categories = [];
         const series = [{
@@ -362,15 +363,18 @@ const getLoanAmountPerScheme = async (req, res) => {
         }];
 
         const result = schemes.map(scheme => {
-            const stat = schemeLoanStats.find(stat => String(stat._id) === String(scheme._id));
-            const totalLoanAmount = stat ? stat.totalInterestAmount || 0 : 0;
+            const schemeIdStr = scheme._id.toString();
+            const loans = schemeLoanMap[schemeIdStr] || [];
+
+            const totalLoanAmount = loans.reduce((sum, l) => sum + (l.loanAmount || 0), 0);
+            const loanCount = loans.length;
 
             globalLoanTotal += totalLoanAmount;
+            totalloans += loanCount;
 
-            if (scheme.interestRate != null) {
-                totalInterestRate += scheme.interestRate;
-                interestRateCount += 1;
-            }
+            totalLoanInterestRate += loans.reduce((sum, l) => {
+                return sum + (l?.scheme?.interestRate || 0);
+            }, 0);
 
             const interestLabel = scheme.interestRate != null ? ` (${scheme.interestRate}%)` : " (0%)";
             categories.push(`${scheme.name}${interestLabel}`);
@@ -380,11 +384,14 @@ const getLoanAmountPerScheme = async (req, res) => {
                 schemeId: scheme._id,
                 schemeName: scheme.name,
                 totalLoanAmount,
+                loanCount,
                 avgInterestRate: scheme.interestRate || 0
             };
         });
 
-        const globalAvgInterestRate = interestRateCount > 0 ? (totalInterestRate / interestRateCount) : 0;
+        const globalAvgInterestRate = totalloans > 0
+            ? (totalLoanInterestRate / totalloans)
+            : 0;
 
         res.status(200).json({
             success: true,
