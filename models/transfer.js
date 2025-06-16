@@ -14,6 +14,7 @@ const transferSchema = new mongoose.Schema({
     transferDate: {type: Date, default: Date.now},
     desc: {type: String},
     paymentDetail: {type: paymentDetailsSchema, required: true,},
+    entryBy: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
     deleted_at: {type: Date, default: null},
 }, {
     timestamps: true,
