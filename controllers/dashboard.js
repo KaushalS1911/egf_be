@@ -366,7 +366,7 @@ const getLoanAmountPerScheme = async (req, res) => {
             const schemeIdStr = scheme._id.toString();
             const loans = schemeLoanMap[schemeIdStr] || [];
 
-            const totalLoanAmount = loans.reduce((sum, l) => sum + (l.loanAmount || 0), 0);
+            const totalLoanAmount = loans.reduce((sum, l) => sum + (l.interestLoanAmount || 0), 0);
             const loanCount = loans.length;
 
             globalLoanTotal += totalLoanAmount;
