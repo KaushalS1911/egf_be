@@ -63,8 +63,7 @@ async function getAllTransfers(req, res) {
 
         const transfers = await Transfer.find(query)
             .populate('company')
-            .populate('branch')
-            .populate('entryBy');
+            .populate('branch');
 
         return res.status(200).json({status: 200, data: transfers});
     } catch (err) {
@@ -83,7 +82,7 @@ async function getTransferById(req, res) {
         }
 
         const transfer = await Transfer.findOne({_id: id, company: companyId, deleted_at: null})
-            .populate('company').populate('entryBy')
+            .populate('company')
 
         if (!transfer) {
             return res.status(404).json({status: 404, message: "Transfer not found"});
