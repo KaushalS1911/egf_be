@@ -15,6 +15,8 @@ const PaymentInOut = require('../models/payment-in-out');
 const Party = require("../models/party");
 const PartPayment = require("../models/loan-part-payment");
 const PartRelease = require("../models/part-release");
+const Transfer = require("../models/transfer");
+const UchakInterest = require("../models/uchak-interest-payment");
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -1015,53 +1017,81 @@ const getTotalInOutAmount = async (req, res) => {
         const reduceCashBank = (items, filterFn = () => true) => {
             return items.reduce((acc, item) => {
                 if (filterFn(item)) {
-                    const cash = Number(item?.paymentDetail?.cashAmount || 0);
-                    const bank = Number(item?.paymentDetail?.bankAmount || 0);
-                    acc.cash += cash;
-                    acc.bank += bank;
+                    acc.cash += Number(item?.paymentDetail?.cashAmount || 0);
+                    acc.bank += Number(item?.paymentDetail?.bankAmount || 0);
                 }
                 return acc;
             }, {cash: 0, bank: 0});
         };
 
-        const partReleases = await PartRelease.find({loan: {$in: issuedLoanIds}, deleted_at: null});
-        const partReleaseAmounts = reduceCashBank(partReleases);
-        const partRelease = partReleaseAmounts.cash + partReleaseAmounts.bank;
+        const getCashBankTotal = async (Model, query) => {
+            const list = await Model.find(query);
+            const amounts = reduceCashBank(list);
+            return amounts.cash + amounts.bank;
+        };
 
-        const loanCloseList = await LoanClose.find({loan: {$in: issuedLoanIds}, deleted_at: null});
-        const loanCloseAmounts = reduceCashBank(loanCloseList);
-        const loanCloseTotal = loanCloseAmounts.cash + loanCloseAmounts.bank;
+        const [
+            partRelease,
+            loanCloseTotal,
+            chargeInOutList,
+            expenses,
+            otherLoanInterestList,
+            transferList,
+            uchakInterestList,
+            partyList
+        ] = await Promise.all([
+            getCashBankTotal(PartRelease, {loan: {$in: issuedLoanIds}, deleted_at: null}),
+            getCashBankTotal(LoanClose, {loan: {$in: issuedLoanIds}, deleted_at: null}),
+            ChargeInOut.find(commonFilter),
+            Expense.find(commonFilter),
+            OtherLoanInterestPayment.find({otherLoan: {$in: otherLoanIds}, deleted_at: null}),
+            Transfer.find({company: companyId, ...branchFilter, deleted_at: null}),
+            UchakInterest.find({loan: {$in: issuedLoanIds}, deleted_at: null}),
+            Party.find({company: companyId, ...branchFilter}).select('amount')
+        ]);
 
-        const chargeInOutAll = await ChargeInOut.find(commonFilter);
-        const chargeReceivable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment In');
-        const chargeOutPayable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment Out');
+        const chargeReceivable = reduceCashBank(chargeInOutList, item => item.status === 'Payment In');
+        const chargeOutPayable = reduceCashBank(chargeInOutList, item => item.status === 'Payment Out');
         const chargeReceivableTotal = chargeReceivable.cash + chargeReceivable.bank;
         const chargeOutPayableTotal = chargeOutPayable.cash + chargeOutPayable.bank;
 
-        const partyList = await Party.find({company: companyId, ...branchFilter}).select('amount');
-        const partyReceivable = partyList.reduce((acc, p) => p.amount < 0 ? acc + Math.abs(p.amount) : acc, 0);
-        const partyPayable = partyList.reduce((acc, p) => p.amount >= 0 ? acc + p.amount : acc, 0);
-
-        const expenses = await Expense.find(commonFilter);
         const expenseAmounts = reduceCashBank(expenses);
         const expenseTotal = expenseAmounts.cash + expenseAmounts.bank;
 
-        const otherLoanInterestList = await OtherLoanInterestPayment.find({
-            otherLoan: {$in: otherLoanIds},
-            deleted_at: null
-        });
-
-        const adjustedInterest = otherLoanInterestList.reduce((acc, item) => {
+        const otherLoanInterest = otherLoanInterestList.reduce((acc, item) => {
             const cash = Number(item?.paymentDetail?.cashAmount || 0);
             const bank = Number(item?.paymentDetail?.bankAmount || 0);
             const charge = Number(item?.charge || 0);
             return acc + (cash + bank - charge);
         }, 0);
 
-        const otherLoanInterest = adjustedInterest;
+        const uchakInterestAmounts = reduceCashBank(uchakInterestList);
+        const uchakInterestTotal = uchakInterestAmounts.cash + uchakInterestAmounts.bank;
 
-        const allInAmount = interestAmount + partPayment + partRelease + loanCloseTotal + otherLoan + chargeReceivableTotal + partyReceivable;
-        const allOutAmount = loanPaymentAmount + otherLoanInterest + otherLoanClose + chargeOutPayableTotal + expenseTotal + partyPayable;
+        const partyReceivable = partyList.reduce((acc, p) => p.amount < 0 ? acc + Math.abs(p.amount) : acc, 0);
+        const partyPayable = partyList.reduce((acc, p) => p.amount >= 0 ? acc + p.amount : acc, 0);
+
+        const transferAmountByType = (type, adjType) =>
+            transferList
+                .filter(t => t.transferType === type &&
+                    (t.paymentDetail?.adjustmentType === adjType || t.paymentDetails?.adjustmentType === adjType))
+                .reduce((acc, t) => acc + Number(t?.paymentDetail?.amount || t?.paymentDetails?.amount || 0), 0);
+
+        const transferIncreaseAmount = transferAmountByType("Adjust Bank Balance", "Increase balance");
+        const addCashAmount = transferAmountByType("Adjustment", "Add Cash");
+        const transferDecreaseAmount = transferAmountByType("Adjust Bank Balance", "Decrease balance");
+        const reduceCashAmount = transferAmountByType("Adjustment", "Reduce Cash");
+
+        const allInAmount =
+            interestAmount + partPayment + partRelease + loanCloseTotal +
+            otherLoan + chargeReceivableTotal + partyReceivable +
+            transferIncreaseAmount + addCashAmount + uchakInterestTotal;
+
+        const allOutAmount =
+            loanPaymentAmount + otherLoanInterest + otherLoanClose +
+            chargeOutPayableTotal + expenseTotal + partyPayable +
+            transferDecreaseAmount + reduceCashAmount;
+
         const netAmount = allInAmount - allOutAmount;
 
         const toFixed2 = num => Number(num).toFixed(2);
