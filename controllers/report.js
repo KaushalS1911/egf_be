@@ -14,58 +14,97 @@ const OtherLoanInterestModel = require("../models/other-loan-interest-payment")
 const PenaltyModel = require("../models/penalty")
 
 const fetchLoans = async (query, branch) => {
-    return IssuedLoanModel.find(query)
+    const loans = await IssuedLoanModel.find(query)
         .populate({
             path: "customer",
-            populate: "branch",
-            match: branch ? {"branch._id": branch} : {},
+            populate: "branch"
         })
         .populate("scheme")
         .populate("closedBy")
         .populate("issuedBy")
         .sort({createdAt: -1})
         .lean();
+
+    return branch
+        ? loans.filter(loan => loan?.customer?.branch?._id?.toString() === branch)
+        : loans;
 };
 
-const fetchOtherLoans = async (query) => {
-    return OtherIssuedLoanModel.find(query)
+const fetchOtherLoans = async (query, branch) => {
+    const otherLoans = await OtherIssuedLoanModel.find(query)
         .populate({
             path: "loan",
-            populate: [{
-                path: "customer",
-                populate: "branch",
-            }, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
+            populate: [
+                {path: "customer", populate: "branch"},
+                {path: "scheme"},
+                {path: "closedBy"},
+                {path: "issuedBy"}
+            ],
         })
         .sort({createdAt: -1})
         .lean();
+
+    return branch
+        ? otherLoans.filter(item =>
+            item?.loan?.customer?.branch?._id?.toString() === branch
+        )
+        : otherLoans;
 };
 
-const fetchOtherInterestDetails = async (query, company) => {
-    const otherLoanInterests = await OtherLoanInterestModel.find(query).populate({
-        path: "otherLoan",
-        populate: {
-            path: "loan",
-            populate: [{path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
-        }
-    }).lean();
+const fetchOtherInterestDetails = async (query, company, branch) => {
+    const otherLoanInterests = await OtherLoanInterestModel.find(query)
+        .populate({
+            path: "otherLoan",
+            populate: {
+                path: "loan",
+                populate: [
+                    {path: "customer", populate: "branch"},
+                    {path: "scheme"},
+                    {path: "closedBy"},
+                    {path: "issuedBy"}
+                ]
+            }
+        })
+        .lean();
 
-    return company
-        ? otherLoanInterests.filter(ele => ele?.otherLoan?.company === company)
-        : otherLoanInterests;
+    let filtered = otherLoanInterests;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.otherLoan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.otherLoan?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
-const fetchOtherLoanCloseDetails = async (query, company) => {
-    const otherClosedLoans = await OtherCloseLoanModel.find(query).populate({
-        path: "otherLoan",
-        populate: {
-            path: "loan",
-            populate: [ {path: "customer"}, {path: "scheme"}, {path: "closedBy"}, {path: "issuedBy"}],
-        }
-    }).lean();
+const fetchOtherLoanCloseDetails = async (query, company, branch) => {
+    const otherClosedLoans = await OtherCloseLoanModel.find(query)
+        .populate({
+            path: "otherLoan",
+            populate: {
+                path: "loan",
+                populate: [
+                    {path: "customer", populate: "branch"},
+                    {path: "scheme"},
+                    {path: "closedBy"},
+                    {path: "issuedBy"}
+                ]
+            }
+        })
+        .lean();
 
-    return company
-        ? otherClosedLoans.filter(ele => ele?.otherLoan?.company === company)
-        : otherClosedLoans;
+    let filtered = otherClosedLoans;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.otherLoan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.otherLoan?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const fetchInterestDetails = async (query, company, branch) => {
@@ -74,91 +113,126 @@ const fetchInterestDetails = async (query, company, branch) => {
             path: "loan",
             populate: [
                 {path: "scheme"},
-                {
-                    path: "customer",
-                    populate: {path: "branch"},
-                    match: branch ? {'branch._id': branch} : {}
-                },
+                {path: "customer", populate: {path: "branch"}},
             ],
         })
         .lean();
 
-    return company
-        ? interests.filter(ele => ele?.loan?.company === company)
-        : interests;
+    let filtered = interests;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.loan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const fetchUchakInterestDetails = async (query, company, branch) => {
-    const uchakInterests = await UchakInterestModel.find(query).populate({
-        path: "loan",
-        populate: [
-            {path: "scheme"},
-            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
-        ],
-    }).lean();
+    const uchakInterests = await UchakInterestModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [
+                {path: "scheme"},
+                {path: "customer", populate: {path: "branch"}},
+            ],
+        })
+        .lean();
 
-    return company
-        ? uchakInterests.filter(ele => ele?.loan?.company === company)
-        : uchakInterests;
+    let filtered = uchakInterests;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.loan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const fetchPartPaymentDetails = async (query, company, branch) => {
-    const partPayments = await PartPaymentModel.find(query).populate({
-        path: "loan",
-        populate: [
-            {path: "scheme"}, {
-                path: "customer",
-                populate: {path: "branch"},
-                match: branch ? {'branch._id': branch} : {}
-            },
-        ],
-    }).lean();
+    const partPayments = await PartPaymentModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [
+                {path: "scheme"},
+                {path: "customer", populate: {path: "branch"}},
+            ],
+        })
+        .lean();
 
-    return company
-        ? partPayments.filter(ele => ele?.loan?.company === company)
-        : partPayments;
+    let filtered = partPayments;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.loan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const fetchPartReleaseDetails = async (query, company, branch) => {
-    const partReleases = await PartReleaseModel.find(query).populate({
-        path: "loan",
-        populate: [
-            {path: "scheme"}, {
-                path: "customer",
-                populate: {path: "branch"},
-                match: branch ? {'branch._id': branch} : {}
-            },
-        ],
-    }).lean();
+    const partReleases = await PartReleaseModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [
+                {path: "scheme"},
+                {path: "customer", populate: {path: "branch"}},
+            ],
+        })
+        .lean();
 
-    return company
-        ? partReleases.filter(ele => ele?.loan?.company === company)
-        : partReleases;
+    let filtered = partReleases;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.loan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const fetchLoanCloseDetails = async (query, company, branch) => {
-    const closedLoans = await CloseLoanModel.find(query).populate({
-        path: "loan",
-        populate: [
-            {path: "customer", populate: {path: "branch"}, match: branch ? {'branch._id': branch} : {}},
-        ],
-    }).lean();
+    const closedLoans = await CloseLoanModel.find(query)
+        .populate({
+            path: "loan",
+            populate: [
+                {path: "customer", populate: {path: "branch"}},
+            ],
+        })
+        .lean();
 
-    return company
-        ? closedLoans.filter(ele => ele?.loan?.company === company)
-        : closedLoans;
+    let filtered = closedLoans;
+    if (company) {
+        filtered = filtered.filter(ele => ele?.loan?.company === company);
+    }
+    if (branch) {
+        filtered = filtered.filter(ele =>
+            ele?.loan?.customer?.branch?._id?.toString() === branch
+        );
+    }
+    return filtered;
 };
 
 const dailyReport = async (req, res) => {
     try {
         const {companyId} = req.params;
-        const {branch = null, date} = req.query;
+        const {branchId = null, date} = req.query;
 
-        if (!date) return res.status(400).json({status: 400, message: "Missing 'date' parameter"});
+        if (!date)
+            return res.status(400).json({status: 400, message: "Missing 'date' parameter"});
 
         const [day, month, year] = date.split('/');
         const parsedDate = new Date(`${year}-${month}-${day}T00:00:00`);
-        if (isNaN(parsedDate)) return res.status(400).json({status: 400, message: "Invalid date format (dd/mm/yyyy)"});
+        if (isNaN(parsedDate))
+            return res.status(400).json({status: 400, message: "Invalid date format (dd/mm/yyyy)"});
 
         const nextDate = new Date(parsedDate);
         nextDate.setDate(parsedDate.getDate() + 1);
@@ -167,12 +241,12 @@ const dailyReport = async (req, res) => {
         const query = {company: companyId, deleted_at: null, createdAt};
 
         const data = await Promise.all([
-            fetchInterestDetails({createdAt}, companyId, branch),
-            fetchLoans(query, branch),
-            fetchUchakInterestDetails({createdAt}, companyId, branch),
-            fetchPartPaymentDetails({createdAt}, companyId, branch),
-            fetchPartReleaseDetails({createdAt}, companyId, branch),
-            fetchLoanCloseDetails({createdAt}, companyId, branch),
+            fetchInterestDetails({createdAt}, companyId, branchId),
+            fetchLoans(query, branchId),
+            fetchUchakInterestDetails({createdAt}, companyId, branchId),
+            fetchPartPaymentDetails({createdAt}, companyId, branchId),
+            fetchPartReleaseDetails({createdAt}, companyId, branchId),
+            fetchLoanCloseDetails({createdAt}, companyId, branchId),
         ]);
 
         const [
