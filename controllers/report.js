@@ -604,35 +604,40 @@ const customerStatement = async (req, res) => {
 };
 
 const initialLoanDetail = async (req, res) => {
-
     try {
         const {companyId} = req.params;
 
-        const loans = await IssuedLoanInitialModel.find({company: companyId}).populate('customer').populate("scheme");
+        const loans = await IssuedLoanInitialModel.find({company: companyId})
+            .populate({
+                path: 'customer',
+                populate: {
+                    path: 'branch',
+                },
+            })
+            .populate('scheme');
 
-        const result = await Promise.all(loans.map(async (loan) => {
-            loan = loan.toObject();
+        const result = await Promise.all(
+            loans.map(async (loan) => {
+                loan = loan.toObject();
 
-            const [interests] = await Promise.all([
-                InterestModel.find({loan: loan.loan}).sort({createdAt: -1}),
-            ]);
+                const interests = await InterestModel.find({loan: loan.loan}).sort({createdAt: -1});
 
-            return {...loan, interests};
-        }));
+                return {...loan, interests};
+            })
+        );
 
         return res.status(200).json({
             status: 200,
-            data: result
-        })
-
+            data: result,
+        });
     } catch (e) {
-        console.error("Error fetching loan detail report:", e.message);
+        console.error('Error fetching loan detail report:', e.message);
         return res.status(500).json({
             status: 500,
-            message: "Internal server error",
-        })
+            message: 'Internal server error',
+        });
     }
-}
+};
 
 const allInOutReport = async (req, res) => {
     try {
