@@ -558,7 +558,7 @@ const customerStatement = async (req, res) => {
             const result = types.flatMap(type =>
                 type.data.map(entry => ({
                     date: entry.date,
-                    debit: entry.amountPaid,
+                    debit: entry.amountPaid || entry.paymentDetail.bankAmount || entry.paymentDetail.cashAmount,
                     credit: 0,
                     loanNo: loan.loanNo,
                     detail: type.label
