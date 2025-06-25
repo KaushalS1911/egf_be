@@ -435,8 +435,11 @@ const otherLoanSummary = async (req, res) => {
         const loans = await OtherIssuedLoanModel.find({company: companyId, deleted_at: null})
             .populate({
                 path: "loan",
-                populate: [{path: "customer", select: "firstName middleName lastName"}, {path: "scheme"}]
-            })
+                populate: [
+                    {path: "customer", select: "firstName middleName lastName"},
+                    {path: "scheme"}
+                ]
+            });
 
         const result = await Promise.all(loans.map(async (loan) => {
             loan = loan.toObject();
@@ -444,7 +447,6 @@ const otherLoanSummary = async (req, res) => {
             const interestPayments = await OtherLoanInterestModel.find({otherLoan: loan._id}).sort({createdAt: -1});
 
             loan.totalInterestAmt = interestPayments.reduce((sum, entry) => sum + (entry.payAfterAdjust || 0), 0);
-
             loan.totalCharge = interestPayments.reduce((sum, entry) => sum + (entry.charge || 0), 0);
 
             const today = moment();
@@ -461,6 +463,12 @@ const otherLoanSummary = async (req, res) => {
 
             return loan;
         }));
+
+        result.sort((a, b) => {
+            const aNum = a.loan.loanNo || '';
+            const bNum = b.loan.loanNo || '';
+            return aNum.localeCompare(bNum, undefined, {numeric: true, sensitivity: 'base'});
+        });
 
         return res.status(200).json({
             message: "Report data of other loan summary fetched successfully",
