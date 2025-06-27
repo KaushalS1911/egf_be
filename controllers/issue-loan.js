@@ -380,28 +380,31 @@ async function GetInterestPayment(req, res) {
 async function InterestReports(req, res) {
     try {
         const {companyId} = req.params;
+        const {branch} = req.query;
 
-        // Fetch all loans along with their customer and scheme details
         const loans = await IssuedLoanModel.find({
             company: companyId,
             deleted_at: null
-        }).populate({path: 'customer', populate: "branch"}).populate("scheme");
+        })
+            .populate({path: 'customer', populate: 'branch'})
+            .populate('scheme');
 
-        // Process each loan concurrently
-        const result = await Promise.all(loans.map(async (loan) => {
+        const filteredLoans = branch
+            ? loans.filter(loan => loan?.customer?.branch?._id?.toString() === branch)
+            : loans;
+
+        const result = await Promise.all(filteredLoans.map(async (loan) => {
             let {scheme: {interestRate}, lastInstallmentDate, consultingCharge} = loan;
             loan = loan.toObject();
 
-            // Default values
             loan.closedDate = null;
             loan.closeAmt = null;
             loan.penaltyAmount = 0;
             loan.day = 0;
 
-            // If loan is closed, fetch the latest close date & total closed amount
             if (loan.status === 'Closed') {
                 const closedLoans = await LoanCloseModel.find({loan: loan._id, deleted_at: null})
-                    .sort({createdAt: -1})
+                    .sort({createdAt: -1});
 
                 if (closedLoans.length > 0) {
                     loan.closedDate = closedLoans[0].date;
@@ -409,7 +412,6 @@ async function InterestReports(req, res) {
                 }
             }
 
-            // Fetch interests & calculate total paid interest
             const interests = await InterestModel.find({loan: loan._id}).sort({createdAt: -1});
             const totalPaidInterest = interests.reduce((acc, interest) => acc + (interest.amountPaid || 0), 0);
             const interestDate = interests[0]?.createdAt ? new Date(interests[0]?.createdAt) : null;
@@ -425,10 +427,9 @@ async function InterestReports(req, res) {
                 uchakInterest = uchakInterests.length > 0 ? uchakInterests[0].totalInterest : 0;
             }
 
-            // Calculate interest days
             const today = moment().startOf('day');
             const lastIntDate = interests?.length !== 0 ? moment(lastInstallmentDate).startOf('day') : moment(loan.issueDate).startOf('day');
-            const daysDiff = interests?.length !== 0 ? today.diff(lastIntDate, 'days') : today.diff(lastIntDate, 'days') + 1 ;
+            const daysDiff = interests?.length !== 0 ? today.diff(lastIntDate, 'days') : today.diff(lastIntDate, 'days') + 1;
 
             let penaltyDayDiff = today.diff(
                 moment(interests && interests.length ? lastInstallmentDate : loan.nextInstallmentDate),
@@ -438,8 +439,8 @@ async function InterestReports(req, res) {
             loan.penaltyAmount = loan.status === 'Closed' ? 0 : interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
             loan.pendingDays = loan.status === 'Closed' ? 0 : daysDiff;
             loan.day = interests.reduce((sum, entry) => sum + (Number(entry.days) || 0), 0);
-            // Calculate pending interest
-            const intRate = Math.min(interestRate, 1.5); // Max interest rate capped at 1.5%
+
+            const intRate = Math.min(interestRate, 1.5); // cap interest
             const interestFactor = (intRate / 100) * 12 / 365;
             const consultingFactor = (consultingCharge / 100) * 12 / 365;
 
@@ -448,7 +449,6 @@ async function InterestReports(req, res) {
 
             let pendingInterest = interestAmount + consultingAmount - uchakInterest + old_cr_dr;
 
-            // Calculate penalty if overdue
             const penaltyData = await PenaltyModel.findOne({
                 company: companyId,
                 afterDueDateFromDate: { $lte: penaltyDayDiff },
@@ -458,7 +458,6 @@ async function InterestReports(req, res) {
             const penaltyInterest = penaltyData?.penaltyInterest || 0;
             pendingInterest += (loan.interestLoanAmount * (penaltyInterest / 100) * 12 * daysDiff) / 365;
 
-            // Assign final values
             loan.interestAmount = interests.reduce((acc, interest) => acc + (interest.interestAmount || 0), 0);
             loan.consultingAmount = interests.reduce((acc, interest) => acc + (interest.consultingCharge || 0), 0);
             loan.penaltyAmount = interests.reduce((acc, interest) => acc + (interest.penalty || 0), 0);
