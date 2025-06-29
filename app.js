@@ -66,9 +66,6 @@ cron.schedule('0 0 * * *', async () => {
     } else {
         console.log("Not in last 3 days of the month:", today.format('YYYY-MM-DD'));
     }
-}, {
-    scheduled: true,
-    timezone: "Asia/Kolkata"
 });
 
 app.listen(port, () => {
