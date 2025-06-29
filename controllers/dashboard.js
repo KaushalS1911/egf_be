@@ -15,6 +15,8 @@ const PaymentInOut = require('../models/payment-in-out');
 const Party = require("../models/party");
 const PartPayment = require("../models/loan-part-payment");
 const PartRelease = require("../models/part-release");
+const Transfer = require("../models/transfer");
+const UchakInterest = require("../models/uchak-interest-payment");
 const moment = require('moment');
 
 const INQUIRY_REFERENCE_BY = [
@@ -328,32 +330,34 @@ const getLoanAmountPerScheme = async (req, res) => {
     try {
         const {start, end} = getDateRange(timeRange, company.createdAt);
 
-        const schemeLoanStats = await IssuedLoan.aggregate([
-            {
-                $match: {
-                    company: companyId,
-                    deleted_at: null,
-                    createdAt: {$gte: start, $lte: end}
-                }
-            },
-            {
-                $group: {
-                    _id: "$scheme",
-                    totalInterestAmount: {$sum: "$interestLoanAmount"}
-                }
-            }
-        ]);
+        const allLoans = await IssuedLoan.find({
+            company: companyId,
+            deleted_at: null,
+            createdAt: {$gte: start, $lte: end},
+            status: {$ne: 'Closed'}
+        }).populate('scheme');
 
-        const schemeIdsUsed = schemeLoanStats.map(stat => stat._id);
+        const schemeLoanMap = {};
+        for (const loan of allLoans) {
+            const schemeIdStr = loan?.scheme?._id?.toString();
+            if (!schemeIdStr) continue;
+
+            if (!schemeLoanMap[schemeIdStr]) {
+                schemeLoanMap[schemeIdStr] = [];
+            }
+            schemeLoanMap[schemeIdStr].push(loan);
+        }
+
+        const schemeIds = Object.keys(schemeLoanMap);
         const schemes = await Scheme.find({
-            _id: {$in: schemeIdsUsed},
+            _id: {$in: schemeIds},
             company: companyId,
             deleted_at: null
         });
 
         let globalLoanTotal = 0;
-        let totalInterestRate = 0;
-        let interestRateCount = 0;
+        let totalloans = 0;
+        let totalLoanInterestRate = 0;
 
         const categories = [];
         const series = [{
@@ -362,15 +366,18 @@ const getLoanAmountPerScheme = async (req, res) => {
         }];
 
         const result = schemes.map(scheme => {
-            const stat = schemeLoanStats.find(stat => String(stat._id) === String(scheme._id));
-            const totalLoanAmount = stat ? stat.totalInterestAmount || 0 : 0;
+            const schemeIdStr = scheme._id.toString();
+            const loans = schemeLoanMap[schemeIdStr] || [];
+
+            const totalLoanAmount = loans.reduce((sum, l) => sum + (l.interestLoanAmount || 0), 0);
+            const loanCount = loans.length;
 
             globalLoanTotal += totalLoanAmount;
+            totalloans += loanCount;
 
-            if (scheme.interestRate != null) {
-                totalInterestRate += scheme.interestRate;
-                interestRateCount += 1;
-            }
+            totalLoanInterestRate += loans.reduce((sum, l) => {
+                return sum + (l?.scheme?.interestRate || 0);
+            }, 0);
 
             const interestLabel = scheme.interestRate != null ? ` (${scheme.interestRate}%)` : " (0%)";
             categories.push(`${scheme.name}${interestLabel}`);
@@ -380,11 +387,14 @@ const getLoanAmountPerScheme = async (req, res) => {
                 schemeId: scheme._id,
                 schemeName: scheme.name,
                 totalLoanAmount,
+                loanCount,
                 avgInterestRate: scheme.interestRate || 0
             };
         });
 
-        const globalAvgInterestRate = interestRateCount > 0 ? (totalInterestRate / interestRateCount) : 0;
+        const globalAvgInterestRate = totalloans > 0
+            ? ((totalLoanInterestRate).toFixed(2) / totalloans)
+            : 0;
 
         res.status(200).json({
             success: true,
@@ -850,35 +860,26 @@ const getPaymentInOutSummary = async (req, res) => {
         const baseMatch = {
             company: companyId,
             date: {$gte: start, $lte: end},
-            deleted_at: null
+            deleted_at: null,
+            ...(branchId && {branch: branchId})
         };
-        if (branchId) baseMatch.branch = branchId;
 
         const payments = await PaymentInOut.aggregate([
             {$match: baseMatch},
             {
                 $group: {
                     _id: "$status",
-                    totalCash: {
-                        $sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}
-                    },
-                    totalBank: {
-                        $sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}
-                    }
+                    totalCash: {$sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}},
+                    totalBank: {$sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}}
                 }
             }
         ]);
 
-        let paymentInTotal = 0;
-        let paymentOutTotal = 0;
-
+        let paymentInTotal = 0, paymentOutTotal = 0;
         payments.forEach(p => {
             const total = p.totalCash + p.totalBank;
-            if (p._id === 'Payment In') {
-                paymentInTotal = total;
-            } else if (p._id === 'Payment Out') {
-                paymentOutTotal = total;
-            }
+            if (p._id === 'Payment In') paymentInTotal = total;
+            else if (p._id === 'Payment Out') paymentOutTotal = total;
         });
 
         const difference = paymentInTotal - paymentOutTotal;
@@ -890,65 +891,52 @@ const getPaymentInOutSummary = async (req, res) => {
                 {
                     $group: {
                         _id: null,
-                        totalCash: {
-                            $sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}
-                        },
-                        totalBank: {
-                            $sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}
-                        }
+                        totalCash: {$sum: {$toDouble: {$ifNull: ["$paymentDetail.cashAmount", 0]}}},
+                        totalBank: {$sum: {$toDouble: {$ifNull: ["$paymentDetail.bankAmount", 0]}}}
                     }
                 }
             ]);
-            if (expenseResult.length > 0) {
+            if (expenseResult.length) {
                 totalExpense = expenseResult[0].totalCash + expenseResult[0].totalBank;
             }
         }
 
-        let receivableAmt = 0;
-        let payableAmt = 0;
-
+        let receivableAmt = 0, payableAmt = 0;
         if (
             includeAll ||
-            requestedFields.includes('receivableamt') ||
-            requestedFields.includes('payableamt') ||
-            requestedFields.includes('receivablepayabledifference')
+            requestedFields.some(f => ['receivableamt', 'payableamt', 'receivablepayabledifference'].includes(f))
         ) {
-            const partyMatch = {
-                company: companyId,
-                ...(branchId && {branch: branchId})
-            };
+            const paymentList = await PaymentInOut.find(baseMatch).populate('party');
+            const partyBalanceMap = new Map();
 
-            const party = await Party.find(partyMatch).select('amount');
+            for (const payment of paymentList) {
+                const partyId = payment.party?._id?.toString();
+                if (!partyId) continue;
 
-            receivableAmt = party.reduce(
-                (prev, next) => next.amount < 0 ? prev + Math.abs(next.amount) : prev,
-                0
-            );
+                const totalAmount = Number(payment.paymentDetail?.cashAmount || 0) + Number(payment.paymentDetail?.bankAmount || 0);
+                let balance = partyBalanceMap.get(partyId) || 0;
 
-            payableAmt = party.reduce(
-                (prev, next) => next.amount > 0 ? prev + next.amount : prev,
-                0
-            );
+                if (payment.status === "Payment In") {
+                    balance -= totalAmount;
+                } else if (payment.status === "Payment Out") {
+                    balance += totalAmount;
+                }
+
+                partyBalanceMap.set(partyId, balance);
+            }
+
+            for (const balance of partyBalanceMap.values()) {
+                if (balance < 0) {
+                    receivableAmt += Math.abs(balance);
+                } else {
+                    payableAmt += balance;
+                }
+            }
         }
 
         const receivablePayableDifference = receivableAmt - payableAmt;
 
         const responseData = {days};
-
-        if (includeAll || requestedFields.includes('paymentintotal')) {
-            responseData.paymentInTotal = paymentInTotal;
-            responseData.avgPaymentInPerDay = +(paymentInTotal / days).toFixed(2);
-        }
-
-        if (includeAll || requestedFields.includes('paymentouttotal')) {
-            responseData.paymentOutTotal = paymentOutTotal;
-            responseData.avgPaymentOutPerDay = +(paymentOutTotal / days).toFixed(2);
-        }
-
-        if (includeAll || requestedFields.includes('difference')) {
-            responseData.difference = difference;
-            responseData.avgDifferencePerDay = +(difference / days).toFixed(2);
-        }
 
         if (includeAll || requestedFields.includes('totalexpense')) {
             responseData.totalExpense = totalExpense;
@@ -1029,53 +1017,81 @@ const getTotalInOutAmount = async (req, res) => {
         const reduceCashBank = (items, filterFn = () => true) => {
             return items.reduce((acc, item) => {
                 if (filterFn(item)) {
-                    const cash = Number(item?.paymentDetail?.cashAmount || 0);
-                    const bank = Number(item?.paymentDetail?.bankAmount || 0);
-                    acc.cash += cash;
-                    acc.bank += bank;
+                    acc.cash += Number(item?.paymentDetail?.cashAmount || 0);
+                    acc.bank += Number(item?.paymentDetail?.bankAmount || 0);
                 }
                 return acc;
             }, {cash: 0, bank: 0});
         };
 
-        const partReleases = await PartRelease.find({loan: {$in: issuedLoanIds}, deleted_at: null});
-        const partReleaseAmounts = reduceCashBank(partReleases);
-        const partRelease = partReleaseAmounts.cash + partReleaseAmounts.bank;
+        const getCashBankTotal = async (Model, query) => {
+            const list = await Model.find(query);
+            const amounts = reduceCashBank(list);
+            return amounts.cash + amounts.bank;
+        };
 
-        const loanCloseList = await LoanClose.find({loan: {$in: issuedLoanIds}, deleted_at: null});
-        const loanCloseAmounts = reduceCashBank(loanCloseList);
-        const loanCloseTotal = loanCloseAmounts.cash + loanCloseAmounts.bank;
+        const [
+            partRelease,
+            loanCloseTotal,
+            chargeInOutList,
+            expenses,
+            otherLoanInterestList,
+            transferList,
+            uchakInterestList,
+            partyList
+        ] = await Promise.all([
+            getCashBankTotal(PartRelease, {loan: {$in: issuedLoanIds}, deleted_at: null}),
+            getCashBankTotal(LoanClose, {loan: {$in: issuedLoanIds}, deleted_at: null}),
+            ChargeInOut.find(commonFilter),
+            Expense.find(commonFilter),
+            OtherLoanInterestPayment.find({otherLoan: {$in: otherLoanIds}, deleted_at: null}),
+            Transfer.find({company: companyId, ...branchFilter, deleted_at: null}),
+            UchakInterest.find({loan: {$in: issuedLoanIds}, deleted_at: null}),
+            Party.find({company: companyId, ...branchFilter}).select('amount')
+        ]);
 
-        const chargeInOutAll = await ChargeInOut.find(commonFilter);
-        const chargeReceivable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment In');
-        const chargeOutPayable = reduceCashBank(chargeInOutAll, item => item.status === 'Payment Out');
+        const chargeReceivable = reduceCashBank(chargeInOutList, item => item.status === 'Payment In');
+        const chargeOutPayable = reduceCashBank(chargeInOutList, item => item.status === 'Payment Out');
         const chargeReceivableTotal = chargeReceivable.cash + chargeReceivable.bank;
         const chargeOutPayableTotal = chargeOutPayable.cash + chargeOutPayable.bank;
 
-        const partyList = await Party.find({company: companyId, ...branchFilter}).select('amount');
-        const partyReceivable = partyList.reduce((acc, p) => p.amount < 0 ? acc + Math.abs(p.amount) : acc, 0);
-        const partyPayable = partyList.reduce((acc, p) => p.amount >= 0 ? acc + p.amount : acc, 0);
-
-        const expenses = await Expense.find(commonFilter);
         const expenseAmounts = reduceCashBank(expenses);
         const expenseTotal = expenseAmounts.cash + expenseAmounts.bank;
 
-        const otherLoanInterestList = await OtherLoanInterestPayment.find({
-            otherLoan: {$in: otherLoanIds},
-            deleted_at: null
-        });
-
-        const adjustedInterest = otherLoanInterestList.reduce((acc, item) => {
+        const otherLoanInterest = otherLoanInterestList.reduce((acc, item) => {
             const cash = Number(item?.paymentDetail?.cashAmount || 0);
             const bank = Number(item?.paymentDetail?.bankAmount || 0);
             const charge = Number(item?.charge || 0);
             return acc + (cash + bank - charge);
         }, 0);
 
-        const otherLoanInterest = adjustedInterest;
+        const uchakInterestAmounts = reduceCashBank(uchakInterestList);
+        const uchakInterestTotal = uchakInterestAmounts.cash + uchakInterestAmounts.bank;
 
-        const allInAmount = interestAmount + partPayment + partRelease + loanCloseTotal + otherLoan + chargeReceivableTotal + partyReceivable;
-        const allOutAmount = loanPaymentAmount + otherLoanInterest + otherLoanClose + chargeOutPayableTotal + expenseTotal + partyPayable;
+        const partyReceivable = partyList.reduce((acc, p) => p.amount < 0 ? acc + Math.abs(p.amount) : acc, 0);
+        const partyPayable = partyList.reduce((acc, p) => p.amount >= 0 ? acc + p.amount : acc, 0);
+
+        const transferAmountByType = (type, adjType) =>
+            transferList
+                .filter(t => t.transferType === type &&
+                    (t.paymentDetail?.adjustmentType === adjType || t.paymentDetails?.adjustmentType === adjType))
+                .reduce((acc, t) => acc + Number(t?.paymentDetail?.amount || t?.paymentDetails?.amount || 0), 0);
+
+        const transferIncreaseAmount = transferAmountByType("Adjust Bank Balance", "Increase balance");
+        const addCashAmount = transferAmountByType("Adjustment", "Add Cash");
+        const transferDecreaseAmount = transferAmountByType("Adjust Bank Balance", "Decrease balance");
+        const reduceCashAmount = transferAmountByType("Adjustment", "Reduce Cash");
+
+        const allInAmount =
+            interestAmount + partPayment + partRelease + loanCloseTotal +
+            otherLoan + chargeReceivableTotal + partyReceivable +
+            transferIncreaseAmount + addCashAmount + uchakInterestTotal;
+
+        const allOutAmount =
+            loanPaymentAmount + otherLoanInterest + otherLoanClose +
+            chargeOutPayableTotal + expenseTotal + partyPayable +
+            transferDecreaseAmount + reduceCashAmount;
+
         const netAmount = allInAmount - allOutAmount;
 
         const toFixed2 = num => Number(num).toFixed(2);

@@ -218,6 +218,7 @@ async function allTransactions(req, res) {
                     entry?.paymentDetails?.cashAmount ?? 0),
                 paymentDetail: entry?.paymentDetail ??
                     entry?.paymentDetails ?? {},
+                allCategory: entry?.category ?? "",
             }))
         );
 
@@ -454,7 +455,7 @@ async function allBankTransactions(req, res) {
                             ref: '',
                             bankHolderName: e.paymentDetail?.to?.accountHolderName,
                             bankName: `${e.paymentDetail?.to?.bankName}`,
-                            detail: `${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName}) to ${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName})`,
+                            detail: `${e.paymentDetail?.from?.bankName}(${e.paymentDetail?.from?.accountHolderName}) to ${e.paymentDetail?.to?.bankName}(${e.paymentDetail?.to?.accountHolderName})`,
                         }
                     ];
                 }
@@ -551,6 +552,7 @@ async function allBankTransactions(req, res) {
                 paymentDetail: entry?.paymentDetail ??
                     entry?.paymentDetails ??
                     entry?.bankDetails ?? {},
+                allCategory: entry?.category ?? "",
             }))
         ).filter(t => t?.amount !== 0);
 
