@@ -50,7 +50,7 @@ const updateLoanStatus = async () => {
 // Schedule the task to run every 5 minutes
 cron.schedule('*/5 * * * *', updateLoanStatus);
 
-cron.schedule('*/10 * * * *', async () => {
+cron.schedule('0 7 * * *', async () => {
     const today = moment().tz('Asia/Kolkata');
     const lastDay = today.clone().endOf('month').date();
     const currentDate = today.date();

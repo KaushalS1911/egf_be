@@ -133,7 +133,6 @@ async function interestReminders() {
         const loans = await IssuedLoanModel.find({
             nextInstallmentDate: {$lt: fromDate.toDate()},
             status: { $nin: ["Closed",'Issued'] },
-            company: "67eba3d435290b673d05adac",
             deleted_at: null,
         }).populate([
             { path: "customer", populate: "branch" },
