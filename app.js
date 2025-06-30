@@ -51,7 +51,7 @@ const updateLoanStatus = async () => {
 cron.schedule('*/5 * * * *', updateLoanStatus);
 
 cron.schedule('0 7 * * *', async () => {
-    const today = moment().tz('Asia/Kolkata');
+    const today = moment().tz('Asia/Kolkata'); 
     const lastDay = today.clone().endOf('month').date();
     const currentDate = today.date();
 
