@@ -10,7 +10,7 @@ const {updateOverdueLoans, updateOverdueOtherLoans, interestReminders} = require
 
 const appRouter = require('./routes/index');
 const mongoose = require("mongoose");
-const moment = require('moment-timezone');
+const moment = require('moment');
 const port = process.env.PORT || 8000
 
 const app = express();
@@ -51,22 +51,20 @@ const updateLoanStatus = async () => {
 cron.schedule('*/5 * * * *', updateLoanStatus);
 
 cron.schedule('0 0 * * *', async () => {
-    const today = moment().tz('Asia/Kolkata'); 
+    const today = moment();
     const lastDay = today.clone().endOf('month').date();
-    const currentDate = today.date();
 
-    if ([lastDay, lastDay - 1, lastDay - 2].includes(currentDate)) {
+    // Check if today is one of the last 3 days of the month
+    if ([lastDay - 1, lastDay - 2, lastDay].includes(today.date())) {
         try {
             await interestReminders();
-            console.log("✅ Reminders sent successfully on", today.format('YYYY-MM-DD HH:mm:ss'));
+            console.log("Reminders sent successfully on", today.format('YYYY-MM-DD'));
         } catch (error) {
-            console.error("❌ Error during interest reminder:", error);
+            console.error("Error occurred during loan status update:", error);
         }
     } else {
-        console.log("ℹ️ Not in last 3 days of the month:", today.format('YYYY-MM-DD HH:mm:ss'));
+        console.log("Not in last 3 days of the month:", today.format('YYYY-MM-DD'));
     }
-}, {
-    timezone: "Asia/Kolkata"
 });
 
 app.listen(port, () => {
